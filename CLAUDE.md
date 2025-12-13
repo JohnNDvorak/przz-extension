@@ -237,7 +237,7 @@ przz-extension/
 
 - [x] Polynomials module reproduces PRZZ polynomials exactly and respects constraints *(completed 2025-12-12)*
 - [x] Quadrature module passes known integral tests *(completed 2025-12-13, 46 tests)*
-- [ ] Series engine passes symbolic coefficient tests; no finite differences used
+- [x] Series engine passes symbolic coefficient tests; no finite differences used *(completed 2025-12-13, 57 tests)*
 - [ ] (1,1) pair matches PRZZ sub-result (if available) and is stable under quadrature refinement
 - [ ] Full K=3 assembly yields c ≈ 2.1374544061321726 and κ ≈ 0.417293962
 - [ ] All tests passing; validated with quadrature convergence sweep
@@ -249,8 +249,8 @@ przz-extension/
 
 1. ~~`polynomials.py` + tests → Validate PRZZ polynomials satisfy constraints~~ **DONE**
 2. ~~`quadrature.py` + tests → Validate on known integrals (∫x^k dx = 1/(k+1))~~ **DONE**
-3. `series.py` + tests → Validate derivative extraction on symbolic examples ← **NEXT**
-4. `term_dsl.py` + tests → Define Term structure, AffineExpr
+3. ~~`series.py` + tests → Validate derivative extraction on symbolic examples~~ **DONE**
+4. `term_dsl.py` + tests → Define Term structure, AffineExpr ← **NEXT**
 5. `terms_k3_d1.py` - Start with (1,1) ONLY
 6. `evaluate.py` + tests → Compute c for (1,1) only first, validate
 7. Add remaining pairs one-by-one: (1,2), (1,3), (2,2), (2,3), (3,3)
