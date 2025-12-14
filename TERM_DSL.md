@@ -19,15 +19,20 @@ A Term DSL makes:
 ### Formal Variables
 
 For pair (ℓ₁, ℓ₂):
-- x_vars: x₁, ..., x_{ℓ₁} (or just "x" if ℓ₁=1)
-- y_vars: y₁, ..., y_{ℓ₂} (or just "y" if ℓ₂=1)
+- x_vars: x₁, ..., x_{ℓ₁}
+- y_vars: y₁, ..., y_{ℓ₂}
 
 All derivative orders are 1 per variable (d=1 residue structure).
 
+**Canonical naming convention:**
+- Always use numbered variables: `x1`, `y1` even when ℓ=1
+- This ensures consistent handling across all pair types
+- `Term.vars` is the single source of truth for variable ordering
+
 **Examples:**
 ```
-(1,1): vars = ("x", "y")
-(1,2): vars = ("x", "y1", "y2")
+(1,1): vars = ("x1", "y1")
+(1,2): vars = ("x1", "y1", "y2")
 (2,2): vars = ("x1", "x2", "y1", "y2")
 (3,3): vars = ("x1", "x2", "x3", "y1", "y2", "y3")
 ```
@@ -91,17 +96,19 @@ class AffineExpr:
     var_coeffs: Dict[str, GridFunc]
     
     def evaluate_a0(self, U: np.ndarray, T: np.ndarray) -> np.ndarray:
-        """Evaluate the base term on grid."""
+        """Evaluate the base term on grid. Preserves dtype for complex."""
         if callable(self.a0):
             return self.a0(U, T)
-        return np.full_like(U, self.a0)
-    
+        # Dtype-safe lifting: preserves complex if scalar is complex
+        return np.full(U.shape, self.a0, dtype=np.result_type(U, self.a0))
+
     def evaluate_coeff(self, var: str, U: np.ndarray, T: np.ndarray) -> np.ndarray:
-        """Evaluate coefficient of var on grid."""
+        """Evaluate coefficient of var on grid. Preserves dtype for complex."""
         c = self.var_coeffs.get(var, 0.0)
         if callable(c):
             return c(U, T)
-        return np.full_like(U, c)
+        # Dtype-safe lifting: preserves complex if scalar is complex
+        return np.full(U.shape, c, dtype=np.result_type(U, c))
 ```
 
 ### PolyFactor and ExpFactor
@@ -109,14 +116,15 @@ class AffineExpr:
 ```python
 @dataclass(frozen=True)
 class PolyFactor:
-    """A polynomial factor: P_name(argument) or Q(argument)."""
+    """A polynomial factor: P_name(argument)^power or Q(argument)^power."""
     poly_name: str      # "P1", "P2", "P3", "Q"
     argument: AffineExpr
+    power: int = 1      # For Q² cases, use power=2 instead of repeating factor
 
 @dataclass(frozen=True)
 class ExpFactor:
-    """An exponential factor: exp(R · argument)."""
-    R: float
+    """An exponential factor: exp(scale · argument)."""
+    scale: float        # For exp(2R·arg), use scale=2*R
     argument: AffineExpr
 ```
 
@@ -135,7 +143,7 @@ class Term:
     przz_reference: Optional[str]       # e.g., "Section 6.2.1, I₁"
     
     # Formal variables
-    vars: Tuple[str, ...]               # ("x", "y") or ("x", "y1", "y2") etc.
+    vars: Tuple[str, ...]               # ("x1", "y1") or ("x1", "y1", "y2") etc.
     deriv_orders: Dict[str, int]        # Typically all 1's for d=1
     
     # Integration
@@ -227,13 +235,13 @@ def make_Q_arg_beta(theta: float, all_vars: Tuple[str, ...],
 def make_terms_11(theta: float, R: float) -> List[Term]:
     """Create all terms for pair (1,1)."""
     
-    x_vars = ("x",)
-    y_vars = ("y",)
-    all_vars = ("x", "y")
-    
+    x_vars = ("x1",)
+    y_vars = ("y1",)
+    all_vars = ("x1", "y1")
+
     # Common expressions
-    P1_arg = make_P_argument(x_vars)  # x + u
-    P2_arg = make_P_argument(y_vars)  # y + u
+    P1_arg = make_P_argument(x_vars)  # x1 + u
+    P2_arg = make_P_argument(y_vars)  # y1 + u
     Q_arg_alpha = make_Q_arg_alpha(theta, all_vars, y_vars)
     Q_arg_beta = make_Q_arg_beta(theta, all_vars, x_vars)
     
@@ -245,13 +253,13 @@ def make_terms_11(theta: float, R: float) -> List[Term]:
         pair=(1, 1),
         przz_reference="Section 6.2.1, I₁",
         vars=all_vars,
-        deriv_orders={"x": 1, "y": 1},
+        deriv_orders={"x1": 1, "y1": 1},
         domain="[0,1]^2",
         numeric_prefactor=1.0,
         algebraic_prefactor=AffineExpr(
-            # (θ(x+y) + 1)/θ = 1/θ + (x+y)
+            # (θ(x1+y1) + 1)/θ = 1/θ + (x1+y1)
             a0=lambda U, T, th=theta: 1.0/th,
-            var_coeffs={"x": 1.0, "y": 1.0}
+            var_coeffs={"x1": 1.0, "y1": 1.0}
         ),
         poly_prefactors=[lambda U, T: (1 - U)**2],
         poly_factors=[
@@ -300,12 +308,12 @@ def make_terms_11(theta: float, R: float) -> List[Term]:
 def make_terms_12(theta: float, R: float) -> List[Term]:
     """Create all terms for pair (1,2)."""
     
-    x_vars = ("x",)
+    x_vars = ("x1",)
     y_vars = ("y1", "y2")
-    all_vars = ("x", "y1", "y2")
-    
+    all_vars = ("x1", "y1", "y2")
+
     # P arguments
-    P1_arg = make_P_argument(x_vars)      # x + u
+    P1_arg = make_P_argument(x_vars)      # x1 + u
     P2_arg = make_P_argument(y_vars)      # y1 + y2 + u
     
     # Q arguments
@@ -320,13 +328,13 @@ def make_terms_12(theta: float, R: float) -> List[Term]:
         pair=(1, 2),
         przz_reference="Generalization of Section 6.2.1",
         vars=all_vars,
-        deriv_orders={"x": 1, "y1": 1, "y2": 1},
+        deriv_orders={"x1": 1, "y1": 1, "y2": 1},
         domain="[0,1]^2",
         numeric_prefactor=1.0,
         algebraic_prefactor=AffineExpr(
-            # (θ·S + 1)/θ where S = x + y1 + y2
+            # (θ·S + 1)/θ where S = x1 + y1 + y2
             a0=lambda U, T, th=theta: 1.0/th,
-            var_coeffs={"x": 1.0, "y1": 1.0, "y2": 1.0}
+            var_coeffs={"x1": 1.0, "y1": 1.0, "y2": 1.0}
         ),
         poly_prefactors=[lambda U, T: (1 - U)**3],  # (1-u)^{ℓ₁+ℓ₂}
         poly_factors=[
@@ -364,16 +372,9 @@ def generate_pair_terms(ell1: int, ell2: int, theta: float, R: float) -> List[Te
     - P arguments sum their respective vars + u
     - Q arguments follow the Arg_α/Arg_β pattern
     """
-    # Variable naming
-    if ell1 == 1:
-        x_vars = ("x",)
-    else:
-        x_vars = tuple(f"x{i}" for i in range(1, ell1 + 1))
-    
-    if ell2 == 1:
-        y_vars = ("y",)
-    else:
-        y_vars = tuple(f"y{j}" for j in range(1, ell2 + 1))
+    # Variable naming - always use numbered form for consistency
+    x_vars = tuple(f"x{i}" for i in range(1, ell1 + 1))
+    y_vars = tuple(f"y{j}" for j in range(1, ell2 + 1))
     
     all_vars = x_vars + y_vars
     
