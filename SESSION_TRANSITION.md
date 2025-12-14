@@ -70,7 +70,7 @@ cd /Users/john.n.dvorak/Documents/Git/Zeta_Mollifier_Optimization/przz-extension
 - 12 tests for pitfall guards
 
 ### Composition Module — COMPLETE
-- `src/composition.py` (~190 lines)
+- `src/composition.py` (~205 lines)
 - `tests/test_composition.py` (20 tests)
 
 **Key Features:**
@@ -78,7 +78,8 @@ cd /Users/john.n.dvorak/Documents/Git/Zeta_Mollifier_Optimization/przz-extension
 - `compose_exp_on_affine()`: Convenience wrapper for exp(R*(u + δ))
 - `PolyLike` protocol for polynomial-like objects
 - `_get_poly_degree()`: Robust degree detection with fallback
-- Validates lin keys are in var_names
+- Validates lin keys are in var_names (both functions)
+- Active variable truncation: uses `len(lin)` not `len(var_names)`
 - Full docstrings with mathematical derivations
 
 **Key validations:**
@@ -87,6 +88,12 @@ cd /Users/john.n.dvorak/Documents/Git/Zeta_Mollifier_Optimization/przz-extension
 - Full pipeline test: compose → scale → exp → extract
 - PRZZ polynomial wrappers (P1, Pell, Q) tested directly
 - Minimal poly-like protocol fallback tested
+
+**ChatGPT Feedback Integration (2025-12-13):**
+- Fixed: Active variable count for truncation (efficiency)
+- Fixed: Lin-key validation in compose_exp_on_affine (fail-fast)
+- Verified: series.py defensive invariants correct
+- Verified: TERM_DSL.md α/β structure is mathematically correct
 
 ---
 

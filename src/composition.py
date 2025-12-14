@@ -129,9 +129,10 @@ def compose_polynomial_on_affine(
 
     # P(u0 + δ) = Σₖ P⁽ᵏ⁾(u0)/k! · δᵏ
     # Series terminates at k = min(degree, n_active_vars)
-    n_vars = len(var_names)
-    poly_degree = _get_poly_degree(poly, fallback=n_vars)
-    max_k = min(poly_degree, n_vars)
+    # Use active variable count (len(lin)) not total var_names for efficiency
+    n_active = len(lin)
+    poly_degree = _get_poly_degree(poly, fallback=n_active)
+    max_k = min(poly_degree, n_active)
 
     result = TruncatedSeries.from_scalar(0.0, var_names)
     delta_power = TruncatedSeries.from_scalar(1.0, var_names)  # δ^0 = 1
@@ -183,7 +184,17 @@ def compose_exp_on_affine(
         exp(R*δ) = 1 + R*δ + (R*δ)²/2! + ...
 
         The series terminates naturally.
+
+    Raises:
+        ValueError: If any key in lin is not in var_names
     """
+    # Validate that all lin keys are in var_names
+    for name in lin.keys():
+        if name not in var_names:
+            raise ValueError(
+                f"Linear coefficient key '{name}' not in var_names {var_names}"
+            )
+
     # Build the affine series: u0 + δ
     affine = TruncatedSeries.from_scalar(u0, var_names)
     for name, coeff in lin.items():
