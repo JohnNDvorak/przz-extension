@@ -316,6 +316,54 @@ The A-factor corrections appear as "I5-type" terms that are lower-order (suppres
 - Start by implementing ratio-only brackets (A ≡ 1)
 - Add A-correction terms as optional "audit" to confirm they match what PRZZ included
 
+### 7.5 I₅ Scale Factor g — Derivation Attempt (2025-12-15)
+
+**Status: CALIBRATED, NOT DERIVED**
+
+The I₅ correction uses the diagonal convolution formula:
+```
+ΔF_{ℓ₁,ℓ₂} = Σ_{k=1}^{max_k} [(-g·S)^k / k!] × F^{ratio}_{ℓ₁-k,ℓ₂-k}
+```
+
+The scale factor g ≈ 0.50 is CALIBRATED to match PRZZ targets (Δc < 0.01%).
+
+**Why g cannot currently be derived:**
+
+1. **Missing variable mapping**: The universal cross-term (log A)_{z_i w_j} = -S(α+β)
+   uses Mellin variables z_i, w_j. The mapping to formal variables X, Y is:
+   ```
+   X = Σ x_i (sum over left-side variables)
+   Y = Σ y_j (sum over right-side variables)
+   ```
+   But the exact relationship z_i ↔ x_i is not documented.
+
+2. **Naive derivation fails**: If z_i = x_i directly (no scaling), then:
+   ```
+   Σ_{i,j} (log A)_{z_i w_j} = -ℓ₁·ℓ₂·S(α+β)
+   exp(arithmetic contribution) = exp(-S·X·Y)
+   ```
+   This would give g = 1, but empirically g ≈ 0.50 works best.
+
+3. **Possible explanations**:
+   - The variables z_i, w_j have θ-dependent normalization in PRZZ
+   - There's an additional prefactor from the integration measure
+   - The diagonal convolution is an approximation, not exact
+
+**Empirical findings (2025-12-15):**
+
+| g value | max_k | Δc error | Notes |
+|---------|-------|----------|-------|
+| 0.50 | 1 | +0.001% | Best match |
+| θ²(1+θ)≈0.513 | full | +0.004% | Also works (compensating) |
+| 1.0 | 1 | ~1% | Too large |
+
+**Conclusion:**
+- g ≈ 0.50 is the optimal value for max_k=1
+- Derivation from first principles requires going back to PRZZ paper's
+  exact Mellin variable definitions and normalization conventions
+- This is acceptable for Bar A (engineering), but not Bar B (math derivation)
+- Scheduled for Phase 3 investigation if d=2 implementation requires it
+
 ---
 
 ## 8. Variable Structure

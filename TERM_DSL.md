@@ -448,3 +448,16 @@ Given a Term and a quadrature grid:
 4. **Test incrementally**: Validate each term before adding the next
 
 5. **Watch for sign conventions**: The pair sign (−1)^{ℓ₁+ℓ₂} and term signs must be tracked carefully
+
+6. **CRITICAL: Do NOT collapse Q(Arg_α)·Q(Arg_β) into Q(Arg)² unless Arg_α == Arg_β algebraically**
+
+   Even when Arg_α and Arg_β have the same constant term (e.g., both evaluate to `t` at the origin),
+   their **variable coefficients may differ**. For example in (1,1):
+
+   - `Arg_α = t + θt·x + (θt−θ)·y`  (x-coefficient is θt, y-coefficient is θt−θ)
+   - `Arg_β = t + (θt−θ)·x + θt·y`  (x-coefficient is θt−θ, y-coefficient is θt)
+
+   These are NOT equal! The mixed derivative ∂²/∂x∂y will produce different results.
+
+   **Rule**: Always construct Arg_α and Arg_β as separate AffineExpr objects. Only collapse to
+   `power=2` if you can algebraically prove the expressions are identical for that specific term.
