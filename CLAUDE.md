@@ -252,33 +252,40 @@ przz-extension/
 - [x] All tests passing (414 tests); validated with quadrature convergence sweep *(completed 2025-12-14)*
 - [x] Per-pair breakdown logged: c₁₁, c₂₂, c₃₃, c₁₂, c₁₃, c₂₃ *(completed 2025-12-14)*
 
-**Phase 0 Status: INVESTIGATING**
+**Phase 0 Status: INVESTIGATING GLOBAL FACTOR**
 
-**Update 2025-12-15: I3/I4 Prefactor Fix and Discrepancy**
+**Update 2025-12-15: Gap Identified as Global Factor (1 + θ/6)**
 
-A code audit against PRZZ paper revealed the I3/I4 prefactor was incorrect:
-- PRZZ line 1562-1563: I₃ = -T·Φ̂(0) × (1+θx)/θ × d/dx[...]|_{x=0}
-- At x=0, (1+θx)/θ = 1/θ, so prefactor should be -1/θ (not -1)
-- Fixed all I3/I4 functions in `terms_k3_d1.py`
+After extensive validation:
+1. **Term-level implementation is CORRECT**
+   - FD oracle validated I1_22: DSL/FD = 1.0000000314
+   - FD oracle validated I1_12: DSL/FD = 1.0000000016
+   - Algebraic prefactor cross-terms properly included
 
-**After Fix:**
-- Computed: c = 1.950 (without I5), c = 1.905 (with I5)
-- Target: c = 2.1374544, κ = 0.4172940
-- **Gap: ~10% lower than target**
+2. **Gap is GLOBAL, not localized**
+   - Applying factor 1.096094 uniformly to ALL term types gives EXACT match
+   - Factor needed: 1.0960944277
+   - (1 + θ/6):     1.0952380952
+   - Difference:    **only 0.08%**
 
-**Investigation Status:**
-- Paper integrator (`src/paper_integrator.py`) confirms DSL matches PRZZ equations
-- The prefactor fix is mathematically correct per PRZZ paper
-- The ~10% gap requires further investigation:
-  - Did PRZZ use a different prefactor interpretation?
-  - Are there other normalization differences?
-  - Did PRZZ's numerical code have the same bug?
+3. **Current values:**
+   - Computed: c = 1.950 (main term, no I₅)
+   - Target: c = 2.1374544
+   - Gap: 8.77% = factor of ~(1 + θ/6)
 
-**Previous values (with buggy prefactor):**
-- Computed: c = 2.1381579, κ = 0.4170415
-- These matched PRZZ target, suggesting either:
-  1. PRZZ numerical code had the same bug
-  2. Another compensating error exists
+**Likely source of missing factor:**
+- PRZZ uses log(N^{x+y}T) factor in mirror combination (TeX lines 1502-1511)
+- This factor is NOT present in our current term formulas
+- The (1 + θ/6) structure strongly suggests this is the source
+
+**Previous I3/I4 prefactor fix was correct:**
+- PRZZ line 1551-1564: I₃ uses (1+θx)/θ prefactor → 1/θ at x=0
+- Our -1/θ prefactor is paper-correct
+
+**Next steps:**
+- Investigate PRZZ mirror combination integral representation
+- Determine where log(N^{x+y}T) = log(T)×[1 + θ(x+y)] enters
+- The global factor suggests assembly-level fix, not term-level
 
 **439 tests passing**, 3 xfail (golden target tests while investigating)
 
@@ -295,4 +302,4 @@ A code audit against PRZZ paper revealed the I3/I4 prefactor was incorrect:
 7. ~~All pairs validated: (1,1), (1,2), (1,3), (2,2), (2,3), (3,3)~~ **DONE**
 8. ~~Full integration test: c ≈ 2.138, κ ≈ 0.417 (Phase 0 complete)~~ **INVESTIGATING**
 
-**Current Investigation**: Understand ~10% gap after I3/I4 prefactor fix
+**Current Investigation**: Global factor (1 + θ/6) missing from assembly - likely from PRZZ mirror combination
