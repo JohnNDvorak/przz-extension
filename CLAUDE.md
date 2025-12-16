@@ -248,69 +248,71 @@ przz-extension/
 - [x] Quadrature module passes known integral tests *(completed 2025-12-13, 46 tests)*
 - [x] Series engine passes symbolic coefficient tests; no finite differences used *(completed 2025-12-13, 57 tests)*
 - [x] (1,1) pair matches PRZZ sub-result and is stable under quadrature refinement *(completed 2025-12-14)*
-- [x] Full K=3 assembly yields c ≈ 2.138 and κ ≈ 0.417 (within 0.1% of PRZZ targets) *(completed 2025-12-14)*
-- [x] All tests passing (414 tests); validated with quadrature convergence sweep *(completed 2025-12-14)*
+- [ ] Full K=3 assembly yields c ≈ 2.138 and κ ≈ 0.417 — **STRUCTURAL MISMATCH** (see below)
+- [x] All tests passing (445 tests); validated with quadrature convergence sweep *(updated 2025-12-16)*
 - [x] Per-pair breakdown logged: c₁₁, c₂₂, c₃₃, c₁₂, c₁₃, c₂₃ *(completed 2025-12-14)*
 
-**Phase 0 Status: INVESTIGATING R-DEPENDENT GAP**
+---
 
-**Update 2025-12-15: Two-Benchmark Test DISPROVES Global Factor Hypothesis**
+## Phase 0 Status: STRUCTURAL MISMATCH IDENTIFIED
 
-After extensive validation:
-1. **Term-level implementation is CORRECT**
-   - FD oracle validated I1_22: DSL/FD = 1.0000000314
-   - FD oracle validated I1_12: DSL/FD = 1.0000000016
-   - Algebraic prefactor cross-terms properly included
+**Last Updated:** 2025-12-16
+**Full Details:** `docs/HANDOFF_SUMMARY.md`
 
-2. **Two-benchmark test reveals R-DEPENDENT gap:**
-   - Benchmark 1 (R=1.3036, κ=0.417): Factor = 1.0961 ≈ (1+θ/6)
-   - Benchmark 2 (R*=1.1167, κ*=0.408): Factor = 1.1799 (**7.65% different!**)
-   - **The gap depends on R** → NOT a simple global normalization
+### TL;DR
 
-3. **Current values (Benchmark 1):**
-   - Computed: c = 1.950 (main term, no I₅)
-   - Target: c = 2.1374544
-   - Gap: 8.77%
+We compute a **different mathematical object** than PRZZ's published main-term constant.
+- Our c ≈ 1.95 vs PRZZ c ≈ 2.14 (at R=1.3036)
+- The gap is **R-dependent**, ruling out simple normalization fixes
+- The computed κ values should **NOT** be interpreted as zeta-zero proportion bounds until equivalence is proven
 
-**Key finding: Gap is NOT (1 + θ/6)**
-- The (1+θ/6) hypothesis only matches Benchmark 1
-- Benchmark 2 requires different factor (1.18 vs 1.10)
-- Suggests missing R-dependent term family, not global normalization
+### Current Numerical State
 
-**Log factor already accounted for:**
-- Our algebraic prefactor (θS+1)/θ already includes [1+θ(x+y)]
-- This is the collapsed form of PRZZ's log(N^{x+y}T) factor (TeX 1529-1531)
-- FD oracle validated this prefactor is handled correctly
+| Benchmark | R | Our c | PRZZ c | Factor | Our κ | PRZZ κ |
+|-----------|------|-------|--------|--------|-------|--------|
+| 1 | 1.3036 | 1.9501 | 2.1375 | 1.096 | 0.488 | 0.417 |
+| 2 | 1.1167 | 1.6424 | 1.9380 | 1.180 | 0.556 | 0.408 |
 
-**Update 2025-12-16: Q-Operator Oracle Reveals (1,2) Pair Anomaly**
+**Critical:** Factor differs by R (1.096 vs 1.180) → definitively not a global constant
 
-4. **Per-pair R-sensitivity analysis:**
-   | Pair | R-sensitivity |
-   |------|--------------|
-   | (1,1) | +4.69% |
-   | (2,2) | +2.28% |
-   | (3,3) | +6.75% |
-   | (1,2) | **+32.32%** ← ANOMALY |
-   | (1,3) | +6.64% |
-   | (2,3) | +4.18% |
+### What Has Been Validated (LOCKED)
 
-5. **Key finding: (1,2) pair is the outlier**
-   - (1,2) = P₁×P₂ = Case B × Case C cross-term
-   - Shows 32% R-sensitivity while others show ~2-7%
-   - Within (1,2), I4_12 shows -26.1% R-sensitivity (most extreme)
-   - I4 is "y-derivative only" term involving P₂
+1. **I₃/I₄ prefactor is -1/θ** — FD oracle confirmed to ~1e-13 relative error
+2. **Q-operator arguments match PRZZ TeX 1514-1517** — oracle validated
+3. **(1-u) powers match PRZZ patterns** — per PRZZ lines 1551-1602
+4. **I₅ is lower-order** — PRZZ bounds it ≪ T/L (lines 1621-1628), forbidden in `mode="main"`
+5. **Multi-variable structure preserved** — (2,2) uses 4 vars, not 2
 
-6. **Working hypothesis:**
-   - Case B × Case C cross-term may need special handling
-   - Case C (ω > 0) auxiliary a-integral (PRZZ TeX 2369-2384) may be relevant
-   - P₂ piece specifically contributing to R-dependent gap
+### Disproven Hypotheses (Do Not Revisit)
 
-**Next steps:**
-- Investigate I4_12 specifically (y-derivative term)
-- Check Case C auxiliary integral for P₂ (TeX 2369-2384)
-- Verify if (1,2) cross-term has different structure in PRZZ
+1. **Global factor (1+θ/6)** — Matched Benchmark 1, failed Benchmark 2
+2. **Q substitution error** — Oracle validated
+3. **I₅ calibration** — Architecturally wrong; I₅ is lower-order
+4. **Naive Case C kernel replacement** — Made c ≈ 0.57 (worse)
+5. **Sign convention (-1)^ℓ/θ for I₃/I₄** — Made c ≈ 1.11 (worse)
 
-**439 tests passing**, 3 xfail (golden target tests while investigating)
+### Most Likely Explanation
+
+**Stage/assembly mismatch.** We may be computing at a different point in the asymptotic expansion:
+1. Missing positive terms with low R-sensitivity
+2. PRZZ does analytic combination before α=β=-R/L substitution
+3. Case C auxiliary a-integral not integrated at correct stage
+4. PRZZ line 2566: "we had to rely on our code of the main terms (which matched Feng's)"
+
+### Methodological Rules (For Future Sessions)
+
+1. **Two-benchmark gate is mandatory** — Any fix must improve BOTH R=1.3036 AND R=1.1167
+2. **I₅ is forbidden in main mode** — Using it to match targets masks bugs
+3. **Multi-variable structure must be preserved** — No collapsing (2,2) to 2 variables
+4. **Do not claim κ as zeta-zero bound** — Until equivalence is proven
+5. **FD oracles must match DSL variable/derivative structure**
+
+### Recommended Next Steps
+
+**Track 1: Surrogate Optimization** — Proceed but label results as "surrogate objective"
+**Track 2: Reconciliation** — Re-derive from α,β level, check assembly order
+
+**445 tests passing**
 
 ---
 
@@ -321,8 +323,8 @@ After extensive validation:
 3. ~~`series.py` + tests → Validate derivative extraction on symbolic examples~~ **DONE**
 4. ~~`term_dsl.py` + tests → Define Term structure, AffineExpr~~ **DONE**
 5. ~~`terms_k3_d1.py` - All K=3 pairs implemented~~ **DONE**
-6. ~~`evaluate.py` + tests → Full pipeline with I₅ correction~~ **DONE**
+6. ~~`evaluate.py` + tests → Full pipeline~~ **DONE**
 7. ~~All pairs validated: (1,1), (1,2), (1,3), (2,2), (2,3), (3,3)~~ **DONE**
-8. ~~Full integration test: c ≈ 2.138, κ ≈ 0.417 (Phase 0 complete)~~ **INVESTIGATING**
+8. Full integration test: c ≈ 2.137, κ ≈ 0.417 — **BLOCKED: Structural mismatch under investigation**
 
-**Current Investigation**: R-dependent gap (not global factor) - need Q-operator oracle for α,β substitution validation
+**Current Status:** Term-level validated, assembly-level mismatch identified, reconciliation needed
