@@ -282,10 +282,33 @@ After extensive validation:
 - This is the collapsed form of PRZZ's log(N^{x+y}T) factor (TeX 1529-1531)
 - FD oracle validated this prefactor is handled correctly
 
+**Update 2025-12-16: Q-Operator Oracle Reveals (1,2) Pair Anomaly**
+
+4. **Per-pair R-sensitivity analysis:**
+   | Pair | R-sensitivity |
+   |------|--------------|
+   | (1,1) | +4.69% |
+   | (2,2) | +2.28% |
+   | (3,3) | +6.75% |
+   | (1,2) | **+32.32%** ← ANOMALY |
+   | (1,3) | +6.64% |
+   | (2,3) | +4.18% |
+
+5. **Key finding: (1,2) pair is the outlier**
+   - (1,2) = P₁×P₂ = Case B × Case C cross-term
+   - Shows 32% R-sensitivity while others show ~2-7%
+   - Within (1,2), I4_12 shows -26.1% R-sensitivity (most extreme)
+   - I4 is "y-derivative only" term involving P₂
+
+6. **Working hypothesis:**
+   - Case B × Case C cross-term may need special handling
+   - Case C (ω > 0) auxiliary a-integral (PRZZ TeX 2369-2384) may be relevant
+   - P₂ piece specifically contributing to R-dependent gap
+
 **Next steps:**
-- Build α,β Q-operator oracle (PRZZ TeX 1514-1517)
-- This validates Q(-∂/∂α)Q(-∂/∂β) → Q(affine)Q(affine) substitution
-- Highest-risk step not yet independently validated
+- Investigate I4_12 specifically (y-derivative term)
+- Check Case C auxiliary integral for P₂ (TeX 2369-2384)
+- Verify if (1,2) cross-term has different structure in PRZZ
 
 **439 tests passing**, 3 xfail (golden target tests while investigating)
 
