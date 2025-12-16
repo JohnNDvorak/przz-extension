@@ -221,7 +221,24 @@ Contains the U/V/W indicator definitions and case split structure.
 
 ---
 
-## 8. Case C Auxiliary Integral
+## 8. Case C Auxiliary Integral (CRITICAL FOR P₂/P₃)
+
+### 8.1 Case C Derivation and Structure
+
+**PRZZ TeX Lines 2336–2362** (Case C derivation):
+
+The Case C derivation shows how ω > 0 introduces an auxiliary a-integral
+that is **not present** in Case B (ω = 0).
+
+**PRZZ TeX Lines 2364–2368** (Product F_d × F_d structure):
+
+For pair (ℓ₁, ℓ₂), the I₁ integral has product structure F_{d,ℓ₁} × F_{d,ℓ₂}.
+This means:
+- **B×B** (like (1,1)): No auxiliary integrals (both factors are Case B)
+- **B×C** (like (1,2), (1,3)): ONE auxiliary a-integral (from C factor)
+- **C×C** (like (2,2), (2,3), (3,3)): TWO auxiliary a-integrals (from both C factors)
+
+### 8.2 Case C Integral Formula
 
 **PRZZ TeX Lines 2369–2384** (Case C a-integral, especially line 2374):
 ```latex
@@ -235,7 +252,28 @@ This is a Beta-type integral that appears in Case C (ω > 0).
 For P₂-involving pairs: ω = 1, so integral is ∫₀¹ (1-a)^i (N/n)^{-αa} da
 For P₃-involving pairs: ω = 2, so integral is ∫₀¹ (1-a)^i a (N/n)^{-αa} da
 
-### Implication
+### 8.3 Cross-Term Bookkeeping
+
+**PRZZ TeX Lines 2387–2388** (Cross-term structure):
+
+Cross-terms have asymmetric Case structure. For pair (ℓ₁, ℓ₂):
+- If ℓ₁ is Case B and ℓ₂ is Case C: one a-integral from ℓ₂
+- If both are Case C: two a-integrals (product)
+
+### 8.4 Implications for Our Implementation
+
+| Pair | Cases | a-integrals | Status |
+|------|-------|-------------|--------|
+| (1,1) | B×B | 0 | ✓ Correct |
+| (1,2) | B×C | 1 | ⚠️ MISSING |
+| (1,3) | B×C | 1 | ⚠️ MISSING |
+| (2,2) | C×C | 2 | ⚠️ MISSING |
+| (2,3) | C×C | 2 | ⚠️ MISSING |
+| (3,3) | C×C | 2 | ⚠️ MISSING |
+
+**KEY FINDING:** The (1,2) pair anomaly (+32% R-sensitivity) is likely because
+B×C requires one auxiliary a-integral that we haven't implemented.
+
 If our I₁-I₄ formulas are missing this auxiliary integral for Case C pieces,
 we'll have systematic missing contributions from P₂/P₃-involving pairs.
 
@@ -361,4 +399,7 @@ All line numbers refer to: `RMS_PRZZ.tex` (1-indexed)
 | 1722–1726 | Tightest slice for "derivatives → error" |
 | 2301–2310 | ω definition + Case A + "x → x log N" |
 | 2320–2344 | Case B + Case C definitions (U/V/W indicators) |
+| 2336–2362 | Case C derivation (auxiliary a-integral introduction) |
+| 2364–2368 | Product F_d × F_d structure (B×C vs C×C) |
 | 2369–2384 | Case C auxiliary a-integral structure (esp. line 2374) |
+| 2387–2388 | Cross-term bookkeeping for B×C and C×C |
