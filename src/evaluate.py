@@ -343,7 +343,7 @@ def evaluate_c_full(
     polynomials: Dict[str, PolyLike],
     return_breakdown: bool = True,
     use_factorial_normalization: bool = True,
-    use_i5_correction: bool = False
+    mode: str = "main"
 ) -> EvaluationResult:
     """
     Evaluate full c from all K=3 pair contributions.
@@ -355,6 +355,13 @@ def evaluate_c_full(
     - If use_factorial_normalization=True, each pair has factor 1/(ℓ₁! × ℓ₂!)
       from the bracket combinatorics (residue extraction normalization)
 
+    MODES:
+    - "main": PRZZ asymptotic main term constant (I₅ FORBIDDEN)
+              This is what PRZZ uses to compute published κ.
+              PRZZ TeX lines 1626-1628: I₅ ≪ T/L (error term)
+    - "with_error_terms": Includes I₅ as diagnostic. PRINTS WARNING.
+              Do NOT use this mode for golden target matching.
+
     Args:
         theta: θ parameter (typically 4/7)
         R: R parameter (typically 1.3036)
@@ -362,11 +369,17 @@ def evaluate_c_full(
         polynomials: Dict with keys "P1", "P2", "P3", "Q"
         return_breakdown: If True, include per-term breakdown
         use_factorial_normalization: If True, apply 1/(ℓ₁!×ℓ₂!) normalization
-        use_i5_correction: If True, include I₅ arithmetic correction (not yet implemented)
+        mode: "main" (default) or "with_error_terms"
 
     Returns:
         EvaluationResult with full c and optional breakdown
+
+    Raises:
+        ValueError: If mode is not "main" or "with_error_terms"
     """
+    # Validate mode
+    if mode not in ("main", "with_error_terms"):
+        raise ValueError(f"mode must be 'main' or 'with_error_terms', got '{mode}'")
     from src.terms_k3_d1 import make_all_terms_k3
     import math
 
@@ -411,11 +424,27 @@ def evaluate_c_full(
             for term_name, term_val in pair_result.per_term.items():
                 all_per_term[term_name] = term_val
 
-    # I₅ arithmetic correction
+    # I₅ arithmetic correction (ERROR TERM - diagnostic only)
+    # PRZZ TeX lines 1626-1628: I₅ ≪ T/L (lower order than main term)
+    #
+    # WARNING: I₅ is NOT part of the asymptotic main constant that feeds κ.
+    # Using it to "hit κ" means we're not computing PRZZ's object.
+    #
     # Formula derived empirically: I₅ ≈ -S(0) × θ²/12 × I₂_total
-    # where I₂_total is the sum of all normalized I₂ contributions
-    # This matches PRZZ's arithmetic correction to within quadrature error
-    if use_i5_correction:
+    # This is included ONLY for diagnostic purposes in mode="with_error_terms".
+    if mode == "with_error_terms":
+        import warnings
+        warnings.warn(
+            "\n" + "=" * 60 + "\n"
+            "WARNING: mode='with_error_terms' includes I₅.\n"
+            "I₅ is O(T/L), NOT part of PRZZ's main constant.\n"
+            "PRZZ TeX lines 1626-1628: 'I₅ ≪ T/L'\n"
+            "Do NOT use this mode for golden target matching!\n"
+            + "=" * 60,
+            UserWarning,
+            stacklevel=2
+        )
+
         from src.arithmetic_constants import S_AT_ZERO
 
         # Compute I₂ sum (already computed as part of main evaluation)
@@ -445,6 +474,9 @@ def evaluate_c_full(
         if return_breakdown:
             all_per_term["_I5_total"] = i5_correction
             all_per_term["_I2_sum_for_I5"] = i2_total
+            all_per_term["_mode"] = "with_error_terms (I₅ INCLUDED - DIAGNOSTIC ONLY)"
+    elif return_breakdown:
+        all_per_term["_mode"] = "main (I₅ excluded per PRZZ)"
 
     # Add pair-level contributions to breakdown
     if return_breakdown:
@@ -593,7 +625,7 @@ def print_diagnostic_report(
     n: int,
     polynomials: Dict[str, PolyLike],
     use_factorial_normalization: bool = True,
-    use_i5_correction: bool = False,
+    mode: str = "main",
     enforce_Q0: bool = True
 ) -> DiagnosticResult:
     """
@@ -601,11 +633,15 @@ def print_diagnostic_report(
 
     This prints:
     - Raw and normalized per-pair contributions
-    - Per-pair per-term breakdown (I₁, I₂, I₃, I₄, I₅)
+    - Per-pair per-term breakdown (I₁, I₂, I₃, I₄)
     - Normalization factor applied for each pair
     - Exact assembly formula used
     - Effective model flags
     - Totals and deltas vs target
+
+    MODES:
+    - "main": PRZZ asymptotic main term (I₅ FORBIDDEN) - DEFAULT
+    - "with_error_terms": Includes I₅, prints warning
 
     Args:
         theta: θ parameter (typically 4/7)
@@ -613,7 +649,7 @@ def print_diagnostic_report(
         n: Number of quadrature points per dimension
         polynomials: Dict with keys "P1", "P2", "P3", "Q"
         use_factorial_normalization: If True, apply 1/(ℓ₁!×ℓ₂!) normalization
-        use_i5_correction: If True, include I₅ arithmetic correction (not yet implemented)
+        mode: "main" (default) or "with_error_terms"
         enforce_Q0: The Q(0) normalization mode used for polynomials
 
     Returns:
@@ -668,11 +704,19 @@ def print_diagnostic_report(
         pair_normalized[pair_key] = sym * norm * pair_result.total
         total += pair_normalized[pair_key]
 
-    # I₅ arithmetic correction
+    # I₅ arithmetic correction (ERROR TERM - diagnostic only)
+    # PRZZ TeX lines 1626-1628: I₅ ≪ T/L
     # Formula: I₅ = -S(0) × θ²/12 × I₂_total
     i5_contrib_total = 0.0
     i2_sum_for_i5 = 0.0
-    if use_i5_correction:
+    if mode == "with_error_terms":
+        import warnings
+        warnings.warn(
+            "mode='with_error_terms' includes I₅ - DIAGNOSTIC ONLY",
+            UserWarning,
+            stacklevel=2
+        )
+
         from src.arithmetic_constants import S_AT_ZERO
 
         # Compute I₂ sum
@@ -710,7 +754,7 @@ def print_diagnostic_report(
         norm_factors=norm_factors,
         flags={
             "use_factorial_normalization": use_factorial_normalization,
-            "use_i5_correction": use_i5_correction,
+            "mode": mode,
             "enforce_Q0": enforce_Q0,
             "theta": theta,
             "R": R,
@@ -725,7 +769,7 @@ def print_diagnostic_report(
 
     print("\n--- Effective Model Flags ---")
     print(f"  use_factorial_normalization: {use_factorial_normalization}")
-    print(f"  use_i5_correction:           {use_i5_correction}")
+    print(f"  mode:                        {mode}")
     print(f"  enforce_Q0:                  {enforce_Q0}")
     print(f"  theta:                       {theta:.10f}")
     print(f"  R:                           {R}")
@@ -763,22 +807,26 @@ def print_diagnostic_report(
                 print(f"    I{i}: {per_term[term_name]:+18.12f}")
             else:
                 print(f"    I{i}: (not computed)")
-        # I₅ (arithmetic correction)
+        # I₅ (arithmetic correction - only in with_error_terms mode)
         term_name = f"I5_{pair}"
         if term_name in per_term:
             print(f"    I₅: {per_term[term_name]:+18.12f} (S correction)")
-        elif use_i5_correction:
+        elif mode == "with_error_terms":
             print(f"    I₅: (not computed)")
 
-    if use_i5_correction:
+    if mode == "with_error_terms":
         from src.arithmetic_constants import S_AT_ZERO as S0
-        print(f"\n--- I₅ Arithmetic Correction ---")
+        print(f"\n--- I₅ Arithmetic Correction (DIAGNOSTIC ONLY) ---")
+        print(f"  WARNING: I₅ ≪ T/L per PRZZ lines 1626-1628")
         print(f"  Formula: I₅ = -S(0) × θ²/12 × I₂_total")
         print(f"  S(0) = {S0:.10f}")
         print(f"  θ² = {theta**2:.10f}")
         print(f"  θ²/12 = {theta**2/12:.10f}")
         print(f"  I₂_total (normalized) = {i2_sum_for_i5:+18.12f}")
         print(f"  I₅ correction = {i5_contrib_total:+18.12f}")
+    else:
+        print(f"\n--- I₅ Status ---")
+        print(f"  mode='main': I₅ EXCLUDED (correct per PRZZ)")
 
     print("\n--- Summary ---")
     print(f"  c_computed:    {total:20.15f}")

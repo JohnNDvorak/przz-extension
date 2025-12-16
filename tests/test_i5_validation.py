@@ -78,7 +78,7 @@ class TestI5FormulaValidation:
         result_no_i5 = evaluate_c_full(
             self.THETA, self.R, n=60,
             polynomials=polys,
-            use_i5_correction=False
+            mode="main"
         )
 
         # Compute I₂ total
@@ -126,7 +126,7 @@ class TestI5FormulaValidation:
         result_with = evaluate_c_full(
             self.THETA, self.R, n=60,
             polynomials=polys,
-            use_i5_correction=True
+            mode="with_error_terms"
         )
         i5_computed = result_with.per_term.get("_I5_total", 0)
 
@@ -157,12 +157,12 @@ class TestI5FormulaValidation:
         result_with = evaluate_c_full(
             self.THETA, self.R, n=60,
             polynomials=polys,
-            use_i5_correction=True
+            mode="with_error_terms"
         )
         result_without = evaluate_c_full(
             self.THETA, self.R, n=60,
             polynomials=polys,
-            use_i5_correction=False
+            mode="main"
         )
 
         # I₅ should be negative
@@ -190,12 +190,12 @@ class TestI5FormulaValidation:
         result_with = evaluate_c_full(
             self.THETA, self.R, n=60,
             polynomials=polys,
-            use_i5_correction=True
+            mode="with_error_terms"
         )
         result_without = evaluate_c_full(
             self.THETA, self.R, n=60,
             polynomials=polys,
-            use_i5_correction=False
+            mode="main"
         )
 
         # Basic sanity checks
@@ -235,7 +235,7 @@ class TestI5FormulaUniversality:
         result = evaluate_c_full(
             self.THETA, self.R, n=60,
             polynomials=polys,
-            use_i5_correction=True
+            mode="with_error_terms"
         )
 
         i5 = result.per_term.get("_I5_total", 0)
@@ -316,7 +316,7 @@ class TestI5MathematicalStructure:
         result = evaluate_c_full(
             self.THETA, self.R, n=60,
             polynomials=polys,
-            use_i5_correction=True
+            mode="with_error_terms"
         )
 
         i5 = result.per_term.get("_I5_total", 0)
@@ -332,12 +332,12 @@ class TestI5MathematicalStructure:
         result_with = evaluate_c_full(
             self.THETA, self.R, n=60,
             polynomials=polys,
-            use_i5_correction=True
+            mode="with_error_terms"
         )
         result_without = evaluate_c_full(
             self.THETA, self.R, n=60,
             polynomials=polys,
-            use_i5_correction=False
+            mode="main"
         )
 
         i5 = result_with.per_term.get("_I5_total", 0)

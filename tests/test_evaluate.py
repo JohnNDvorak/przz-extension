@@ -556,7 +556,7 @@ class TestPRZZPhase0Golden:
         result = evaluate_c_full(
             self.THETA, self.R, n=80,
             polynomials=polys,
-            use_i5_correction=True
+            mode="with_error_terms"
         )
 
         rel_error = abs(result.total - self.C_TARGET) / self.C_TARGET
@@ -574,7 +574,7 @@ class TestPRZZPhase0Golden:
         result = evaluate_c_full(
             self.THETA, self.R, n=80,
             polynomials=polys,
-            use_i5_correction=True
+            mode="with_error_terms"
         )
         kappa = compute_kappa(result.total, self.R)
 
@@ -592,7 +592,7 @@ class TestPRZZPhase0Golden:
         result = evaluate_c_full(
             self.THETA, self.R, n=60,
             polynomials=polys,
-            use_i5_correction=True
+            mode="with_error_terms"
         )
 
         i5_correction = result.per_term.get("_I5_total", 0)
@@ -606,7 +606,7 @@ class TestPRZZPhase0Golden:
         result = evaluate_c_full(
             self.THETA, self.R, n=60,
             polynomials=polys,
-            use_i5_correction=True
+            mode="with_error_terms"
         )
 
         i5_correction = result.per_term.get("_I5_total", 0)
@@ -626,7 +626,7 @@ class TestPRZZPhase0Golden:
             result = evaluate_c_full(
                 self.THETA, self.R, n=n,
                 polynomials=polys,
-                use_i5_correction=True
+                mode="with_error_terms"
             )
             results[n] = result.total
 
@@ -647,12 +647,12 @@ class TestPRZZPhase0Golden:
         result_with = evaluate_c_full(
             self.THETA, self.R, n=60,
             polynomials=polys,
-            use_i5_correction=True
+            mode="with_error_terms"
         )
         result_without = evaluate_c_full(
             self.THETA, self.R, n=60,
             polynomials=polys,
-            use_i5_correction=False
+            mode="main"
         )
 
         # Without I₅, c should be higher
