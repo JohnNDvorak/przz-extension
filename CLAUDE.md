@@ -252,9 +252,9 @@ przz-extension/
 - [x] All tests passing (414 tests); validated with quadrature convergence sweep *(completed 2025-12-14)*
 - [x] Per-pair breakdown logged: c₁₁, c₂₂, c₃₃, c₁₂, c₁₃, c₂₃ *(completed 2025-12-14)*
 
-**Phase 0 Status: INVESTIGATING GLOBAL FACTOR**
+**Phase 0 Status: INVESTIGATING R-DEPENDENT GAP**
 
-**Update 2025-12-15: Gap Identified as Global Factor (1 + θ/6)**
+**Update 2025-12-15: Two-Benchmark Test DISPROVES Global Factor Hypothesis**
 
 After extensive validation:
 1. **Term-level implementation is CORRECT**
@@ -262,30 +262,30 @@ After extensive validation:
    - FD oracle validated I1_12: DSL/FD = 1.0000000016
    - Algebraic prefactor cross-terms properly included
 
-2. **Gap is GLOBAL, not localized**
-   - Applying factor 1.096094 uniformly to ALL term types gives EXACT match
-   - Factor needed: 1.0960944277
-   - (1 + θ/6):     1.0952380952
-   - Difference:    **only 0.08%**
+2. **Two-benchmark test reveals R-DEPENDENT gap:**
+   - Benchmark 1 (R=1.3036, κ=0.417): Factor = 1.0961 ≈ (1+θ/6)
+   - Benchmark 2 (R*=1.1167, κ*=0.408): Factor = 1.1799 (**7.65% different!**)
+   - **The gap depends on R** → NOT a simple global normalization
 
-3. **Current values:**
+3. **Current values (Benchmark 1):**
    - Computed: c = 1.950 (main term, no I₅)
    - Target: c = 2.1374544
-   - Gap: 8.77% = factor of ~(1 + θ/6)
+   - Gap: 8.77%
 
-**Likely source of missing factor:**
-- PRZZ uses log(N^{x+y}T) factor in mirror combination (TeX lines 1502-1511)
-- This factor is NOT present in our current term formulas
-- The (1 + θ/6) structure strongly suggests this is the source
+**Key finding: Gap is NOT (1 + θ/6)**
+- The (1+θ/6) hypothesis only matches Benchmark 1
+- Benchmark 2 requires different factor (1.18 vs 1.10)
+- Suggests missing R-dependent term family, not global normalization
 
-**Previous I3/I4 prefactor fix was correct:**
-- PRZZ line 1551-1564: I₃ uses (1+θx)/θ prefactor → 1/θ at x=0
-- Our -1/θ prefactor is paper-correct
+**Log factor already accounted for:**
+- Our algebraic prefactor (θS+1)/θ already includes [1+θ(x+y)]
+- This is the collapsed form of PRZZ's log(N^{x+y}T) factor (TeX 1529-1531)
+- FD oracle validated this prefactor is handled correctly
 
 **Next steps:**
-- Investigate PRZZ mirror combination integral representation
-- Determine where log(N^{x+y}T) = log(T)×[1 + θ(x+y)] enters
-- The global factor suggests assembly-level fix, not term-level
+- Build α,β Q-operator oracle (PRZZ TeX 1514-1517)
+- This validates Q(-∂/∂α)Q(-∂/∂β) → Q(affine)Q(affine) substitution
+- Highest-risk step not yet independently validated
 
 **439 tests passing**, 3 xfail (golden target tests while investigating)
 
@@ -302,4 +302,4 @@ After extensive validation:
 7. ~~All pairs validated: (1,1), (1,2), (1,3), (2,2), (2,3), (3,3)~~ **DONE**
 8. ~~Full integration test: c ≈ 2.138, κ ≈ 0.417 (Phase 0 complete)~~ **INVESTIGATING**
 
-**Current Investigation**: Global factor (1 + θ/6) missing from assembly - likely from PRZZ mirror combination
+**Current Investigation**: R-dependent gap (not global factor) - need Q-operator oracle for α,β substitution validation
