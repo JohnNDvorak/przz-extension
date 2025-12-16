@@ -166,7 +166,7 @@ At x=0: (1+θx)/θ = 1/θ
 
 ### 6b. I₄ Formula
 
-**PRZZ TeX Lines 1566–1569:**
+**PRZZ TeX Lines 1566–1570:**
 ```latex
 I₄ = -TΦ̂(0) × (1+θy)/θ × d/dy[∫∫ (1-u)P₁(u)P₂(y+u) e^{R[...]} Q(...)Q(...) dtdu]|_{y=0}
 ```
@@ -223,12 +223,12 @@ Contains the U/V/W indicator definitions and case split structure.
 
 ## 8. Case C Auxiliary Integral
 
-**PRZZ TeX Lines 2370–2375** (g_d(k,α,n) Case C formula):
+**PRZZ TeX Lines 2369–2384** (Case C a-integral, especially line 2374):
 ```latex
 ∫₀¹ (1-a)^i a^{ω-1} (N/n)^{-αa} da
 ```
 
-**Also relevant:** Lines 2378–2383 show the analogous F_d(k,α,n) structure.
+This block contains both g_d(k,α,n) and F_d(k,α,n) structures.
 
 This is a Beta-type integral that appears in Case C (ω > 0).
 
@@ -337,7 +337,7 @@ All line numbers refer to: `RMS_PRZZ.tex` (1-indexed)
 | 1722–1726 | A-derivatives are error terms O(T/L) |
 | 1502–1504 | Mirror term structure |
 | 1551–1564 | I₃ displayed formula |
-| 1566–1569 | I₄ displayed formula |
+| 1566–1570 | I₄ displayed formula |
 | 2301–2310 | ω-case split + x → x log N |
 
 ### Complete Reference Table
@@ -355,10 +355,10 @@ All line numbers refer to: `RMS_PRZZ.tex` (1-indexed)
 | 1514–1517 | Q(...)Q(...) operator structure |
 | 1521–1523 | Mirror combination at α=β=-R/L |
 | 1551–1564 | I₃ formula with (1+θx)/θ prefactor |
-| 1566–1569 | I₄ formula with (1+θy)/θ prefactor |
+| 1566–1570 | I₄ formula with (1+θy)/θ prefactor |
 | 1621–1628 | I₅ ≪ T/L (explicit, canonical citation) |
 | 1714–1727 | A-derivatives contribute only to O(T/L) error |
 | 1722–1726 | Tightest slice for "derivatives → error" |
 | 2301–2310 | ω definition + Case A + "x → x log N" |
 | 2320–2344 | Case B + Case C definitions (U/V/W indicators) |
-| 2370–2375, 2378–2383 | Case C auxiliary a-integral structure |
+| 2369–2384 | Case C auxiliary a-integral structure (esp. line 2374) |
