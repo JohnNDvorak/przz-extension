@@ -173,13 +173,69 @@ Key differences:
    - I₅ is error term, but could there be a related main-term contribution?
    - Check if PRZZ's numerical optimization includes any error correction
 
+## Update 2025-12-16: Case C Dead End Confirmed
+
+### Full Case C Implementation Test
+
+Implemented complete Case C with derivative kernels:
+```
+K_ω(u; R) = u^ω/(ω-1)! × ∫₀¹ P((1-a)u) × a^{ω-1} × exp(Rθua) da
+K'_ω(u; R) = [derivative of above]
+```
+
+Results:
+
+| Metric | Raw | Full Case C | Target |
+|--------|-----|-------------|--------|
+| c(R₁) | 1.950 | **0.574** | 2.137 |
+| R-sens | 18.73% | **14.76%** | 10.29% |
+
+**Case C IMPROVES R-sensitivity but DESTROYS c magnitude.**
+
+### Per-Pair Breakdown Under Case C
+
+| Pair | Raw | Case C | Change |
+|------|-----|--------|--------|
+| (1,1) B×B | +0.442 | +0.317 | -28% |
+| (1,2) B×C | -0.201 | **+0.210** | **Sign flip!** |
+| (2,2) C×C | **+1.261** | +0.043 | **-97%** |
+| (2,3) C×C | +0.586 | +0.001 | -99.7% |
+| (3,3) C×C | +0.080 | +0.00001 | -99.98% |
+
+**Key observations**:
+1. (1,2) sign flip adds +0.41 to c (good!)
+2. (2,2) collapse subtracts -1.22 from c (devastating!)
+3. C×C pairs nearly vanish due to K×K compound suppression
+
+### Why Case C Is A Dead End
+
+The paradox:
+- We need c to INCREASE by +10% (1.95 → 2.14)
+- Case C makes c DECREASE by -70% (1.95 → 0.57)
+
+**Case C alone cannot explain the gap.** Something else must:
+1. Provide a large positive contribution (~+1.5 to c)
+2. Have weak R-dependence
+3. Compensate for Case C reduction
+
+### What This Tells Us
+
+**Our "raw" computation is NOT "PRZZ without Case C".**
+
+PRZZ defines the integrand with Case C from the start. We're computing a fundamentally different mathematical object. The gap reflects this structural mismatch, not a missing correction factor.
+
 ## Conclusion
 
 The gap is not a simple bug or missing factor. It reflects a structural difference in how Case C polynomials enter the integrand. The derivative terms (I3, I4) are most affected because they have double R-dependence that the Case C structure modifies.
 
+**Case C investigation status: DEAD END**
+- Structural replacement of P with K doesn't work
+- Makes c worse (70% drop) even though R-sensitivity improves
+- Must investigate assembly-level differences instead
+
 A complete fix requires either:
-1. Re-implementing the integrand with proper Case C structure from the start
-2. Understanding exactly how PRZZ's numerical code handles Case C and replicating it
-3. Finding the compensating positive term that balances the Case C reduction
+1. Understanding PRZZ's analytic mirror combination (TeX 1511-1527)
+2. Finding what our I1+I2+I3+I4 structure is missing vs PRZZ
+3. Identifying the compensating positive term that balances Case C reduction
 
 The two-benchmark test is crucial: any proposed fix must work at BOTH R values simultaneously.
