@@ -824,9 +824,10 @@ class TestI3I4vsReference:
         test_points = [(0.3, 0.4), (0.5, 0.6)]
 
         for u, t in test_points:
+            # PRZZ: I₃ = -[(1+θX)/θ]|_{X=0} × d/dX[...] = -(1/θ) × derivative
             ref_coeff = self._build_reference_I3_product(
                 l1, l2, P_coeffs, P_coeffs, Q_coeffs, theta, R, u, t,
-                numeric_prefactor=-1.0,
+                numeric_prefactor=-1.0 / theta,  # PRZZ: (1+θx)/θ|_{x=0} = 1/θ
                 poly_prefactor_power=poly_prefactor_power
             )
 
@@ -873,9 +874,10 @@ class TestI3I4vsReference:
         test_points = [(0.3, 0.4), (0.5, 0.6)]
 
         for u, t in test_points:
+            # PRZZ: I₄ = -[(1+θY)/θ]|_{Y=0} × d/dY[...] = -(1/θ) × derivative
             ref_coeff = self._build_reference_I4_product(
                 l1, l2, P_coeffs, P_coeffs, Q_coeffs, theta, R, u, t,
-                numeric_prefactor=-1.0,
+                numeric_prefactor=-1.0 / theta,  # PRZZ: (1+θy)/θ|_{y=0} = 1/θ
                 poly_prefactor_power=poly_prefactor_power
             )
 

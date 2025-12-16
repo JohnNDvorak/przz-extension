@@ -679,10 +679,12 @@ class TestI3TermStructure:
         assert term.deriv_tuple() == ("x1",)
 
     def test_I3_11_numeric_prefactor_negative(self):
-        """I₃ numeric_prefactor is -1.0."""
+        """I₃ numeric_prefactor is -1/θ (PRZZ line 1562-1563)."""
         from src.terms_k3_d1 import make_I3_11
-        term = make_I3_11(4/7, 1.3036)
-        assert term.numeric_prefactor == -1.0
+        theta = 4/7
+        term = make_I3_11(theta, 1.3036)
+        # PRZZ: I₃ = -[(1+θX)/θ]|_{X=0} × d/dX[...] = -(1/θ) × derivative
+        assert abs(term.numeric_prefactor - (-1.0 / theta)) < 1e-10
 
     def test_I3_11_has_single_poly_prefactor(self):
         """I₃ has (1-u) poly prefactor (single power)."""
@@ -800,10 +802,12 @@ class TestI4TermStructure:
         assert term.deriv_tuple() == ("y1",)
 
     def test_I4_11_numeric_prefactor_negative(self):
-        """I₄ numeric_prefactor is -1.0."""
+        """I₄ numeric_prefactor is -1/θ (PRZZ line 1568-1569)."""
         from src.terms_k3_d1 import make_I4_11
-        term = make_I4_11(4/7, 1.3036)
-        assert term.numeric_prefactor == -1.0
+        theta = 4/7
+        term = make_I4_11(theta, 1.3036)
+        # PRZZ: I₄ = -[(1+θY)/θ]|_{Y=0} × d/dY[...] = -(1/θ) × derivative
+        assert abs(term.numeric_prefactor - (-1.0 / theta)) < 1e-10
 
     def test_I4_11_has_single_poly_prefactor(self):
         """I₄ has (1-u) poly prefactor (single power)."""

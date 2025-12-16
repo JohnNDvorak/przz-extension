@@ -252,11 +252,35 @@ przz-extension/
 - [x] All tests passing (414 tests); validated with quadrature convergence sweep *(completed 2025-12-14)*
 - [x] Per-pair breakdown logged: c₁₁, c₂₂, c₃₃, c₁₂, c₁₃, c₂₃ *(completed 2025-12-14)*
 
-**Phase 0 Status: COMPLETE**
-- Computed: c = 2.1381579, κ = 0.4170415
+**Phase 0 Status: INVESTIGATING**
+
+**Update 2025-12-15: I3/I4 Prefactor Fix and Discrepancy**
+
+A code audit against PRZZ paper revealed the I3/I4 prefactor was incorrect:
+- PRZZ line 1562-1563: I₃ = -T·Φ̂(0) × (1+θx)/θ × d/dx[...]|_{x=0}
+- At x=0, (1+θx)/θ = 1/θ, so prefactor should be -1/θ (not -1)
+- Fixed all I3/I4 functions in `terms_k3_d1.py`
+
+**After Fix:**
+- Computed: c = 1.950 (without I5), c = 1.905 (with I5)
 - Target: c = 2.1374544, κ = 0.4172940
-- Errors: Δc = +0.033%, Δκ = -0.060%
-- I₅ arithmetic correction included (empirical formula, see LIMITATIONS below)
+- **Gap: ~10% lower than target**
+
+**Investigation Status:**
+- Paper integrator (`src/paper_integrator.py`) confirms DSL matches PRZZ equations
+- The prefactor fix is mathematically correct per PRZZ paper
+- The ~10% gap requires further investigation:
+  - Did PRZZ use a different prefactor interpretation?
+  - Are there other normalization differences?
+  - Did PRZZ's numerical code have the same bug?
+
+**Previous values (with buggy prefactor):**
+- Computed: c = 2.1381579, κ = 0.4170415
+- These matched PRZZ target, suggesting either:
+  1. PRZZ numerical code had the same bug
+  2. Another compensating error exists
+
+**439 tests passing**, 3 xfail (golden target tests while investigating)
 
 ---
 
@@ -269,6 +293,6 @@ przz-extension/
 5. ~~`terms_k3_d1.py` - All K=3 pairs implemented~~ **DONE**
 6. ~~`evaluate.py` + tests → Full pipeline with I₅ correction~~ **DONE**
 7. ~~All pairs validated: (1,1), (1,2), (1,3), (2,2), (2,3), (3,3)~~ **DONE**
-8. ~~Full integration test: c ≈ 2.138, κ ≈ 0.417 (Phase 0 complete)~~ **DONE**
+8. ~~Full integration test: c ≈ 2.138, κ ≈ 0.417 (Phase 0 complete)~~ **INVESTIGATING**
 
-**Phase 1 NEXT**: Optimize polynomial coefficients within K=3, d=1
+**Current Investigation**: Understand ~10% gap after I3/I4 prefactor fix

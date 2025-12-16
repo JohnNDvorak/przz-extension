@@ -426,15 +426,17 @@ def make_I3_11(theta: float, R: float) -> Term:
     return Term(
         name="I3_11",
         pair=(1, 1),
-        przz_reference="Section 6.2.1, I₃",
+        przz_reference="Section 6.2.1, I₃ (line 1562-1563)",
         vars=("x1",),  # Only x1 formal variable
         deriv_orders={"x1": 1},
         domain="[0,1]^2",
 
-        # Numeric prefactor: -1.0 (leading minus sign for I₃)
-        numeric_prefactor=-1.0,
+        # Numeric prefactor: -1/θ
+        # PRZZ: I₃ = -[(1+θx)/θ]|_{x=0} × d/dx[...] = -(1/θ) × derivative
+        # The prefactor (1+θx)/θ evaluates at x=0 to give 1/θ
+        numeric_prefactor=-1.0 / theta,  # PRZZ paper correct: (1+θx)/θ|_{x=0} = 1/θ
 
-        # No algebraic prefactor for I₃
+        # No variable-dependent algebraic prefactor for I₃
         algebraic_prefactor=None,
 
         # Poly prefactors: (1-u) single power
@@ -498,15 +500,17 @@ def make_I4_11(theta: float, R: float) -> Term:
     return Term(
         name="I4_11",
         pair=(1, 1),
-        przz_reference="Section 6.2.1, I₄",
+        przz_reference="Section 6.2.1, I₄ (line 1568-1569)",
         vars=("y1",),  # Only y1 formal variable
         deriv_orders={"y1": 1},
         domain="[0,1]^2",
 
-        # Numeric prefactor: -1.0 (leading minus sign for I₄)
-        numeric_prefactor=-1.0,
+        # Numeric prefactor: -1/θ
+        # PRZZ: I₄ = -[(1+θy)/θ]|_{y=0} × d/dy[...] = -(1/θ) × derivative
+        # Same as I3 structure but with y instead of x
+        numeric_prefactor=-1.0 / theta,  # PRZZ paper correct: (1+θx)/θ|_{x=0} = 1/θ
 
-        # No algebraic prefactor for I₄
+        # No variable-dependent algebraic prefactor for I₄
         algebraic_prefactor=None,
 
         # Poly prefactors: (1-u) single power
@@ -779,7 +783,8 @@ def make_I3_22(theta: float, R: float) -> Term:
         vars=x_vars,
         deriv_orders={v: 1 for v in x_vars},
         domain="[0,1]^2",
-        numeric_prefactor=-1.0,  # I₃ always has leading minus sign
+        # PRZZ: I₃ = -[(1+θX)/θ]|_{X=0} × d/dX[...] = -(1/θ) × derivative
+        numeric_prefactor=-1.0 / theta,  # PRZZ paper correct: (1+θx)/θ|_{x=0} = 1/θ
         algebraic_prefactor=None,
         poly_prefactors=[_make_poly_prefactor_power(2)],  # (1-u)^2
         poly_factors=poly_factors,
@@ -828,7 +833,8 @@ def make_I4_22(theta: float, R: float) -> Term:
         vars=y_vars,
         deriv_orders={v: 1 for v in y_vars},
         domain="[0,1]^2",
-        numeric_prefactor=-1.0,  # I₄ always has leading minus sign
+        # PRZZ: I₄ = -[(1+θY)/θ]|_{Y=0} × d/dY[...] = -(1/θ) × derivative
+        numeric_prefactor=-1.0 / theta,  # PRZZ paper correct: (1+θx)/θ|_{x=0} = 1/θ
         algebraic_prefactor=None,
         poly_prefactors=[_make_poly_prefactor_power(2)],
         poly_factors=poly_factors,
@@ -967,7 +973,8 @@ def make_I3_33(theta: float, R: float) -> Term:
         vars=x_vars,
         deriv_orders={v: 1 for v in x_vars},
         domain="[0,1]^2",
-        numeric_prefactor=-1.0,  # I₃ always has leading minus sign
+        # PRZZ: I₃ = -[(1+θX)/θ]|_{X=0} × d/dX[...] = -(1/θ) × derivative
+        numeric_prefactor=-1.0 / theta,  # PRZZ paper correct: (1+θx)/θ|_{x=0} = 1/θ
         algebraic_prefactor=None,
         poly_prefactors=[_make_poly_prefactor_power(3)],
         poly_factors=poly_factors,
@@ -1016,7 +1023,8 @@ def make_I4_33(theta: float, R: float) -> Term:
         vars=y_vars,
         deriv_orders={v: 1 for v in y_vars},
         domain="[0,1]^2",
-        numeric_prefactor=-1.0,  # I₄ always has leading minus sign
+        # PRZZ: I₄ = -[(1+θY)/θ]|_{Y=0} × d/dY[...] = -(1/θ) × derivative
+        numeric_prefactor=-1.0 / theta,  # PRZZ paper correct: (1+θx)/θ|_{x=0} = 1/θ
         algebraic_prefactor=None,
         poly_prefactors=[_make_poly_prefactor_power(3)],
         poly_factors=poly_factors,
@@ -1134,7 +1142,8 @@ def make_I3_12(theta: float, R: float) -> Term:
         vars=x_vars,
         deriv_orders={"x1": 1},
         domain="[0,1]^2",
-        numeric_prefactor=-1.0,  # I₃ always has leading minus sign
+        # PRZZ: I₃ = -[(1+θX)/θ]|_{X=0} × d/dX[...] = -(1/θ) × derivative
+        numeric_prefactor=-1.0 / theta,  # PRZZ paper correct: (1+θx)/θ|_{x=0} = 1/θ
         algebraic_prefactor=None,
         poly_prefactors=[_make_poly_prefactor_power(1)],
         poly_factors=[
@@ -1185,7 +1194,8 @@ def make_I4_12(theta: float, R: float) -> Term:
         vars=y_vars,
         deriv_orders={v: 1 for v in y_vars},
         domain="[0,1]^2",
-        numeric_prefactor=-1.0,  # I₄ always has leading minus sign
+        # PRZZ: I₄ = -[(1+θY)/θ]|_{Y=0} × d/dY[...] = -(1/θ) × derivative
+        numeric_prefactor=-1.0 / theta,  # PRZZ paper correct: (1+θx)/θ|_{x=0} = 1/θ
         algebraic_prefactor=None,
         poly_prefactors=[_make_poly_prefactor_power(2)],
         poly_factors=poly_factors,
@@ -1301,7 +1311,8 @@ def make_I3_13(theta: float, R: float) -> Term:
         vars=("x1",),
         deriv_orders={"x1": 1},
         domain="[0,1]^2",
-        numeric_prefactor=-1.0,
+        # PRZZ: I₃ = -[(1+θX)/θ]|_{X=0} × d/dX[...] = -(1/θ) × derivative
+        numeric_prefactor=-1.0 / theta,  # PRZZ paper correct: (1+θx)/θ|_{x=0} = 1/θ
         algebraic_prefactor=None,
         poly_prefactors=[_make_poly_prefactor_power(1)],
         poly_factors=[
@@ -1352,7 +1363,8 @@ def make_I4_13(theta: float, R: float) -> Term:
         vars=y_vars,
         deriv_orders={v: 1 for v in y_vars},
         domain="[0,1]^2",
-        numeric_prefactor=-1.0,
+        # PRZZ: I₄ = -[(1+θY)/θ]|_{Y=0} × d/dY[...] = -(1/θ) × derivative
+        numeric_prefactor=-1.0 / theta,  # PRZZ paper correct: (1+θx)/θ|_{x=0} = 1/θ
         algebraic_prefactor=None,
         poly_prefactors=[_make_poly_prefactor_power(3)],
         poly_factors=poly_factors,
@@ -1485,7 +1497,8 @@ def make_I3_23(theta: float, R: float) -> Term:
         vars=x_vars,
         deriv_orders={v: 1 for v in x_vars},
         domain="[0,1]^2",
-        numeric_prefactor=-1.0,  # I₃ always has leading minus sign
+        # PRZZ: I₃ = -[(1+θX)/θ]|_{X=0} × d/dX[...] = -(1/θ) × derivative
+        numeric_prefactor=-1.0 / theta,  # PRZZ paper correct: (1+θx)/θ|_{x=0} = 1/θ
         algebraic_prefactor=None,
         poly_prefactors=[_make_poly_prefactor_power(2)],
         poly_factors=poly_factors,
@@ -1531,7 +1544,8 @@ def make_I4_23(theta: float, R: float) -> Term:
         vars=y_vars,
         deriv_orders={v: 1 for v in y_vars},
         domain="[0,1]^2",
-        numeric_prefactor=-1.0,  # I₄ always has leading minus sign
+        # PRZZ: I₄ = -[(1+θY)/θ]|_{Y=0} × d/dY[...] = -(1/θ) × derivative
+        numeric_prefactor=-1.0 / theta,  # PRZZ paper correct: (1+θx)/θ|_{x=0} = 1/θ
         algebraic_prefactor=None,
         poly_prefactors=[_make_poly_prefactor_power(3)],
         poly_factors=poly_factors,
