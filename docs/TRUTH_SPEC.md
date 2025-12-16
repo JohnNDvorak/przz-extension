@@ -166,7 +166,7 @@ At x=0: (1+θx)/θ = 1/θ
 
 ### 6b. I₄ Formula
 
-**PRZZ TeX Lines 1577–1602:**
+**PRZZ TeX Lines 1566–1569:**
 ```latex
 I₄ = -TΦ̂(0) × (1+θy)/θ × d/dy[∫∫ (1-u)P₁(u)P₂(y+u) e^{R[...]} Q(...)Q(...) dtdu]|_{y=0}
 ```
@@ -223,10 +223,12 @@ Contains the U/V/W indicator definitions and case split structure.
 
 ## 8. Case C Auxiliary Integral
 
-**PRZZ TeX Lines 2376–2400:**
+**PRZZ TeX Lines 2370–2375** (g_d(k,α,n) Case C formula):
 ```latex
 ∫₀¹ (1-a)^i a^{ω-1} (N/n)^{-αa} da
 ```
+
+**Also relevant:** Lines 2378–2383 show the analogous F_d(k,α,n) structure.
 
 This is a Beta-type integral that appears in Case C (ω > 0).
 
@@ -245,7 +247,7 @@ we'll have systematic missing contributions from P₂/P₃-involving pairs.
 
 Contains the prime-sum expression (over p) coming from A_{α,β}^{(1,1)} evaluated at zero.
 
-Numeric approximation: **S(0) ≈ 1.3856...**
+Numeric approximation: **S(0) ≈ 1.385603705**
 
 This is what we call `S_AT_ZERO` in the code (`src/arithmetic_constants.py`).
 
@@ -332,10 +334,10 @@ All line numbers refer to: `RMS_PRZZ.tex` (1-indexed)
 |---------|-------|
 | 286–289 | κ / c definition |
 | 1621–1628 | I₅ is error term (primary) |
-| 1714–1727 | A-derivatives are error terms O(T/L) |
+| 1722–1726 | A-derivatives are error terms O(T/L) |
 | 1502–1504 | Mirror term structure |
 | 1551–1564 | I₃ displayed formula |
-| 1577–1602 | I₄ displayed formula |
+| 1566–1569 | I₄ displayed formula |
 | 2301–2310 | ω-case split + x → x log N |
 
 ### Complete Reference Table
@@ -346,17 +348,17 @@ All line numbers refer to: `RMS_PRZZ.tex` (1-indexed)
 | 542–545 | Mollifier definition |
 | 548 | "Feng convention starting at K=2" |
 | 624–635 | N = T^θ / y_d definition |
-| 1377–1389 | Prime sum S(0) ≈ 1.3856 |
+| 1377–1389 | Prime sum S(0) ≈ 1.385603705 |
 | 1490–1499 | I_{1,5} smaller order statement |
 | 1502–1504 | Mirror term headline identity |
 | 1502–1511 | Difference quotient → integral representation |
 | 1514–1517 | Q(...)Q(...) operator structure |
 | 1521–1523 | Mirror combination at α=β=-R/L |
 | 1551–1564 | I₃ formula with (1+θx)/θ prefactor |
-| 1577–1602 | I₄ formula with (1+θy)/θ prefactor |
+| 1566–1569 | I₄ formula with (1+θy)/θ prefactor |
 | 1621–1628 | I₅ ≪ T/L (explicit, canonical citation) |
 | 1714–1727 | A-derivatives contribute only to O(T/L) error |
-| 1722–1727 | Tightest slice for "derivatives → error" |
+| 1722–1726 | Tightest slice for "derivatives → error" |
 | 2301–2310 | ω definition + Case A + "x → x log N" |
 | 2320–2344 | Case B + Case C definitions (U/V/W indicators) |
-| 2376–2400 | Case C auxiliary a-integral structure |
+| 2370–2375, 2378–2383 | Case C auxiliary a-integral structure |
