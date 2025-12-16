@@ -236,3 +236,96 @@ This requires DSL modification, not just post-hoc correction.
 | 2379-2383 | F_d definition for ω > 0 (CRITICAL) |
 | 1514-1517 | Q-operator substitution (validated correct) |
 | 2596-2598 | kappa* benchmark at R=1.1167 |
+
+## Update 2025-12-16: Full Case C with Derivatives Test
+
+### 17. Implemented Case C Derivative Kernel
+
+Extended the kernel to handle derivatives:
+```
+K'_ω(u; R) = ω·u^{ω-1}/(ω-1)! × ∫₀¹ P((1-a)u) × a^{ω-1} × exp(Rθua) da
+           + u^ω/(ω-1)! × ∫₀¹ [(1-a)P'((1-a)u) + Rθa·P((1-a)u)] × a^{ω-1} × exp(Rθua) da
+```
+
+### 18. Full Case C vs Raw: Summary Results
+
+| Metric | Raw | Case C | Target |
+|--------|-----|--------|--------|
+| c(R₁=1.3036) | 1.950 | **0.574** | 2.137 |
+| c(R₂=1.1167) | 1.642 | 0.500 | 1.938 |
+| R-sensitivity | 18.73% | **14.76%** | 10.29% |
+
+**Key finding**: Case C IMPROVES R-sensitivity but DESTROYS c magnitude!
+
+### 19. Per-Pair Changes Under Case C
+
+| Pair | Case | Raw | Case C | Change |
+|------|------|-----|--------|--------|
+| (1,1) | B×B | +0.442 | +0.317 | -28% |
+| (1,2) | B×C | **-0.201** | **+0.210** | **Sign flip!** |
+| (1,3) | B×C | -0.218 | +0.003 | Near zero |
+| (2,2) | C×C | **+1.261** | +0.043 | **-97%** |
+| (2,3) | C×C | +0.586 | +0.001 | -99.7% |
+| (3,3) | C×C | +0.080 | +0.00001 | -99.98% |
+
+**Critical observations**:
+1. (1,2) flips sign from -0.20 to +0.21 — this INCREASES c by +0.41
+2. But (2,2) collapses from +1.26 to +0.04 — this DECREASES c by -1.22
+3. Net effect: c drops by 70%
+
+### 20. Why C×C Pairs Nearly Vanish
+
+For (2,2) with ω₁=ω₂=1:
+- Raw: P₂ × P₂ gives values ~0.5-1.0
+- Case C: K₁ × K₁ with ratio ~0.47 × 0.47 ≈ 0.22
+- Plus derivative terms have similar suppression
+
+The exponential factor exp(Rθua) doesn't compensate enough at small a values
+where a^{ω-1} has most mass.
+
+### 21. Term Breakdown for (2,2)
+
+| Term | Raw | Case C | Ratio |
+|------|-----|--------|-------|
+| I1 | +0.971 | +0.008 | 0.8% |
+| I2 | +0.227 | +0.050 | 22% |
+| I3 | +0.031 | -0.008 | Sign flip |
+| I4 | +0.031 | -0.008 | Sign flip |
+| **Total** | **+1.261** | **+0.043** | **3.4%** |
+
+The I3/I4 derivative terms flip sign but remain small. I1 (double derivative) is
+most suppressed because K'×K' compounds the reduction.
+
+### 22. Implications
+
+**Case C alone cannot explain the gap** because:
+
+1. We need c to INCREASE from 1.95 → 2.14 (+9.6%)
+2. Case C makes c DECREASE from 1.95 → 0.57 (-70%)
+3. Even though (1,2) sign flip helps (+0.41), (2,2) collapse hurts more (-1.22)
+
+**The paradox remains**: Something else must provide a +180% boost to c while
+having weak R-dependence, to compensate for Case C reduction.
+
+### 23. Possible Resolutions
+
+1. **Our raw computation is not "PRZZ base case"**
+   - Our I1+I2+I3+I4 structure may not match PRZZ's integrand definition
+   - PRZZ may have different normalization or structure entirely
+
+2. **Missing positive term family**
+   - There could be terms we haven't included that contribute ~1.5 to c
+   - These would need weak R-dependence to not destroy the sensitivity match
+
+3. **Assembly-level issue**
+   - PRZZ's analytic combination (mirror terms) before constant extraction
+   - May create cross-terms that we miss by expanding separately
+
+4. **Different variable stage**
+   - PRZZ's x → x log N rescaling (TeX 2309)
+   - Could affect relative magnitudes of terms
+
+### 24. Branch Status
+
+These experiments are on branch `feature/case-c-derivatives`.
+Can revert to main if needed — Case C in current form doesn't help.

@@ -244,6 +244,183 @@ def compute_case_c_I2_term(
     return float(np.sum(weights * integrand))
 
 
+def compute_case_c_kernel_derivative(
+    P_eval: Callable[[np.ndarray], np.ndarray],
+    P_deriv_eval: Callable[[np.ndarray], np.ndarray],
+    u_grid: np.ndarray,
+    omega: int,
+    R: float,
+    theta: float,
+    n_quad_a: int = 30
+) -> np.ndarray:
+    """
+    Compute Case C kernel DERIVATIVE d/darg K_ω(arg; R) evaluated at arg=u.
+
+    The derivative is needed for I₃/I₄ terms where we differentiate w.r.t.
+    formal variables x or y.
+
+    For K_ω(arg; R) = arg^ω / (ω-1)! × ∫₀¹ P((1-a)·arg) × a^{ω-1} × exp(Rθ·arg·a) da
+
+    The derivative is (using product rule):
+    K'_ω(u; R) = ω·u^{ω-1} / (ω-1)! × ∫₀¹ P((1-a)u) × a^{ω-1} × exp(Rθua) da
+               + u^ω / (ω-1)! × ∫₀¹ [(1-a)P'((1-a)u) + Rθa·P((1-a)u)] × a^{ω-1} × exp(Rθua) da
+
+    Args:
+        P_eval: Polynomial evaluation function P(x) -> array
+        P_deriv_eval: Polynomial derivative evaluation P'(x) -> array
+        u_grid: Grid of u values
+        omega: ω value (1 for P₂, 2 for P₃)
+        R: R parameter
+        theta: θ parameter
+        n_quad_a: Quadrature points for a-integral
+
+    Returns:
+        K'_ω(u; R) evaluated at each point in u_grid
+    """
+    if omega <= 0:
+        raise ValueError(f"Case C requires omega > 0, got {omega}")
+
+    a_nodes, a_weights = gauss_legendre_01(n_quad_a)
+    factorial_denom = math.factorial(omega - 1)
+
+    u_grid = np.atleast_1d(u_grid).flatten()
+    result = np.zeros_like(u_grid)
+
+    for i in range(len(u_grid)):
+        u = u_grid[i]
+
+        if u < 1e-14:
+            # At u=0, need to be careful with u^{ω-1} term
+            # For ω=1: K'(0) = ∫₀¹ P(0) × exp(0) da = P(0)
+            # For ω=2: K'(0) = 2×0 × ... + 0² × ... = 0
+            if omega == 1:
+                result[i] = P_eval(np.array([0.0]))[0]
+            else:
+                result[i] = 0.0
+            continue
+
+        # Arguments for a-integral
+        args = (1 - a_nodes) * u
+
+        # P and P' at these arguments
+        P_vals = P_eval(args)
+        P_deriv_vals = P_deriv_eval(args)
+
+        # a^{ω-1} factor
+        if omega == 1:
+            a_power = np.ones_like(a_nodes)
+        else:
+            a_power = a_nodes ** (omega - 1)
+
+        # Exponential factor
+        exp_factor = np.exp(R * theta * u * a_nodes)
+
+        # First term: ω·u^{ω-1} / (ω-1)! × ∫ P((1-a)u) × a^{ω-1} × exp(Rθua) da
+        integrand1 = P_vals * a_power * exp_factor
+        term1 = omega * (u ** (omega - 1)) / factorial_denom * np.sum(a_weights * integrand1)
+
+        # Second term: u^ω / (ω-1)! × ∫ [(1-a)P'(...) + Rθa·P(...)] × a^{ω-1} × exp(...) da
+        bracket = (1 - a_nodes) * P_deriv_vals + R * theta * a_nodes * P_vals
+        integrand2 = bracket * a_power * exp_factor
+        term2 = (u ** omega) / factorial_denom * np.sum(a_weights * integrand2)
+
+        result[i] = term1 + term2
+
+    return result
+
+
+def compute_case_c_full_term(
+    P_left_eval: Callable,
+    P_left_deriv: Callable,
+    P_right_eval: Callable,
+    P_right_deriv: Callable,
+    omega_left: int,
+    omega_right: int,
+    Q_eval: Callable,
+    u_grid: np.ndarray,
+    t_grid: np.ndarray,
+    weights: np.ndarray,
+    R: float,
+    theta: float,
+    term_type: str,
+    n_quad_a: int = 30
+) -> float:
+    """
+    Compute a full term (I1, I2, I3, or I4) with Case C structure.
+
+    This function computes the integrand with Case C kernels replacing
+    raw polynomials for ω > 0, and uses Case C derivatives where needed.
+
+    Args:
+        P_left_eval, P_left_deriv: Left polynomial and its derivative
+        P_right_eval, P_right_deriv: Right polynomial and its derivative
+        omega_left, omega_right: ω values for left and right (0 = Case B)
+        Q_eval: Q polynomial evaluation
+        u_grid, t_grid, weights: Quadrature grid
+        R: R parameter
+        theta: θ parameter
+        term_type: 'I2' (no derivs), 'I3' (x-deriv), 'I4' (y-deriv), 'I1' (both)
+        n_quad_a: Quadrature for a-integral
+
+    Returns:
+        Term value with Case C structure
+    """
+    # Get kernel values for left and right polynomials
+    if omega_left == 0:
+        K_left = P_left_eval(u_grid)
+        K_left_deriv = P_left_deriv(u_grid)
+    else:
+        K_left = compute_case_c_kernel(P_left_eval, u_grid, omega_left, R, theta, n_quad_a)
+        K_left_deriv = compute_case_c_kernel_derivative(
+            P_left_eval, P_left_deriv, u_grid, omega_left, R, theta, n_quad_a
+        )
+
+    if omega_right == 0:
+        K_right = P_right_eval(u_grid)
+        K_right_deriv = P_right_deriv(u_grid)
+    else:
+        K_right = compute_case_c_kernel(P_right_eval, u_grid, omega_right, R, theta, n_quad_a)
+        K_right_deriv = compute_case_c_kernel_derivative(
+            P_right_eval, P_right_deriv, u_grid, omega_right, R, theta, n_quad_a
+        )
+
+    # Q and exp factors
+    Q_vals_sq = Q_eval(t_grid) ** 2
+    exp_vals = np.exp(2 * R * t_grid)
+
+    # Compute based on term type
+    if term_type == 'I2':
+        # I₂: (1/θ) × ∫∫ K_left(u) × K_right(u) × Q(t)² × exp(2Rt) du dt
+        integrand = K_left * K_right * Q_vals_sq * exp_vals / theta
+        return float(np.sum(weights * integrand))
+
+    elif term_type == 'I3':
+        # I₃: x-derivative only
+        # For the x-side polynomial, we need K'_left
+        # Result is approximately: -(1/θ) × ∫∫ K'_left(u) × K_right(u) × Q² × exp × (1-u) du dt
+        # NOTE: This is a simplified approximation - full DSL would handle properly
+        poly_prefactor = 1 - u_grid
+        integrand = K_left_deriv * K_right * Q_vals_sq * exp_vals * poly_prefactor / (-theta)
+        return float(np.sum(weights * integrand))
+
+    elif term_type == 'I4':
+        # I₄: y-derivative only
+        # For the y-side polynomial, we need K'_right
+        poly_prefactor = 1 - u_grid
+        integrand = K_left * K_right_deriv * Q_vals_sq * exp_vals * poly_prefactor / (-theta)
+        return float(np.sum(weights * integrand))
+
+    elif term_type == 'I1':
+        # I₁: both x and y derivatives - most complex
+        # Simplified: (1/θ) × ∫∫ K'_left × K'_right × Q² × exp × (1-u)² du dt
+        poly_prefactor = (1 - u_grid) ** 2
+        integrand = K_left_deriv * K_right_deriv * Q_vals_sq * exp_vals * poly_prefactor / theta
+        return float(np.sum(weights * integrand))
+
+    else:
+        raise ValueError(f"Unknown term_type: {term_type}")
+
+
 def verify_case_c_vs_raw(verbose: bool = True):
     """
     Compare Case C kernel to raw polynomial at both R benchmarks.
