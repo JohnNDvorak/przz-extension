@@ -95,7 +95,9 @@ def evaluate_term(
     term: Term,
     polynomials: Dict[str, PolyLike],
     n: int,
-    return_debug: bool = False
+    return_debug: bool = False,
+    R: Optional[float] = None,
+    theta: Optional[float] = None
 ) -> TermResult:
     """
     Evaluate a single term's contribution to c.
@@ -115,6 +117,8 @@ def evaluate_term(
             e.g., {"P1": p1_poly, "Q": q_poly}
         n: Number of quadrature points per dimension
         return_debug: If True, include debug info in result
+        R: R parameter (for Case C omega handling)
+        theta: θ parameter (for Case C omega handling)
 
     Returns:
         TermResult with the term's contribution
@@ -140,7 +144,8 @@ def evaluate_term(
             raise ValueError(
                 f"Term '{term.name}': polynomial '{factor.poly_name}' not found"
             )
-        factor_series = factor.evaluate(poly, U, T, ctx)
+        # Pass R and theta for Case C omega handling
+        factor_series = factor.evaluate(poly, U, T, ctx, R=R, theta=theta)
         integrand = integrand * factor_series
 
     # Multiply in all exp factors
@@ -188,7 +193,9 @@ def evaluate_terms(
     terms: List[Term],
     polynomials: Dict[str, PolyLike],
     n: int,
-    return_breakdown: bool = True
+    return_breakdown: bool = True,
+    R: Optional[float] = None,
+    theta: Optional[float] = None
 ) -> EvaluationResult:
     """
     Evaluate multiple terms and sum their contributions.
@@ -198,6 +205,8 @@ def evaluate_terms(
         polynomials: Dict mapping poly_name to polynomial object
         n: Number of quadrature points per dimension
         return_breakdown: If True, include per-term breakdown
+        R: R parameter (for Case C omega handling)
+        theta: θ parameter (for Case C omega handling)
 
     Returns:
         EvaluationResult with total and optional breakdown
@@ -207,7 +216,9 @@ def evaluate_terms(
     total = 0.0
 
     for term in terms:
-        result = evaluate_term(term, polynomials, n, return_debug=return_breakdown)
+        result = evaluate_term(
+            term, polynomials, n, return_debug=return_breakdown, R=R, theta=theta
+        )
         term_results.append(result)
         per_term[term.name] = result.value
         total += result.value
@@ -402,7 +413,7 @@ def evaluate_c_full(
     all_per_term = {}
 
     for pair_key, terms in all_terms.items():
-        pair_result = evaluate_terms(terms, polynomials, n, return_breakdown)
+        pair_result = evaluate_terms(terms, polynomials, n, return_breakdown, R=R, theta=theta)
         pair_results[pair_key] = pair_result.total
 
         # Off-diagonal pairs get factor of 2 for symmetry
@@ -452,7 +463,7 @@ def evaluate_c_full(
         for pair_key, terms in all_terms.items():
             # I₂ is the second term (index 1) in each pair's term list
             i2_term = terms[1]
-            i2_result = evaluate_term(i2_term, polynomials, n)
+            i2_result = evaluate_term(i2_term, polynomials, n, R=R, theta=theta)
 
             # Apply normalization
             if pair_key in ("12", "13", "23"):

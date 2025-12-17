@@ -16,7 +16,7 @@ This module centralizes composition logic to prevent:
 
 from __future__ import annotations
 import numpy as np
-from typing import Dict, Protocol, Tuple, Union, runtime_checkable
+from typing import Dict, Protocol, Tuple, Union, runtime_checkable, Optional
 
 from src.series import TruncatedSeries
 
@@ -203,3 +203,138 @@ def compose_exp_on_affine(
     # Scale by R and exponentiate
     scaled = affine * R
     return scaled.exp()
+
+
+def compose_profile_on_affine(
+    taylor_coeffs: np.ndarray,
+    lin: Dict[str, Union[float, np.ndarray]],
+    var_names: Tuple[str, ...]
+) -> TruncatedSeries:
+    """
+    Compose a profile (given by its Taylor coefficients) with a nilpotent perturbation.
+
+    This is the generalization of compose_polynomial_on_affine that works with
+    any profile F(u + δ), not just polynomials. The profile is specified by
+    its Taylor coefficients F^{(j)}(u) in the factorial basis.
+
+    For Case B (ω=0): taylor_coeffs[j] = P^{(j)}(u)
+    For Case C (ω>0): taylor_coeffs[j] = K_ω^{(j)}(u;R) from auxiliary a-integral
+
+    Mathematical basis:
+        F(u + δ) = Σⱼ F^{(j)}(u)/j! · δʲ
+
+        Under nilpotent rules (xᵢ² = 0):
+        coeff(x₁...xⱼ) = (∏ aᵢ) · F^{(j)}(u)
+
+        The j! from δʲ expansion cancels with 1/j! from Taylor.
+
+    Args:
+        taylor_coeffs: Array of shape (max_order+1,) with coeffs[j] = F^{(j)}(u)
+                       in the factorial basis (NOT divided by j!)
+        lin: Linear coefficients mapping var_name -> coefficient
+             e.g., {"x": a, "y": b} means δ = a*x + b*y
+        var_names: Tuple of variable names defining the series context
+
+    Returns:
+        TruncatedSeries representing F(u + δ)
+
+    Raises:
+        ValueError: If any key in lin is not in var_names
+    """
+    from math import factorial
+
+    # Validate that all lin keys are in var_names
+    for name in lin.keys():
+        if name not in var_names:
+            raise ValueError(
+                f"Linear coefficient key '{name}' not in var_names {var_names}"
+            )
+
+    # Build δ as a TruncatedSeries (pure nilpotent, no constant term)
+    delta = TruncatedSeries.from_scalar(0.0, var_names)
+    for name, coeff in lin.items():
+        delta = delta + TruncatedSeries.variable(name, var_names) * coeff
+
+    # F(u + δ) = Σⱼ F^{(j)}(u)/j! · δʲ
+    # Series terminates at j = min(len(taylor_coeffs)-1, n_active_vars)
+    n_active = len(lin)
+    max_j = min(len(taylor_coeffs) - 1, n_active)
+
+    result = TruncatedSeries.from_scalar(0.0, var_names)
+    delta_power = TruncatedSeries.from_scalar(1.0, var_names)  # δ^0 = 1
+
+    for j in range(max_j + 1):
+        # Get F^{(j)}(u) from the pre-computed Taylor coefficients
+        deriv_j = taylor_coeffs[j]
+
+        # Add F^{(j)}(u)/j! · δʲ to result
+        result = result + delta_power * (deriv_j / factorial(j))
+
+        # Update for next iteration
+        delta_power = delta_power * delta
+
+        # Early termination if δ^(j+1) is all zeros (fully truncated)
+        if all(np.all(c == 0) for c in delta_power.coeffs.values()):
+            break
+
+    return result
+
+
+def compose_profile_on_affine_grid(
+    taylor_coeffs_grid: np.ndarray,
+    lin: Dict[str, Union[float, np.ndarray]],
+    var_names: Tuple[str, ...]
+) -> TruncatedSeries:
+    """
+    Compose a profile with Taylor coefficients on a grid.
+
+    This is the grid-aware version where taylor_coeffs_grid has shape
+    (n_grid_u, n_grid_t, max_order+1) or similar.
+
+    For each grid point (i, j), taylor_coeffs_grid[i, j, k] = F^{(k)}(u_ij).
+
+    Args:
+        taylor_coeffs_grid: Array with last dimension = max_order+1
+                            Each [..., k] slice is F^{(k)} on the grid
+        lin: Linear coefficients {var_name: coeff_array}
+        var_names: Variable names tuple
+
+    Returns:
+        TruncatedSeries with coefficients on the grid
+    """
+    from math import factorial
+
+    # Validate
+    for name in lin.keys():
+        if name not in var_names:
+            raise ValueError(
+                f"Linear coefficient key '{name}' not in var_names {var_names}"
+            )
+
+    # Build δ
+    delta = TruncatedSeries.from_scalar(0.0, var_names)
+    for name, coeff in lin.items():
+        delta = delta + TruncatedSeries.variable(name, var_names) * coeff
+
+    # Get max order from last dimension
+    max_order = taylor_coeffs_grid.shape[-1] - 1
+    n_active = len(lin)
+    max_j = min(max_order, n_active)
+
+    result = TruncatedSeries.from_scalar(0.0, var_names)
+    delta_power = TruncatedSeries.from_scalar(1.0, var_names)
+
+    for j in range(max_j + 1):
+        # Get F^{(j)}(u) grid from the last dimension
+        deriv_j = taylor_coeffs_grid[..., j]
+
+        # Add F^{(j)}(u)/j! · δʲ
+        result = result + delta_power * (deriv_j / factorial(j))
+
+        # Update for next iteration
+        delta_power = delta_power * delta
+
+        if all(np.all(c == 0) for c in delta_power.coeffs.values()):
+            break
+
+    return result

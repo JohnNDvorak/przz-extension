@@ -484,3 +484,29 @@ def load_przz_polynomials(
     Q = QPolynomial(q_coeffs, enforce_Q0=enforce_Q0)
 
     return P1, P2, P3, Q
+
+
+def load_przz_polynomials_kappa_star(
+    enforce_Q0: bool = False
+) -> Tuple[P1Polynomial, PellPolynomial, PellPolynomial, QPolynomial]:
+    """
+    Load PRZZ polynomials for the kappa* (simple zeros) benchmark.
+
+    These are DIFFERENT polynomials than the main kappa benchmark!
+    - R = 1.1167 (vs 1.3036 for main)
+    - Linear Q (only constant and (1-2x)^1 terms)
+    - Different P1, P2, P3 coefficients
+
+    From PRZZ TeX lines 2587-2598.
+
+    Args:
+        enforce_Q0: If True, recompute Q's c0 so Q(0)=1 exactly.
+                   If False (default), use printed c0 value.
+
+    Returns:
+        Tuple of (P1, P2, P3, Q) polynomials for kappa* benchmark
+    """
+    json_path = (
+        Path(__file__).parent.parent / "data" / "przz_parameters_kappa_star.json"
+    )
+    return load_przz_polynomials(enforce_Q0=enforce_Q0, json_path=json_path)

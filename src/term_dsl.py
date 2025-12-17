@@ -26,7 +26,12 @@ from typing import Dict, Callable, Union, Tuple, List, Optional
 import numpy as np
 
 from src.series import TruncatedSeries
-from src.composition import compose_polynomial_on_affine, compose_exp_on_affine, PolyLike
+from src.composition import (
+    compose_polynomial_on_affine,
+    compose_exp_on_affine,
+    compose_profile_on_affine_grid,
+    PolyLike
+)
 
 
 # Type alias: scalar, precomputed array, or callable
@@ -261,50 +266,104 @@ class PolyFactor:
     """
     A polynomial factor: P_name(argument)^power
 
+    Supports omega-case handling for PRZZ kernel structure:
+    - omega=None or 0: Case B - standard P(u+X) evaluation
+    - omega>0: Case C - kernel with auxiliary a-integral
+
     Attributes:
         poly_name: Name identifier ("P1", "P2", "P3", "Q")
         argument: AffineExpr for the polynomial argument
         power: Exponent (default 1). For Q² use power=2.
+        omega: Omega value for Case C handling (None or 0 = Case B, >0 = Case C)
 
     Example:
-        >>> # P₁(x + u)
+        >>> # P₁(x + u) with Case B handling
         >>> factor = PolyFactor(
         ...     poly_name="P1",
         ...     argument=AffineExpr(
         ...         a0=lambda U, T: U,
         ...         var_coeffs={"x1": 1.0}
-        ...     )
+        ...     ),
+        ...     omega=0  # Case B
+        ... )
+        >>> # P₂(x₁+x₂ + u) with Case C handling (omega=1)
+        >>> factor = PolyFactor(
+        ...     poly_name="P2",
+        ...     argument=AffineExpr(
+        ...         a0=lambda U, T: U,
+        ...         var_coeffs={"x1": 1.0, "x2": 1.0}
+        ...     ),
+        ...     omega=1  # Case C
         ... )
     """
     poly_name: str
     argument: AffineExpr
     power: int = 1
+    omega: Optional[int] = None  # None or 0 = Case B, >0 = Case C
 
     def evaluate(
         self,
         poly: PolyLike,
         U: np.ndarray,
         T: np.ndarray,
-        ctx: SeriesContext
+        ctx: SeriesContext,
+        R: Optional[float] = None,
+        theta: Optional[float] = None,
+        n_quad_a: int = 40
     ) -> TruncatedSeries:
         """
         Evaluate the polynomial factor as a TruncatedSeries.
 
-        Uses compose_polynomial_on_affine from composition.py.
+        For Case B (omega=None or 0): Uses standard Taylor expansion P(u+X)
+        For Case C (omega>0): Uses kernel-based Taylor coefficients K_ω(u;R,θ)
 
         Args:
             poly: Polynomial object with eval_deriv(x, k)
             U: Grid array for u variable
             T: Grid array for t variable
             ctx: SeriesContext for variable names
+            R: R parameter (required for Case C)
+            theta: θ parameter (required for Case C)
+            n_quad_a: Quadrature points for Case C a-integral
 
         Returns:
-            TruncatedSeries representing P(argument)^power
+            TruncatedSeries representing profile(argument)^power
         """
         u0, lin = self.argument.to_u0_lin(U, T, ctx)
 
-        # Compose polynomial on affine expression
-        series = compose_polynomial_on_affine(poly, u0, lin, ctx.var_names)
+        # Determine the derivative order needed (number of active variables)
+        max_order = len(lin)
+
+        # Dispatch based on omega
+        if self.omega is None or self.omega == 0:
+            # Case B: standard polynomial composition
+            series = compose_polynomial_on_affine(poly, u0, lin, ctx.var_names)
+        else:
+            # Case C: kernel-based Taylor coefficients
+            if R is None or theta is None:
+                raise ValueError(
+                    f"Case C (omega={self.omega}) requires R and theta parameters"
+                )
+
+            # Import here to avoid circular dependency
+            from src.mollifier_profiles import case_c_taylor_coeffs
+
+            # u0 is a 2D grid - we need to compute coefficients for each grid point
+            # Shape of u0: (n, n) for n×n quadrature grid
+            grid_shape = u0.shape
+            taylor_grid = np.zeros(grid_shape + (max_order + 1,))
+
+            # Compute Case C Taylor coefficients for each grid point
+            for i in range(grid_shape[0]):
+                for j in range(grid_shape[1]):
+                    u_val = u0[i, j]
+                    coeffs = case_c_taylor_coeffs(
+                        poly, u_val, self.omega, R, theta, max_order, n_quad_a
+                    )
+                    taylor_grid[i, j, :] = coeffs
+
+            # Use profile composition with pre-computed grid coefficients
+            series = compose_profile_on_affine_grid(taylor_grid, lin, ctx.var_names)
 
         # Apply power if > 1
         result = series
