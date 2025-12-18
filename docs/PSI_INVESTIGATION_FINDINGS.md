@@ -362,3 +362,414 @@ V1-style gives ~4.6× smaller magnitude due to using P₂'' instead of P₂'.
 | File | Purpose |
 |------|---------|
 | `src/przz_generalized_iterm_evaluator.py` | Generalized I-term evaluator (validates pair-dependent weights) |
+
+---
+
+## Deep Dive Analysis: V1 vs V2 vs Oracle (2025-12-17 Continued)
+
+### Key Structural Comparison
+
+**For (2,2) pair specifically:**
+| Source | I₁ | I₂ | I₃ | I₄ | Total |
+|--------|-----|-----|-----|-----|-------|
+| Oracle | +1.169 | +0.909 | -0.544 | -0.544 | +0.989 |
+| V2 DSL | +1.135 | +0.909 | -0.544 | -0.544 | +0.955 |
+| V1 DSL | +3.884 | +0.909 | +0.126 | +0.126 | +5.044 |
+
+**Observations:**
+- Oracle ≈ V2 for (2,2) - both use 2-variable d²/dxdy structure
+- V1 is WRONG for (2,2) by 5× (I₁ too large, I₃/I₄ wrong sign)
+- I₂ matches exactly (no derivatives involved)
+
+### The Paradox
+
+Despite V1 being wrong for (2,2), the OVERALL c values are:
+- V1: c = 1.950 (91% of target 2.137) ← Closer to target!
+- V2: c = -1.646 (negative, completely wrong)
+
+**Why V2 fails overall:**
+- Cross-pairs like (1,2) give -2.202 (huge negative)
+- V1 (1,2) gives -0.201 (reasonable negative)
+- The V2 cross-pair contributions overwhelm the correct diagonal terms
+
+### Root Cause Analysis
+
+**V1 structure (per pair ℓ₁, ℓ₂):**
+- Variables: ℓ₁ + ℓ₂ total (x₁..x_{ℓ₁}, y₁..y_{ℓ₂})
+- P arguments: SUMMED (P_ℓ(u + x₁ + ... + x_ℓ))
+- Derivative: d^{ℓ₁}/dx₁...dx_{ℓ₁} × d^{ℓ₂}/dy₁...dy_{ℓ₂}
+- Extracts: P_{ℓ₁}^{(ℓ₁)}(u) × P_{ℓ₂}^{(ℓ₂)}(u)
+- Weight: (1-u)^{ℓ₁+ℓ₂}
+
+**V2 structure (all pairs):**
+- Variables: 2 (x, y)
+- P arguments: SINGLE (P_ℓ(u + x), P_ℓ(u + y))
+- Derivative: d²/dxdy
+- Extracts: P_{ℓ₁}'(u) × P_{ℓ₂}'(u)
+- Weight: (1-u)^{(ℓ₁-1)+(ℓ₂-1)}
+
+**Neither is fully correct:**
+- V2 matches oracle for (2,2) but fails for cross-pairs
+- V1 fails for (2,2) but gives better overall c
+- This suggests compensating errors in V1
+
+### Two-Benchmark Deep Analysis
+
+**κ benchmark (R=1.3036):**
+- Target c = 2.137
+- Computed c = 1.950
+- Factor needed: 1.096
+
+**κ* benchmark (R=1.1167):**
+- Target c = 1.938
+- Computed c = 0.823
+- Factor needed: 2.355
+
+**Polynomial structure differences:**
+| Polynomial | κ degree | κ* degree |
+|------------|----------|-----------|
+| P₂ | 3 | 2 |
+| P₃ | 3 | 2 |
+| Q | 5 (odd powers) | 1 (linear) |
+
+The κ* polynomials have simpler structure, leading to:
+- P₂^(2)(u) = non-zero for κ (has x² term)
+- P₂^(2)(u) = constant for κ* (only up to x²)
+- P₃^(3)(u) = non-zero for κ (has x³ term)
+- P₃^(3)(u) = 0 for κ* (only up to x², no x³!)
+
+This explains why V1 structure fails more for κ*: extracting P^(3) from a degree-2 polynomial gives zero.
+
+### Conclusions
+
+1. **The 9% gap in V1 (κ benchmark) is not due to a simple missing factor**
+2. **The V1 structure is fundamentally inconsistent with the oracle**
+3. **Neither V1 nor V2 correctly implements PRZZ for all pairs**
+4. **A correct implementation likely requires:**
+   - Understanding PRZZ Section 7 F_d factor structure
+   - Different formula structure for diagonal vs cross-pairs
+   - Polynomial-degree-dependent handling
+
+### Recommended Next Steps
+
+1. **Study PRZZ Section 7 more carefully** - the F_d factors use Case A/B/C classification
+2. **Implement a hybrid approach** - use V2 for diagonal, investigate correct cross-pair formula
+3. **Contact PRZZ authors** - ask for clarification on the c computation formula
+4. **Check Feng's original code** - PRZZ TeX mentions matching Feng's numerics
+
+---
+
+## Section 7 F_d Mapping Implementation (2025-12-17 Continued)
+
+### Goal
+
+Map each Ψ monomial (a,b,c,d) to its (k₁, l₁, m₁) triple for F_d wiring, then evaluate using PRZZ Section 7 Case A/B/C structure.
+
+### Mapping Formulas (VALIDATED ✓)
+
+From PRZZ Section 7, the mapping from (a,b,c,d) exponents to F_d indices is:
+```
+l₁ = a + d    (left derivative count: A's plus D's)
+m₁ = b + d    (right derivative count: B's plus D's)
+k₁ = c        (convolution index: C's)
+ω_left = l₁ - 1
+ω_right = m₁ - 1
+```
+
+Case classification (d=1):
+- **Case A**: ω = -1 (l₁ = 0) → derivative form with 1/logN
+- **Case B**: ω = 0 (l₁ = 1) → direct polynomial evaluation
+- **Case C**: ω > 0 (l₁ > 1) → kernel integral with (logN)^ω factor
+
+### K=3 Mapping Summary
+
+| Pair | Monomials | Unique Triples | Case Pairs Distribution |
+|------|-----------|----------------|-------------------------|
+| (1,1) | 4 | 3 | A,B:1 \| B,A:1 \| B,B:2 |
+| (2,2) | 12 | 8 | A,A:1 \| A,B:1 \| A,C:1 \| B,A:1 \| B,C:2 \| C,A:1 \| C,B:2 \| C,C:3 |
+| (3,3) | 27 | 15 | A,A:1 \| A,B:1 \| A,C:2 \| B,A:1 \| B,B:2 \| B,C:4 \| C,A:2 \| C,B:4 \| C,C:10 |
+| (1,2) | 7 | 5 | A,A:1 \| A,C:1 \| B,A:1 \| B,B:2 \| B,C:2 |
+| (1,3) | 10 | 7 | A,A:1 \| A,B:1 \| A,C:1 \| B,A:1 \| B,B:2 \| B,C:4 |
+| (2,3) | 18 | 11 | A,A:1 \| A,B:1 \| A,C:2 \| B,A:1 \| B,B:2 \| B,C:2 \| C,A:1 \| C,B:2 \| C,C:6 |
+
+### (1,1) I-term Correspondence (VALIDATED ✓)
+
+For (1,1), the 4 monomials map to 3 unique triples:
+```
+(0,1,1) Case B,B: +1×AB + +1×D  → I₁ + I₂ structure
+(1,0,1) Case A,B: -1×BC          → I₄ structure
+(1,1,0) Case B,A: -1×AC          → I₃ structure
+```
+
+This exactly matches the I-term oracle decomposition!
+
+### Section 7 F_d Evaluator Implementation
+
+Created `src/section7_fd_evaluator.py` that:
+1. Uses `psi_fd_mapping.py` to get (k₁, l₁, m₁) triples
+2. Evaluates F_d^{left} and F_d^{right} based on Case A/B/C
+3. Combines with Ψ coefficients
+
+### CRITICAL ISSUE: logN^ω Explosion in Case C
+
+The PRZZ Case C formula:
+```
+F_d = W × (-1)^{1-ω}/(ω-1)! × (logN)^ω × u^ω × ∫₀¹ P((1-a)u) × a^{ω-1} × exp(...) da
+```
+
+With logT = 100 and logN = θ × logT ≈ 57:
+- ω = 1: logN^1 ≈ 57
+- ω = 2: logN^2 ≈ 3265
+
+This causes Case C contributions to explode.
+
+**Results with Section 7 F_d evaluator:**
+| Pair | Computed | Expected |
+|------|----------|----------|
+| (1,1) | 0.289 | 0.359 |
+| (2,2) | 991.5 | 0.99 |
+| (3,3) | 35579.6 | 0.05 |
+
+The logN^ω factors are not properly normalized in our finite implementation.
+
+### Root Cause Analysis
+
+The PRZZ formulas are **asymptotic** where logT → ∞. The (logN)^ω factors are balanced by:
+1. 1/logN factors from Case A derivatives
+2. 1/(logT)^k factors in the overall sum-to-integral conversion
+3. Other asymptotic cancellations
+
+The I-term oracle **avoids this issue** by working directly with finite integrals that implicitly absorb the normalization. It uses:
+```python
+darg_alpha_dx = theta * t  # No logN/logT explicitly
+```
+
+The F_d approach requires understanding how PRZZ normalizes across cases.
+
+### Key Discovery: (k,l,m) Triple ≠ Direct Integral Mapping
+
+**Critical insight**: Monomials with the SAME (k₁,l₁,m₁) triple can require DIFFERENT integral structures!
+
+For (1,1):
+- AB (a=1,b=1,c=0,d=0) → (0,1,1) Case B,B → I₁ structure (d²/dxdy)
+- D (a=0,b=0,c=0,d=1) → (0,1,1) Case B,B → I₂ structure (base integral)
+
+Both map to the SAME triple but have DIFFERENT integral formulas because:
+- AB: derivative in x AND y
+- D: no explicit derivative (the (ζ'/ζ)' structure is different)
+
+The (k,l,m) mapping tells us the CASE classification, but the (a,b,c,d) structure determines the specific integral form.
+
+### Files Created
+
+| File | Purpose |
+|------|---------|
+| `src/psi_fd_mapping.py` | Maps Ψ (a,b,c,d) monomials to (k₁,l₁,m₁) triples with Case A/B/C |
+| `src/section7_fd_evaluator.py` | Section 7 F_d evaluator (has logN^ω issue) |
+| `src/generalized_monomial_evaluator.py` | Generalized monomial evaluator (heuristic, not validated) |
+
+### Conclusions
+
+1. **The mapping (a,b,c,d) → (k₁,l₁,m₁) is CORRECT and VALIDATED**
+2. **The Case A/B/C classification matches PRZZ Section 7**
+3. **The F_d evaluation has normalization issues** due to logN^ω factors
+4. **The I-term oracle implicitly handles the normalization** by working with finite integrals
+5. **A correct Section 7 implementation requires understanding PRZZ's asymptotic normalization**
+
+### Path Forward
+
+Two viable approaches:
+
+**Option A: Hybrid approach**
+- Use I-term oracle for diagonal pairs (validated)
+- Investigate correct cross-pair formula separately
+- Accept that this doesn't directly implement Section 7
+
+**Option B: PRZZ Section 7 deep dive**
+- Study how PRZZ normalizes F_d factors across cases
+- Find the balancing factors that make c = O(1)
+- Implement the complete asymptotic structure
+
+Given the complexity, **Option A is recommended** for making progress on the κ optimization goal.
+
+---
+
+## Final Investigation Conclusions (2025-12-17)
+
+### Two-Benchmark Gate Results
+
+All implementation approaches were tested against the mandatory two-benchmark gate:
+
+| Approach | κ Factor (R=1.3036) | κ* Factor (R=1.1167) | Factor Ratio | Pass? |
+|----------|---------------------|----------------------|--------------|-------|
+| V1 DSL | 1.0959 | 2.3558 | 0.465 | ✗ |
+| V2 DSL | ~1.09 | ~2.07 | 0.53 | ✗ |
+| I-term Oracle + Geom Mean | ~1.1 | ~2.2 | 0.51 | ✗ |
+| Calibrated p-config | ~1.3 | ~3.7 | 0.35 | ✗ |
+
+**Target**: Factor ratio ≈ 1.0 (both benchmarks need similar correction)
+
+**Result**: All approaches have factor ratio ~0.35-0.53, failing the two-benchmark gate.
+
+### Root Cause: Polynomial-Degree-Dependent Formula Behavior
+
+The root cause is **STRUCTURAL**, not a coding bug:
+
+1. **κ polynomials** (R=1.3036): P₂ and P₃ have degree 3
+2. **κ* polynomials** (R=1.1167): P₂ and P₃ have degree 2 only
+
+When extracting P^{(ℓ)}(u) in V1 structure:
+- For κ: P₃^{(3)}(u) is non-zero (cubic has x³ term)
+- For κ*: P₃^{(3)}(u) = 0 (quadratic has no x³ term!)
+
+This explains why:
+- κ is closer to target (9% gap)
+- κ* is far from target (107% gap)
+- The formula extracts different-order derivatives that vanish for lower-degree polynomials
+
+### What Was Validated ✓
+
+1. **Ψ → (k,l,m) mapping is CORRECT**
+   - All K=3 pairs correctly mapped to F_d triples
+   - Case A/B/C classification matches PRZZ Section 7
+   - Created and validated `src/psi_fd_mapping.py`
+
+2. **(1,1) pair is perfectly calibrated**
+   - Constant block calibration: Ψ = 0.359159 = oracle.total (exact match)
+   - I-term monomial evaluator: Difference < 1e-15
+
+3. **Block algebra is correct for (1,1)**
+   - X = A-C, Y = B-C, Z = D-C² expansion verified
+   - p-config formula Ψ = XY + Z gives correct result
+
+### What Remains Unresolved ✗
+
+1. **Two-benchmark gate failure**
+   - Neither approach improves both κ and κ* simultaneously
+   - This is a MANDATORY requirement per project guidelines
+
+2. **logN^ω normalization in Case C**
+   - PRZZ asymptotic formulas have (logN)^ω factors
+   - Our finite implementation cannot reproduce the balancing
+
+3. **Cross-pair formula for higher degrees**
+   - Constant blocks work for (1,1) only
+   - (2,2)+ requires understanding how blocks vary with u,t
+
+4. **Polynomial-degree-dependent normalization**
+   - PRZZ may have normalization factors we're missing
+   - This would explain the different factor requirements
+
+### Files Created This Investigation
+
+| File | Status | Purpose |
+|------|--------|---------|
+| `src/psi_fd_mapping.py` | ✓ Validated | Ψ → (k,l,m) mapping |
+| `src/section7_fd_evaluator.py` | ✗ Has logN issue | F_d evaluation attempt |
+| `src/section7_pconfig_engine.py` | ✗ Failed | p-config based evaluation |
+| `src/calibrated_pconfig_engine.py` | Partial | Constant block calibration |
+| `src/generalized_monomial_evaluator.py` | Heuristic | General monomial evaluation |
+
+### Recommendations for Future Work
+
+1. **Do NOT continue patching** - The two-benchmark failure is structural
+2. **Study PRZZ Section 7 normalization** - Look for degree-dependent factors
+3. **Contact PRZZ authors** - Ask for clarification on c formula and normalization
+4. **Search for Feng's original code** - PRZZ TeX line 2566 mentions "matched Feng's code"
+5. **Consider polynomial optimization directly** - Optimize polynomials to minimize c, bypassing formula
+
+### Investigation Conclusion
+
+**The Ψ combinatorial framework is mathematically correct, but our implementation cannot reproduce PRZZ's c values for different polynomial sets.**
+
+The two-benchmark gate failure indicates either:
+1. Missing polynomial-degree-dependent normalization in PRZZ
+2. Incorrect transcription of κ* polynomial coefficients
+3. Fundamental limitation of our finite-integral approach vs PRZZ's asymptotic formulas
+
+**Further progress requires external information** (PRZZ authors, Feng's code, or additional PRZZ documentation) to resolve the formula interpretation ambiguity.
+
+---
+
+## Critical Polynomial Discrepancy Discovery (2025-12-17)
+
+### User-Provided PRZZ Polynomials vs Original Codebase Polynomials
+
+The user provided exact polynomial coefficients from PRZZ TeX lines 2567-2598:
+
+**User's PRZZ κ polynomials (R=1.3036):**
+```
+P₁(x) = x + 0.138173 x(1-x) - 0.445606 x(1-x)² - 4.039834 x(1-x)³
+P₂(x) = -0.101269 x + 3.571698 x² - 1.807283 x³
+P₃(x) = 1.334025 x - 3.018815 x² + 1.133072 x³
+Q(x) = 0.490068 + 0.509932(1-2x) = 1 - 1.019864 x  ← LINEAR!
+```
+
+**Original codebase κ polynomials (source unknown):**
+```
+P₁: tilde_coeffs = [0.261076, -1.071007, -0.236840, 0.260233]
+P₂: coeffs = [0, 1.048274, 1.319912, -0.940058]
+P₃: coeffs = [0, 0.522811, -0.686510, -0.049923]
+Q: basis = {0: 0.490464, 1: 0.636851, 3: -0.159327, 5: 0.032011}  ← DEGREE 5!
+```
+
+### Critical Structural Difference: Q Polynomial Degree
+
+| Source | Q Degree | Q Structure |
+|--------|----------|-------------|
+| User's PRZZ | 1 (linear) | Q(x) = 1 - 1.019864 x |
+| Original codebase | 5 | Q(x) has (1-2x)¹, (1-2x)³, (1-2x)⁵ terms |
+
+### Evaluation Results
+
+| Polynomial Set | c Computed | Target c | Factor | κ Computed |
+|----------------|------------|----------|--------|------------|
+| User's PRZZ | 7.879 | 2.137 | 0.27 | -0.584 |
+| Original codebase | 1.950 | 2.137 | 1.10 | 0.488 |
+
+**The original (unknown source) polynomials give results 4× closer to target!**
+
+### Per-Term Comparison
+
+| Term | User's PRZZ | Original | Ratio |
+|------|-------------|----------|-------|
+| I1_22 | 10.55 | 3.88 | 2.7× |
+| I1_33 | 16.41 | 2.86 | 5.7× |
+
+The user's PRZZ polynomials have much larger derivative magnitudes.
+
+### Possible Explanations
+
+1. **Different PRZZ versions/sections**: The user's polynomials may be from a different section (e.g., theoretical analysis) vs numerical optimization results.
+
+2. **Transcription source error**: The TeX lines 2567-2598 may not be the final optimized polynomials.
+
+3. **Formula interpretation mismatch**: Our formula might be correct for the original polynomials but wrong for the user's PRZZ polynomials.
+
+4. **Q polynomial plays critical role**: The degree-5 Q vs linear Q may account for most of the difference.
+
+### Key Observation: Factorial Normalization Test
+
+Created `src/test_factorial_normalization.py` which verified:
+- Multi-variable extraction [x1x2y1y2] = 4 × [Z²W²] coefficient (for Z=x1+x2, W=y1+y2)
+- The series engine correctly handles nilpotent variable expansions
+- Factorial normalization 1/(ℓ!×ℓ̄!) appears to be applied correctly
+
+**The factorial normalization is NOT the source of the discrepancy.**
+
+### Recommendation
+
+**URGENT**: Verify the polynomial source in PRZZ TeX:
+1. Are lines 2567-2598 the final optimized polynomials for κ=0.417?
+2. Is there another section with different polynomials?
+3. What is the source of the original codebase polynomials?
+
+The original codebase polynomials may be from Feng's original code or a different PRZZ run. Their provenance needs to be established.
+
+### Files Created/Modified
+
+| File | Purpose |
+|------|---------|
+| `data/przz_parameters.json` | Updated with user's PRZZ polynomials |
+| `src/verify_przz_polynomials.py` | Polynomial verification script |
+| `src/test_factorial_normalization.py` | Factorial normalization test |
