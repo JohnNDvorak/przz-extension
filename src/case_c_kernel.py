@@ -469,5 +469,175 @@ def verify_case_c_vs_raw(verbose: bool = True):
         print('=' * 70)
 
 
+# =============================================================================
+# Run 7/8 Addition: Vectorized I2 Computation with Case C Kernels (PROVEN)
+# =============================================================================
+# This section contains the proven I2 evaluation using Case C kernels.
+# Run 7 validated that these match the DSL output exactly (ratio = 1.0).
+
+
+def compute_case_c_kernel_vectorized(
+    P_eval: Callable[[np.ndarray], np.ndarray],
+    u_nodes: np.ndarray,
+    omega: int,
+    R: float,
+    theta: float,
+    a_nodes: np.ndarray,
+    a_weights: np.ndarray
+) -> np.ndarray:
+    """
+    Compute Case C kernel K_ω(u; R) = ∫₀¹ P((1-a)u) × a^{ω-1} × exp(Rθua) da
+
+    VECTORIZED implementation for efficiency (Run 7).
+
+    NOTE: This returns ONLY the integral part, NOT multiplied by u^ω/(ω-1)!.
+    The caller is responsible for applying the u^ω factor.
+
+    Args:
+        P_eval: Polynomial evaluation function P(x) -> array
+        u_nodes: Grid of u values, shape (Nu,)
+        omega: ω value (1 for P₂, 2 for P₃)
+        R: R parameter
+        theta: θ parameter (typically 4/7)
+        a_nodes: Quadrature nodes for a-integral, shape (Na,)
+        a_weights: Quadrature weights for a-integral, shape (Na,)
+
+    Returns:
+        K_ω(u; R) evaluated at each point in u_nodes, shape (Nu,)
+    """
+    if omega <= 0:
+        raise ValueError(f"Case C requires omega > 0, got {omega}")
+
+    # Create mesh for broadcasting
+    # u_grid[i,j] = u_nodes[i], a_grid[i,j] = a_nodes[j]
+    u_grid = u_nodes[:, np.newaxis]  # (Nu, 1)
+    a_grid = a_nodes[np.newaxis, :]  # (1, Na)
+
+    # Polynomial argument: (1-a)*u
+    poly_arg = (1 - a_grid) * u_grid  # (Nu, Na)
+
+    # Evaluate P at all arguments
+    P_vals = P_eval(poly_arg.flatten()).reshape(len(u_nodes), len(a_nodes))
+
+    # a^{ω-1} weight
+    if omega == 1:
+        a_weight = np.ones_like(a_nodes)  # a^0 = 1
+    else:
+        a_weight = a_nodes ** (omega - 1)
+
+    # exp(Rθua)
+    exp_factor = np.exp(R * theta * u_grid * a_grid)
+
+    # Integrate over a (axis 1)
+    integrand = P_vals * a_weight[np.newaxis, :] * exp_factor
+    K = np.sum(a_weights[np.newaxis, :] * integrand, axis=1)
+
+    return K
+
+
+def compute_i2_all_pairs_case_c(
+    theta: float,
+    R: float,
+    polynomials: dict,
+    n: int = 100,
+    n_a: int = 40
+) -> dict:
+    """
+    Compute I2 for all 9 ordered pairs with Case C kernel handling.
+
+    PROVEN in Run 7: This function matches DSL output with ratio = 1.0000
+    for all pairs at both κ and κ* benchmarks.
+
+    Polynomial replacement (for d=1):
+    - P1: omega=0 (Case B) → raw P1.eval(u)
+    - P2: omega=1 (Case C) → u × K_1(u; R)
+    - P3: omega=2 (Case C) → u² × K_2(u; R)
+
+    IMPORTANT: For I2(-R), we need K_ω(u; -R), not K_ω(u; +R)!
+    The kernel contains exp(Rθua) which changes with R sign.
+
+    Args:
+        theta: θ parameter (typically 4/7)
+        R: R parameter
+        polynomials: Dict with keys "P1", "P2", "P3", "Q"
+        n: Number of quadrature points for u and t
+        n_a: Number of quadrature points for a-integral
+
+    Returns:
+        Dict mapping pair key -> {"i2_plus": val, "i2_minus": val}
+    """
+    u_nodes, u_weights = gauss_legendre_01(n)
+    a_nodes, a_weights = gauss_legendre_01(n_a)
+
+    P1 = polynomials["P1"]
+    P2 = polynomials["P2"]
+    P3 = polynomials["P3"]
+    Q = polynomials["Q"]
+
+    # Precompute kernel-transformed polynomial values for BOTH +R and -R
+    # P1: Case B (no kernel, just raw polynomial) - same for +R and -R
+    K1_vals_plus = P1.eval(u_nodes)
+    K1_vals_minus = P1.eval(u_nodes)  # Case B: no R-dependence
+
+    # P2: Case C (omega=1) → u × K_1(u; R)
+    K2_kernel_plus = compute_case_c_kernel_vectorized(
+        P_eval=P2.eval, u_nodes=u_nodes, omega=1, R=R, theta=theta,
+        a_nodes=a_nodes, a_weights=a_weights
+    )
+    K2_kernel_minus = compute_case_c_kernel_vectorized(
+        P_eval=P2.eval, u_nodes=u_nodes, omega=1, R=-R, theta=theta,
+        a_nodes=a_nodes, a_weights=a_weights
+    )
+    K2_vals_plus = u_nodes * K2_kernel_plus
+    K2_vals_minus = u_nodes * K2_kernel_minus
+
+    # P3: Case C (omega=2) → u² × K_2(u; R)
+    K3_kernel_plus = compute_case_c_kernel_vectorized(
+        P_eval=P3.eval, u_nodes=u_nodes, omega=2, R=R, theta=theta,
+        a_nodes=a_nodes, a_weights=a_weights
+    )
+    K3_kernel_minus = compute_case_c_kernel_vectorized(
+        P_eval=P3.eval, u_nodes=u_nodes, omega=2, R=-R, theta=theta,
+        a_nodes=a_nodes, a_weights=a_weights
+    )
+    K3_vals_plus = (u_nodes ** 2) * K3_kernel_plus
+    K3_vals_minus = (u_nodes ** 2) * K3_kernel_minus
+
+    K_vals_plus = {"P1": K1_vals_plus, "P2": K2_vals_plus, "P3": K3_vals_plus}
+    K_vals_minus = {"P1": K1_vals_minus, "P2": K2_vals_minus, "P3": K3_vals_minus}
+
+    # t-integrals (same for all pairs - use u_nodes as t_nodes since [0,1])
+    Q_vals = Q.eval(u_nodes)
+    exp_plus = np.exp(2 * R * u_nodes)
+    exp_minus = np.exp(-2 * R * u_nodes)
+    t_integral_plus = np.sum(u_weights * Q_vals**2 * exp_plus) / theta
+    t_integral_minus = np.sum(u_weights * Q_vals**2 * exp_minus) / theta
+
+    # Compute all 9 pairs using kernel-transformed values
+    results = {}
+    pairs = ["11", "22", "33", "12", "21", "13", "31", "23", "32"]
+    P_map = {"1": "P1", "2": "P2", "3": "P3"}
+
+    for pair_key in pairs:
+        p1_key = P_map[pair_key[0]]
+        p2_key = P_map[pair_key[1]]
+
+        # u-integral at +R with kernels computed at +R
+        u_integral_plus = np.sum(u_weights * K_vals_plus[p1_key] * K_vals_plus[p2_key])
+
+        # u-integral at -R with kernels computed at -R
+        u_integral_minus = np.sum(u_weights * K_vals_minus[p1_key] * K_vals_minus[p2_key])
+
+        i2_plus = u_integral_plus * t_integral_plus
+        i2_minus = u_integral_minus * t_integral_minus
+
+        results[pair_key] = {
+            "i2_plus": float(i2_plus),
+            "i2_minus": float(i2_minus),
+        }
+
+    return results
+
+
 if __name__ == '__main__':
     verify_case_c_vs_raw(verbose=True)
