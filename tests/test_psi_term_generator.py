@@ -44,14 +44,14 @@ class TestMonomialCounts:
         assert collection.ellbar == 3
 
     def test_12_count(self):
-        """(1,2) should produce exactly 6 monomials."""
+        """(1,2) should produce exactly 7 monomials (BC² cancels between p=0 and p=1)."""
         collection = generate_psi_terms(1, 2)
-        assert collection.total_terms == 6, f"Expected 6 terms, got {collection.total_terms}"
+        assert collection.total_terms == 7, f"Expected 7 terms, got {collection.total_terms}"
 
     def test_13_count(self):
-        """(1,3) should produce exactly 8 monomials."""
+        """(1,3) should produce exactly 10 monomials (B²C² cancels, adds DB², DBC, DC²)."""
         collection = generate_psi_terms(1, 3)
-        assert collection.total_terms == 8, f"Expected 8 terms, got {collection.total_terms}"
+        assert collection.total_terms == 10, f"Expected 10 terms, got {collection.total_terms}"
 
     def test_23_count(self):
         """(2,3) should produce exactly 18 monomials."""

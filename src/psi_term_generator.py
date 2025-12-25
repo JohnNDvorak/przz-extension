@@ -260,16 +260,16 @@ def verify_expected_counts(pairs: List[Tuple[int, int]]) -> bool:
         (1,1): 4 monomials
         (2,2): 12 monomials
         (3,3): 27 monomials
-        (1,2): 6 monomials
-        (1,3): 8 monomials
+        (1,2): 7 monomials (BC² cancels from p=0 and p=1)
+        (1,3): 10 monomials (B²C² cancels, adds DB², DBC, DC²)
         (2,3): 18 monomials
     """
     expected = {
         (1, 1): 4,
         (2, 2): 12,
         (3, 3): 27,
-        (1, 2): 6,
-        (1, 3): 8,
+        (1, 2): 7,   # Was 6, but BC² term cancels between p=0 and p=1
+        (1, 3): 10,  # Was 8, but B²C² cancels, adds 3 D-terms
         (2, 3): 18,
     }
 

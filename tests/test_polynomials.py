@@ -41,8 +41,12 @@ class TestJSONSelfConsistency:
             data = json.load(f)
 
         R = data["configuration"]["R"]
-        c = data["targets"]["c"]
-        kappa = data["targets"]["kappa"]
+        targets = data["targets"]
+
+        # targets["c"] is a display-rounded value; prefer c_precise for exact identities
+        c_display = targets["c"]
+        c = targets.get("c_precise", c_display)
+        kappa = targets["kappa"]
 
         # Check kappa = 1 - log(c)/R
         computed_kappa = 1 - np.log(c) / R

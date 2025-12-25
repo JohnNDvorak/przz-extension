@@ -1,0 +1,66 @@
+{
+  "version": "v14",
+  "title": "przz-extension architecture map (truth vs regression vs gated building blocks)",
+  "nodes": [
+    {"id": "tex", "label": "RMS_PRZZ.tex (paper)", "type": "spec"},
+    {"id": "truth_spec", "label": "docs/TRUTH_SPEC.md\n(TeX line refs)", "type": "doc"},
+    {"id": "params", "label": "data/przz_parameters*.json\n(κ / κ*)", "type": "data"},
+
+    {"id": "polynomials", "label": "src/polynomials.py\n(LOCKED)", "type": "core"},
+    {"id": "quadrature", "label": "src/quadrature.py\n(LOCKED)", "type": "core"},
+    {"id": "series", "label": "src/series.py\n(LOCKED)", "type": "core"},
+    {"id": "psi_expansion", "label": "src/psi_expansion.py\n(LOCKED)", "type": "core"},
+
+    {"id": "casec_exact", "label": "src/case_c_exact.py\n(integral-only)", "type": "kernel"},
+    {"id": "casec_kernel", "label": "src/case_c_kernel.py\n(full prefactor)", "type": "kernel"},
+    {"id": "mollifier_profiles", "label": "src/mollifier_profiles.py\n(P(u-x) vs Kω(u-x;R))", "type": "kernel"},
+    {"id": "kernel_registry", "label": "src/kernel_registry.py\n(regime: raw|paper)\nω mapping", "type": "kernel"},
+
+    {"id": "psi_series", "label": "src/psi_series_evaluator.py\n(series coeff extractor\n+ Case C profiles", "type": "evaluator"},
+    {"id": "evaluate", "label": "src/evaluate.py + term_dsl.py\nDSL evaluator", "type": "evaluator"},
+    {"id": "terms", "label": "src/terms_k3_d1.py\n(term tables; ω via registry)", "type": "evaluator"},
+
+    {"id": "geneval", "label": "src/przz_generalized_iterm_evaluator.py\nGenEval (legacy)", "type": "legacy"},
+    {"id": "section7", "label": "src/section7_evaluator.py\nSection7 (diagnostic)", "type": "legacy"},
+    {"id": "hybrid", "label": "src/hybrid_evaluator.py\n(series I1 + GenEval I2-4)", "type": "diagnostic"},
+    {"id": "series_backed", "label": "src/series_backed_evaluator.py\n(all I via series; diag)", "type": "diagnostic"},
+
+    {"id": "gate_coeff", "label": "tests/test_coefficient_gate.py\n(Gate: coeff correctness)", "type": "gate"},
+    {"id": "gate_casec", "label": "tests/test_case_c_kernel_*\n(Gates K1/K2)", "type": "gate"},
+    {"id": "gate_registry", "label": "tests/test_kernel_registry.py\n(Gate: ω mapping)", "type": "gate"},
+    {"id": "gate_profiles", "label": "tests/test_psi_series_case_c_profiles.py\n(Gate: profile wiring)", "type": "gate"},
+    {"id": "gate_two_bench", "label": "tests/test_two_benchmark_gate.py\n(TRUTH gate)", "type": "truth"}
+  ],
+  "edges": [
+    {"from": "tex", "to": "truth_spec", "label": "extract formulas"},
+    {"from": "params", "to": "polynomials", "label": "load P,Q"},
+
+    {"from": "polynomials", "to": "psi_series", "label": "P,Q eval/derivs"},
+    {"from": "quadrature", "to": "psi_series", "label": "u,t grids"},
+    {"from": "series", "to": "psi_series", "label": "multivariate series"},
+    {"from": "psi_expansion", "to": "psi_series", "label": "Ψ monomials"},
+
+    {"from": "casec_exact", "to": "mollifier_profiles", "label": "Kω integral"},
+    {"from": "casec_kernel", "to": "mollifier_profiles", "label": "Kω full"},
+    {"from": "kernel_registry", "to": "mollifier_profiles", "label": "select profile"},
+    {"from": "mollifier_profiles", "to": "psi_series", "label": "Taylor coeffs"},
+    {"from": "truth_spec", "to": "kernel_registry", "label": "ω mapping"},
+
+    {"from": "kernel_registry", "to": "terms", "label": "ω per piece"},
+    {"from": "terms", "to": "evaluate", "label": "term list"},
+    {"from": "psi_series", "to": "evaluate", "label": "integrals"},
+    {"from": "evaluate", "to": "gate_two_bench", "label": "(target path)"},
+
+    {"from": "geneval", "to": "gate_two_bench", "label": "(current legacy runner)"},
+
+    {"from": "psi_series", "to": "gate_coeff", "label": "coeff validation"},
+    {"from": "casec_exact", "to": "gate_casec", "label": "kernel checks"},
+    {"from": "casec_kernel", "to": "gate_casec", "label": "kernel checks"},
+    {"from": "kernel_registry", "to": "gate_registry", "label": "mapping checks"},
+    {"from": "psi_series", "to": "gate_profiles", "label": "profile sanity"},
+
+    {"from": "psi_series", "to": "series_backed", "label": "diag"},
+    {"from": "psi_series", "to": "hybrid", "label": "diag"},
+    {"from": "section7", "to": "hybrid", "label": "compare"}
+  ]
+}

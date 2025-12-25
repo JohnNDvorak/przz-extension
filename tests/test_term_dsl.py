@@ -902,3 +902,40 @@ class TestTermDerivTuple:
         )
 
         assert term.deriv_tuple() == ()
+
+
+# =============================================================================
+# Test Group G: Case C (omega>0) path coverage
+# =============================================================================
+
+class TestCaseCPolyFactor:
+    """Exercise the PolyFactor Case C branch (omega>0)."""
+
+    def test_poly_factor_case_c_constant_poly_matches_closed_form(self):
+        """For P(x)=1 and omega=1, K(u)=(e^{γu}-1)/γ and K′(u)=e^{γu}."""
+        from src.term_dsl import PolyFactor, AffineExpr, SeriesContext
+        from src.polynomials import Polynomial
+
+        R = 1.0
+        theta = 0.5
+        gamma = R * theta
+
+        # Constant polynomial P(x)=1
+        poly = Polynomial([1.0])
+
+        # Argument: u + x1
+        expr = AffineExpr(a0=lambda U, T: U, var_coeffs={"x1": 1.0})
+        factor = PolyFactor(poly_name="P", argument=expr, omega=1)
+
+        ctx = SeriesContext(var_names=("x1",))
+        U = np.array([[0.7]])
+        T = np.array([[0.2]])
+
+        series = factor.evaluate(poly, U, T, ctx, R=R, theta=theta, n_quad_a=120)
+        u = float(U[0, 0])
+
+        expected0 = (np.exp(gamma * u) - 1.0) / gamma
+        expected1 = np.exp(gamma * u)
+
+        np.testing.assert_allclose(series.extract(()), expected0, rtol=1e-10)
+        np.testing.assert_allclose(series.extract(("x1",)), expected1, rtol=1e-10)

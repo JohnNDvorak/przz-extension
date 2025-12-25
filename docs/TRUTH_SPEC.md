@@ -262,20 +262,55 @@ Cross-terms have asymmetric Case structure. For pair (ℓ₁, ℓ₂):
 
 ### 8.4 Implications for Our Implementation
 
-| Pair | Cases | a-integrals | Status |
-|------|-------|-------------|--------|
-| (1,1) | B×B | 0 | ✓ Correct |
-| (1,2) | B×C | 1 | ⚠️ MISSING |
-| (1,3) | B×C | 1 | ⚠️ MISSING |
-| (2,2) | C×C | 2 | ⚠️ MISSING |
-| (2,3) | C×C | 2 | ⚠️ MISSING |
-| (3,3) | C×C | 2 | ⚠️ MISSING |
+| Pair | Cases | a-integrals | Term DSL | J1x Diagnostic |
+|------|-------|-------------|----------|----------------|
+| (1,1) | B×B | 0 | ✓ Correct | ✓ Correct |
+| (1,2) | B×C | 1 | ✓ Implemented | ⚠️ Simplified |
+| (1,3) | B×C | 1 | ✓ Implemented | ⚠️ Simplified |
+| (2,2) | C×C | 2 | ✓ Implemented | ⚠️ Simplified |
+| (2,3) | C×C | 2 | ✓ Implemented | ⚠️ Simplified |
+| (3,3) | C×C | 2 | ✓ Implemented | ⚠️ Simplified |
 
-**KEY FINDING:** The (1,2) pair anomaly (+32% R-sensitivity) is likely because
-B×C requires one auxiliary a-integral that we haven't implemented.
+**Phase 17 Update (2025-12-24):**
 
-If our I₁-I₄ formulas are missing this auxiliary integral for Case C pieces,
-we'll have systematic missing contributions from P₂/P₃-involving pairs.
+The **Term DSL** (`PolyFactor.evaluate()`) now correctly dispatches to Case C kernel
+via `case_c_taylor_coeffs()` when `kernel_regime="paper"` and omega > 0. This is used
+by the production `compute_c_paper_with_mirror()` pipeline.
+
+The **J1x diagnostic pipeline** (`j1_euler_maclaurin.py`) uses a simplified polynomial
+approach that doesn't implement Case C structure. This diagnostic is for validating
+the m₁ = exp(R) + 5 formula, not for production κ computation.
+
+**Current accuracy with Case C in production pipeline:**
+- κ (R=1.3036): c gap = -1.35%
+- κ* (R=1.1167): c gap = -1.21%
+
+### 8.5 Case C Kernel Implementation Architecture
+
+The Case C kernel K_ω(u; R) is implemented in **two files** with different conventions:
+
+| File | Function | Formula | Includes Prefactor? |
+|------|----------|---------|---------------------|
+| `case_c_kernel.py` | `compute_case_c_kernel` | K_ω(u; R) = u^ω/(ω-1)! × ∫... | ✓ Yes |
+| `case_c_exact.py` | `compute_case_c_kernel_vectorized` | ∫₀¹ P((1-a)u) × a^{ω-1} × exp(Rθau) da | ✗ No |
+
+**Relationship:**
+```python
+K_full = (u ** omega) / factorial(omega - 1) * K_integral
+```
+
+**Why Two Implementations?**
+- `case_c_exact.py` returns just the integral for use in series expansion
+- `case_c_kernel.py` returns the full kernel for direct I-term evaluation
+
+**Validation:**
+- Gate K1 tests (`test_case_c_kernel_exact.py`) verify both implementations match
+- Gate K2 tests (`test_case_c_kernel_series.py`) verify Taylor coefficient extraction
+
+**Derivative Implementation:**
+- `compute_case_c_kernel_derivative()` computes ∂K_ω/∂u analytically
+- Uses chain rule: derivative of ∫P((1-a)u)... gives ∫(1-a)P'((1-a)u)...
+- Validated against finite differences in Gate K1
 
 ---
 
@@ -320,7 +355,28 @@ Pairs have factor 1/(ℓ₁! × ℓ₂!) from bracket combinatorics.
 | (1,3) | 1/6 |
 | (2,3) | 1/12 |
 
-Off-diagonal pairs also get symmetry factor 2.
+### Ordered vs Triangle Assembly
+
+**CORRECTED (2025-12-22):** PRZZ uses **triangle convention** for ALL terms.
+
+The individual I₃/I₄ terms are NOT swap-symmetric (I₃(1,2) ≠ I₃(2,1), measured
+Δ_S34 ≈ 0.54). However, this does NOT mean PRZZ sums over ordered pairs.
+
+PRZZ sums over **ℓ₁ ≤ ℓ₂** with symmetry factor 2 for off-diagonal pairs:
+- c = Σ_{ℓ₁ ≤ ℓ₂} symmetry_factor × c_{ℓ₁,ℓ₂}
+- symmetry_factor = 1 (diagonal), 2 (off-diagonal)
+
+The ×2 factor comes from the structure of the mollifier mean square, not from
+term-level symmetry. PRZZ never evaluates both (1,2) and (2,1) — only (1,2).
+
+**Numerical verification (2025-12-22):**
+- Triangle×2 for S34: c = 2.109, gap = **-1.35%**
+- Ordered (9 pairs) for S34: c = 2.371, gap = **+10.91%**
+
+**Code policy (corrected):**
+- Use triangle×2 for BOTH S12 and S34 (PRZZ convention)
+- The "ordered pairs required" conclusion from earlier was a misinterpretation
+- `compute_c_paper_ordered()` now uses triangle×2 for S34
 
 ### Q(0) Constraint
 Q is a polynomial with Q(0) = 1 (endpoint normalization).

@@ -29,8 +29,8 @@ USAGE:
 """
 
 from __future__ import annotations
-from dataclasses import dataclass
-from typing import Dict, Optional
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional
 from enum import Enum, auto
 
 from src.evaluation_modes import (
@@ -43,6 +43,73 @@ from src.ratios.j1_euler_maclaurin import (
     compute_m1_with_mirror_assembly,
     LaurentMode,
     DEFAULT_LAURENT_MODE,
+)
+
+
+@dataclass(frozen=True)
+class J15Provenance:
+    """
+    Provenance metadata for J15 contribution tracking.
+
+    This documents exactly where the J15 contribution comes from,
+    enabling reconciliation between the code's J15 and TRUTH_SPEC's I5.
+
+    Phase 20.1: Implements GPT guidance on provenance tagging.
+    """
+
+    # Source identification
+    source_module: str
+    """Module that computes J15 (e.g., 'src.ratios.j1_euler_maclaurin')"""
+
+    source_function: str
+    """Function that computes J15 (e.g., 'j15_contribution_integral')"""
+
+    # PRZZ reference
+    przz_line_numbers: str
+    """PRZZ TeX lines defining J15 (e.g., '1621-1628 (A^{(1,1)} error term)')"""
+
+    truth_spec_reference: str
+    """TRUTH_SPEC.md section reference"""
+
+    # Guardrail status
+    passed_evaluation_mode_guardrails: bool
+    """Whether computation went through evaluation_modes.py checks"""
+
+    guardrail_mode: Optional[str]
+    """Which EvaluationMode was active (if any)"""
+
+    # Mathematical identity
+    formula_description: str
+    """Mathematical description of what J15 computes"""
+
+    is_error_term_per_spec: bool
+    """True if TRUTH_SPEC classifies this as error-order"""
+
+    # Warnings
+    reconciliation_notes: List[str] = field(default_factory=list)
+    """Notes on J15 vs I5 reconciliation status"""
+
+
+# Default J15 provenance for the current implementation
+DEFAULT_J15_PROVENANCE = J15Provenance(
+    source_module="src.ratios.j1_euler_maclaurin",
+    source_function="j15_contribution_integral",
+    przz_line_numbers="1621-1628 (A^{(1,1)} terms)",
+    truth_spec_reference="TRUTH_SPEC.md Lines 1621-1628: 'Hence the term associated to A_{α,β}^{(1,1)}(0,0;β,α) is an error term.'",
+    passed_evaluation_mode_guardrails=False,  # Not yet wired through guardrails
+    guardrail_mode=None,
+    formula_description=(
+        "J15 = contribution from A^{(1,1)} derivative terms in the I12 integral. "
+        "This involves ζ'/ζ evaluated at specific points, contributing to both "
+        "exp(R) coefficient and constant offset."
+    ),
+    is_error_term_per_spec=True,
+    reconciliation_notes=[
+        "OPEN QUESTION: Is code's 'J15' the same as TRUTH_SPEC's 'I5'?",
+        "J15 uses j1_euler_maclaurin.py Euler-Maclaurin approximation",
+        "I5 per TRUTH_SPEC is the A^{(1,1)} error term contribution",
+        "Reconciliation needed: compare code path to PRZZ formula",
+    ],
 )
 
 
@@ -112,6 +179,10 @@ class Plus5SplitResult:
     # Warning flags
     j15_required_for_target: bool
     """True if main-only misses target but with-error hits it"""
+
+    # Provenance tracking (Phase 20.1)
+    j15_provenance: J15Provenance = DEFAULT_J15_PROVENANCE
+    """Metadata about where J15 contribution comes from"""
 
     def to_dict(self) -> Dict:
         """Convert to dictionary for JSON serialization."""

@@ -1,0 +1,122 @@
+================================================================================
+COMPREHENSIVE κ/κ* RATIO ANALYSIS
+================================================================================
+
+PARAMETERS:
+-----------
+κ:  R = 1.3036, θ = 4/7, Target c = 2.137454, Target κ = 0.417294
+κ*: R = 1.1167, θ = 4/7, Target c = 1.937952, Target κ = 0.407511
+
+TARGET RATIO: c(κ)/c(κ*) = 1.102945
+
+================================================================================
+PART 1: I₂ COMPONENT (u-integral × t-integral)
+================================================================================
+
+T-INTEGRAL:
+-----------
+Component           κ value       κ* value      Ratio
+∫Q²e^(2Rt) dt       0.7163        0.6117        1.1709
+
+U-INTEGRALS:
+------------
+Pair   κ u-int    κ* u-int   u-ratio   κ I₂      κ* I₂     I₂ ratio
+(1,1)  0.30684   0.29978    1.0236    0.21979   0.18338   1.1985
+(1,2)  0.46971   0.30694    1.5303    0.33645   0.18776   1.7919
+(1,3) -0.01149  -0.02670    0.4302   -0.00823  -0.01633   0.5038
+(2,2)  0.72501   0.31813    2.2790    0.51932   0.19461   2.6685
+(2,3) -0.01142  -0.02658    0.4296   -0.00818  -0.01626   0.5030
+(3,3)  0.00725   0.00256    2.8326    0.00519   0.00157   3.3169
+
+I₂ ratio statistics:
+  Mean:    1.664
+  Std dev: 1.054
+  Min:     0.503 (pair 2,3)
+  Max:     3.317 (pair 3,3)
+  Range:   2.814
+  CV:      63.4% ← HIGHLY VARIABLE
+
+================================================================================
+PART 2: FULL c (I₁+I₂+I₃+I₄) FROM V2 DSL
+================================================================================
+
+Pair      κ c         κ* c        Ratio      Deviation
+(1,1)   +0.3466     +0.2934      1.18       +0.08
+(1,2)   -2.2018     -1.2905      1.71       +0.60
+(1,3)   -0.0029     +0.0094     -0.31       -1.41
+(2,2)   +0.9555     +0.3984      2.40       +1.29
+(2,3)   -0.1750     -0.0005    379.00     +377.90 ← OUTLIER!
+(3,3)   +0.0354     +0.0024     14.68      +13.57
+
+TOTAL:  -1.0423     -0.5874      1.77       +0.67
+
+Computed vs Target:
+  κ  c:  -1.042  (target: +2.137)  Error: -148.8%
+  κ* c:  -0.587  (target: +1.938)  Error: -130.3%
+  Ratio:  1.774  (target:  1.103)  Error: +60.9%
+
+⚠️  BOTH c values are NEGATIVE - clear systematic error!
+
+================================================================================
+PART 3: POLYNOMIAL DEGREE COMPARISON
+================================================================================
+
+Polynomial   κ degree   κ* degree   Notes
+P₁           5          5           Same degree (both use (1-x) basis)
+P₂           3          2           κ has extra x³ term
+P₃           3          2           κ has extra x³ term
+Q            5          1           κ has x², x³, x⁴, x⁵ terms!
+
+Key coefficient ratios (monomial basis):
+
+P₂:
+  x¹:   1.048 / 1.050 =   1.00  ← Nearly identical
+  x²:   1.320 / -0.097 = -13.54  ← SIGN FLIP!
+  x³:  -0.940 /  0.000 =   inf
+
+P₃:
+  x¹:   0.523 / 0.035 =  14.89  ← Order of magnitude!
+  x²:  -0.687 / -0.156 =   4.39
+  x³:  -0.050 /  0.000 =   inf
+
+Q:
+  1:       1.000 / 1.000 =   1.00
+  (1-2x):  -0.638 / -1.032 =   0.62
+  Higher: missing in κ*
+
+================================================================================
+CONCLUSION
+================================================================================
+
+1. INDIVIDUAL PAIR RATIOS (0.43 to 3.32):
+   ✓ This variation is EXPECTED
+   ✓ Pairs compensate when weighted in the sum
+   ✓ NOT the source of the mystery
+
+2. LARGEST DISCREPANCIES:
+   • (3,3): ratio = 3.32 (+200% from target)
+   • (2,2): ratio = 2.67 (+142% from target)
+   • (1,2): ratio = 1.79 (+62% from target)
+   • (1,3), (2,3): ratio = 0.50 (-54% from target)
+
+3. ROOT CAUSE IDENTIFIED:
+   ✗ Both κ and κ* give NEGATIVE c values
+   ✗ Derivative terms (I₁+I₃+I₄) overwhelm I₂
+   ✗ Sign errors or missing normalization factor
+   ✗ The (2,3) ratio of 379 is clearly wrong
+
+4. POLYNOMIAL DIFFERENCES:
+   • κ* uses LINEAR Q (degree 1 vs 5)
+   • κ* uses LOWER DEGREE P₂, P₃ (degree 2 vs 3)
+   • Sign flips in coefficient ratios
+   • Order-of-magnitude differences in some coefficients
+
+5. NEXT STEPS:
+   a. Validate (1,1) pair independently
+   b. Check I₁ sign convention for cross-pairs
+   c. Verify κ* polynomial transcription
+   d. Test I₂-only computation (should be positive)
+
+================================================================================
+END OF ANALYSIS
+================================================================================

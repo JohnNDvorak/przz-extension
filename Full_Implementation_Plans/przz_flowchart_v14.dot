@@ -1,0 +1,125 @@
+// przz-extension flowchart v14
+// Focus: kernel_registry + Case C profiles are implemented and gated.
+// Next: wire "paper" regime end-to-end into the *truth* two-benchmark evaluator path.
+
+digraph PRZZ_Extension_v14 {
+  rankdir=LR;
+  bgcolor="white";
+  fontname="Helvetica";
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, fillcolor="#ffffff", color="#333333"];
+  edge [color="#555555", arrowsize=0.8];
+
+  subgraph cluster_inputs {
+    label="Inputs";
+    color="#c7c7c7";
+    style="rounded";
+
+    params_k [label="data/przz_parameters.json\n(κ benchmark polynomials)" , fillcolor="#f8fbff"];
+    params_ks [label="data/przz_parameters_kappa_star.json\n(κ* benchmark polynomials)" , fillcolor="#f8fbff"];
+    tex [label="RMS_PRZZ.tex / TRUTH_SPEC.md\n(TeX spec + line refs)", fillcolor="#fff9f3"];
+  }
+
+  subgraph cluster_core {
+    label="Locked Core (don’t edit)";
+    color="#c7c7c7";
+    style="rounded";
+
+    polynomials [label="polynomials.py\nP/Q constraints + loaders", fillcolor="#f3fff6"];
+    quadrature [label="quadrature.py\nGauss–Legendre grids", fillcolor="#f3fff6"];
+    series [label="series.py\ntruncated multivar series", fillcolor="#f3fff6"];
+    psi_exp [label="psi_expansion.py\nΨ monomials (Two-C)", fillcolor="#f3fff6"];
+  }
+
+  subgraph cluster_kernel_layer {
+    label="Kernel layer (paper vs raw regimes)";
+    color="#c7c7c7";
+    style="rounded";
+
+    caseC_exact [label="case_c_exact.py\nK-integral (no prefactor)", fillcolor="#eef7ff"];
+    caseC_kernel [label="case_c_kernel.py\nKω full kernel + d/du", fillcolor="#eef7ff"];
+    mollifier_profiles [label="mollifier_profiles.py\nprofile→Taylor coeffs\n(raw P or Case C Kω)", fillcolor="#eef7ff"];
+
+    kernel_registry [label="kernel_registry.py\nregime∈{raw,paper}\nω mapping + profile selection", fillcolor="#e8fff1"];
+  }
+
+  subgraph cluster_validated {
+    label="Validated building blocks / gates";
+    color="#c7c7c7";
+    style="rounded";
+
+    coeff_gate [label="Coefficient Gate (PASS)\nseries coeffs ↔ FD", fillcolor="#eef7ff"];
+    caseC_gate [label="Case C Kernel Gates (PASS)\nexact ↔ series ↔ FD", fillcolor="#eef7ff"];
+    registry_gate [label="Kernel Registry Gates (PASS)\nmapping + regime switches", fillcolor="#eef7ff"];
+    profiles_gate [label="PsiSeries Case-C Profile Gate (PASS)\nconstant-P closed forms", fillcolor="#eef7ff"];
+  }
+
+  subgraph cluster_evaluators {
+    label="Evaluators";
+    color="#c7c7c7";
+    style="rounded";
+
+    psi_series [label="psi_series_evaluator.py\nSeries coeff extraction\n(uses profiles + ω)", fillcolor="#eef7ff"];
+
+    // Diagnostics
+    series_backed [label="series_backed_evaluator.py\nI1–I4 all via series\n(diagnostic baseline)", fillcolor="#fff7ff"];
+    hybrid [label="hybrid_evaluator.py\nseries I1 + GenEval I2–I4\n(diagnostic)", fillcolor="#fff7ff"];
+    geneval [label="przz_generalized_iterm_evaluator.py\nGenEval I-term assembly\n(legacy / compare)", fillcolor="#fff7ff"];
+    sec7 [label="section7_evaluator.py\nmanual derivatives\n(regression only)", fillcolor="#fff7ff"];
+
+    // Paper-truth target
+    terms [label="terms_k3_d1.py (+ term tables)\nterm→(poly_name, ω via registry)", fillcolor="#e8fff1"];
+    term_dsl [label="term_dsl.py\nTerm graph + AffineExpr", fillcolor="#e8fff1"];
+    evaluate [label="evaluate.py / paper_integrator.py\nEND-TO-END c computation\n(should accept kernel_regime=paper)", fillcolor="#e8fff1"];
+  }
+
+  subgraph cluster_gates {
+    label="External truth gate";
+    color="#c7c7c7";
+    style="rounded";
+
+    two_bench [label="Two-benchmark Gate\nκ + κ* + ratio\n(MUST MATCH PRZZ)", fillcolor="#ffecec"];
+    ratio_diag [label="Ratio Diagnostics\n(per-pair / per-case reports)", fillcolor="#fff4e6"];
+  }
+
+  // Wiring
+  params_k -> polynomials;
+  params_ks -> polynomials;
+
+  tex -> caseC_exact;
+  tex -> caseC_kernel;
+  tex -> kernel_registry;
+
+  caseC_exact -> caseC_gate;
+  caseC_kernel -> caseC_gate;
+
+  kernel_registry -> registry_gate;
+  mollifier_profiles -> profiles_gate;
+
+  polynomials -> kernel_registry;
+  polynomials -> mollifier_profiles;
+  caseC_gate -> mollifier_profiles;
+  kernel_registry -> mollifier_profiles;
+
+  // Series evaluator stack
+  polynomials -> psi_series;
+  quadrature -> psi_series;
+  series -> psi_series;
+  mollifier_profiles -> psi_series;
+  psi_series -> coeff_gate;
+
+  // Diagnostics
+  psi_series -> series_backed;
+  psi_series -> hybrid;
+  geneval -> hybrid;
+  sec7 -> ratio_diag;
+  geneval -> ratio_diag;
+  series_backed -> ratio_diag;
+
+  // Paper evaluator path
+  kernel_registry -> terms;
+  terms -> term_dsl;
+  term_dsl -> evaluate;
+  psi_series -> evaluate;
+  evaluate -> ratio_diag;
+  ratio_diag -> two_bench;
+}

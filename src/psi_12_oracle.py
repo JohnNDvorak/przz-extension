@@ -152,7 +152,7 @@ def psi_oracle_12(
         print(f"    ∫ P₂(u) du:      {u_int_P2:.6f}")
         print(f"    ∫ P₁P₂ du:       {u_int_P1P2:.6f}")
         print(f"  t-integral:")
-        print(f"    ∫ Q²e^{2Rt} dt:  {t_int:.6f}")
+        print(f"    ∫ Q²e^{{2Rt}} dt:  {t_int:.6f}")
         print(f"  Combined (with 1/θ prefactor):")
         print(f"    A (P₁ factor):   {A:.6f}")
         print(f"    B (P₂ factor):   {B:.6f}")
@@ -206,7 +206,7 @@ def psi_oracle_12(
     )
 
     if debug:
-        print(f"\nTotal Ψ_{1,2}: {total:.6f}")
+        print(f"\nTotal Ψ_{{1,2}}: {total:.6f}")
 
     return OracleResult12(
         AB2=monomial_AB2,

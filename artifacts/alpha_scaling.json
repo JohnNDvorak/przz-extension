@@ -1,0 +1,145 @@
+{
+  "phase": "14K",
+  "description": "Alpha scaling regime experiment",
+  "L_values": [
+    1.0,
+    2.0,
+    5.0,
+    10.0,
+    20.0
+  ],
+  "results": {
+    "kappa": [
+      {
+        "benchmark": "kappa",
+        "L": 1.0,
+        "R_original": 1.3036,
+        "R_effective": 1.3036,
+        "delta": 0.2525733341639576,
+        "B_over_A": 5.252573334163957,
+        "gap_percent": 5.051466683279138,
+        "A": 1.126154046819208,
+        "D": 0.28443648238736097
+      },
+      {
+        "benchmark": "kappa",
+        "L": 2.0,
+        "R_original": 1.3036,
+        "R_effective": 0.6518,
+        "delta": -0.8878952958700957,
+        "B_over_A": 4.112104704129904,
+        "gap_percent": -17.757905917401917,
+        "A": 1.4496537339710112,
+        "D": -1.28714073103338
+      },
+      {
+        "benchmark": "kappa",
+        "L": 5.0,
+        "R_original": 1.3036,
+        "R_effective": 0.26072,
+        "delta": -1.6936924996419538,
+        "B_over_A": 3.3063075003580455,
+        "gap_percent": -33.87384999283909,
+        "A": 10.683090967480064,
+        "D": -18.09387104461369
+      },
+      {
+        "benchmark": "kappa",
+        "L": 10.0,
+        "R_original": 1.3036,
+        "R_effective": 0.13036,
+        "delta": -1.357334812011455,
+        "B_over_A": 3.642665187988545,
+        "gap_percent": -27.146696240229097,
+        "A": 91.78078684857928,
+        "D": -124.57725706337978
+      },
+      {
+        "benchmark": "kappa",
+        "L": 20.0,
+        "R_original": 1.3036,
+        "R_effective": 0.06518,
+        "delta": -1.1670823213208628,
+        "B_over_A": 3.832917678679137,
+        "gap_percent": -23.34164642641726,
+        "A": 786.624854843508,
+        "D": -918.0559615994481
+      }
+    ],
+    "kappa_star": [
+      {
+        "benchmark": "kappa_star",
+        "L": 1.0,
+        "R_original": 1.1167,
+        "R_effective": 1.1167,
+        "delta": 0.07914805015341247,
+        "B_over_A": 5.079148050153412,
+        "gap_percent": 1.5829610030682415,
+        "A": 0.7455884744163735,
+        "D": 0.05901187396691343
+      },
+      {
+        "benchmark": "kappa_star",
+        "L": 2.0,
+        "R_original": 1.1167,
+        "R_effective": 0.55835,
+        "delta": -1.2424992012204155,
+        "B_over_A": 3.757500798779584,
+        "gap_percent": -24.849984024408318,
+        "A": 1.136614461001746,
+        "D": -1.4122425598902424
+      },
+      {
+        "benchmark": "kappa_star",
+        "L": 5.0,
+        "R_original": 1.1167,
+        "R_effective": 0.22334,
+        "delta": -1.6192428190636494,
+        "B_over_A": 3.3807571809363504,
+        "gap_percent": -32.38485638127299,
+        "A": 11.18489481160843,
+        "D": -18.11106060567922
+      },
+      {
+        "benchmark": "kappa_star",
+        "L": 10.0,
+        "R_original": 1.1167,
+        "R_effective": 0.11167,
+        "delta": -1.3022544575061348,
+        "B_over_A": 3.6977455424938652,
+        "gap_percent": -26.045089150122696,
+        "A": 97.19151882704075,
+        "D": -126.56808862430523
+      },
+      {
+        "benchmark": "kappa_star",
+        "L": 20.0,
+        "R_original": 1.1167,
+        "R_effective": 0.055835,
+        "delta": -1.1414414821727688,
+        "B_over_A": 3.8585585178272317,
+        "gap_percent": -22.828829643455368,
+        "A": 826.4939706863798,
+        "D": -943.3945029071183
+      }
+    ]
+  },
+  "analysis": {
+    "kappa": {
+      "delta_at_L1": 0.2525733341639576,
+      "delta_at_L_max": -1.1670823213208628,
+      "relative_change": -5.620766183350349,
+      "power_exponent": null,
+      "trend": "decreasing",
+      "is_asymptotic": false
+    },
+    "kappa_star": {
+      "delta_at_L1": 0.07914805015341247,
+      "delta_at_L_max": -1.1414414821727688,
+      "relative_change": -15.421599520901848,
+      "power_exponent": null,
+      "trend": "decreasing",
+      "is_asymptotic": false
+    }
+  }
+}

@@ -50,9 +50,10 @@ I₁ has no additional sign, so numeric_prefactor = 1.0
 """
 
 from __future__ import annotations
-from typing import Dict, List, Tuple, Callable
+from typing import Dict, List, Tuple, Callable, Optional
 import numpy as np
 
+from src.kernel_registry import KernelRegime, omega_for_poly_name
 from src.term_dsl import (
     Term, AffineExpr, PolyFactor, ExpFactor,
     SeriesContext, GridFunc
@@ -60,43 +61,38 @@ from src.term_dsl import (
 
 
 # =============================================================================
-# Omega-case mapping for polynomial pieces
+# Kernel regime / omega selection
 # =============================================================================
-# PRZZ omega classification (TeX lines 2302-2304):
-#   omega(d,l) = 1×l₁ + ... + d×l_d - 1
-# For d=1: omega = ell - 1
 #
-# INVESTIGATION RESULT (2025-12-16):
-# Setting P2/P3 to Case C (omega=1,2) made c drop from ~1.95 to ~0.64
-# This goes in the WRONG direction (PRZZ target is c=2.14)
-# The omega-case classification likely applies to a DIFFERENT part of
-# the PRZZ computation (possibly Υ function or bracket combinatorics),
-# NOT to the main integral P(u+X) evaluations.
+# This repo supports multiple "kernel regimes":
 #
-# For now, all polynomials use Case B (omega=0) to preserve baseline.
-# The gap vs PRZZ (1.95 vs 2.14) remains under investigation.
+# - regime="raw"  : diagnostic / legacy behavior; treat all Pℓ as Case B (ω=0)
+# - regime="paper": TeX-driven case selection; for d=1, ω = ℓ - 1, so P₂/P₃ are
+#                   Case C (ω=1,2) and P₁ is Case B (ω=0).
 #
-# - P1 (ell=1): omega=0 → Case B (standard polynomial)
-# - P2 (ell=2): omega=0 → Case B (standard polynomial) - NOT Case C
-# - P3 (ell=3): omega=0 → Case B (standard polynomial) - NOT Case C
-# - Q: Not subject to omega handling (evaluated at t, not u)
-#
-OMEGA_FOR_POLY = {
-    "P1": 0,   # Case B
-    "P2": 0,   # Case B (NOT Case C - see note above)
-    "P3": 0,   # Case B (NOT Case C - see note above)
-    "Q": None  # Not subject to omega handling
-}
+# IMPORTANT: toggling to regime="paper" is still under investigation; earlier
+# experiments showed that a naive Case C swap can drastically change scaling.
+# Keep the default as "raw" so baseline tests remain stable.
+DEFAULT_KERNEL_REGIME: KernelRegime = "raw"
 
 
-def make_poly_factor(poly_name: str, argument: AffineExpr, power: int = 1) -> PolyFactor:
+def make_poly_factor(
+    poly_name: str,
+    argument: AffineExpr,
+    power: int = 1,
+    *,
+    regime: Optional[KernelRegime] = None,
+) -> PolyFactor:
     """
     Create PolyFactor with correct omega metadata based on polynomial name.
 
     This helper ensures all P polynomial factors have the correct omega for
     Case B/C handling during evaluation.
     """
-    omega = OMEGA_FOR_POLY.get(poly_name)
+    if regime is None:
+        regime = DEFAULT_KERNEL_REGIME
+
+    omega = omega_for_poly_name(poly_name, regime=regime)
     return PolyFactor(poly_name=poly_name, argument=argument, power=power, omega=omega)
 
 
@@ -414,7 +410,11 @@ def _make_algebraic_prefactor_y_only(theta: float) -> AffineExpr:
 # (1,1) I₁ Term Builder
 # =============================================================================
 
-def make_I1_11(theta: float, R: float) -> Term:
+def make_I1_11(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
     """
     Build the (1,1) I₁ term (main coupled term).
 
@@ -426,12 +426,14 @@ def make_I1_11(theta: float, R: float) -> Term:
     Args:
         theta: θ parameter (typically 4/7)
         R: R parameter (typically 1.3036)
+        kernel_regime: "raw" or "paper" for Case B/C selection
 
     Returns:
         Term object representing I₁ for (1,1)
 
     PRZZ Reference: Section 6.2.1, equation for I₁
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     x_vars = ("x1",)
     y_vars = ("y1",)
     all_vars = ("x1", "y1")
@@ -464,10 +466,10 @@ def make_I1_11(theta: float, R: float) -> Term:
 
         # Poly factors: P₁(x1+u), P₁(y1+u), Q(Arg_α), Q(Arg_β)
         poly_factors=[
-            make_poly_factor("P1", P_arg_x),
-            make_poly_factor("P1", P_arg_y),
-            make_poly_factor("Q", Q_arg_alpha),
-            make_poly_factor("Q", Q_arg_beta),
+            make_poly_factor("P1", P_arg_x, regime=regime),
+            make_poly_factor("P1", P_arg_y, regime=regime),
+            make_poly_factor("Q", Q_arg_alpha, regime=regime),
+            make_poly_factor("Q", Q_arg_beta, regime=regime),
         ],
 
         # Exp factors: exp(R·Arg_α), exp(R·Arg_β)
@@ -482,7 +484,11 @@ def make_I1_11(theta: float, R: float) -> Term:
 # (1,1) I₂ Term Builder - Decoupled term (no derivatives)
 # =============================================================================
 
-def make_I2_11(theta: float, R: float) -> Term:
+def make_I2_11(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
     """
     Build the (1,1) I₂ term (decoupled term, no derivatives).
 
@@ -500,12 +506,14 @@ def make_I2_11(theta: float, R: float) -> Term:
     Args:
         theta: θ parameter (typically 4/7)
         R: R parameter (typically 1.3036)
+        kernel_regime: "raw" or "paper" for Case B/C selection
 
     Returns:
         Term object representing I₂ for (1,1)
 
     PRZZ Reference: Section 6.2.1, equation for I₂
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     P_arg = make_P_argument_unshifted()  # P(u)
     Q_arg = make_Q_argument_at_t()       # Q(t)
     exp_arg = make_exp_argument_at_t()   # exp(2R·t)
@@ -529,9 +537,9 @@ def make_I2_11(theta: float, R: float) -> Term:
 
         # Poly factors: P₁(u), P₁(u), Q(t)²
         poly_factors=[
-            make_poly_factor("P1", P_arg),
-            make_poly_factor("P1", P_arg),
-            make_poly_factor("Q", Q_arg, power=2),
+            make_poly_factor("P1", P_arg, regime=regime),
+            make_poly_factor("P1", P_arg, regime=regime),
+            make_poly_factor("Q", Q_arg, power=2, regime=regime),
         ],
 
         # Exp factor: exp(2R·t) - note the 2R scaling!
@@ -545,7 +553,11 @@ def make_I2_11(theta: float, R: float) -> Term:
 # (1,1) I₃ Term Builder - Single x derivative
 # =============================================================================
 
-def make_I3_11(theta: float, R: float) -> Term:
+def make_I3_11(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
     """
     Build the (1,1) I₃ term (single x derivative).
 
@@ -565,12 +577,14 @@ def make_I3_11(theta: float, R: float) -> Term:
     Args:
         theta: θ parameter (typically 4/7)
         R: R parameter (typically 1.3036)
+        kernel_regime: "raw" or "paper" for Case B/C selection
 
     Returns:
         Term object representing I₃ for (1,1)
 
     PRZZ Reference: Section 6.2.1, equation for I₃
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     # P arguments: one shifted by x1, one unshifted
     P_arg_shifted = make_P_argument("x1")  # P₁(x1 + u)
     P_arg_unshifted = make_P_argument_unshifted()  # P₁(u)
@@ -601,10 +615,10 @@ def make_I3_11(theta: float, R: float) -> Term:
 
         # Poly factors: P₁(x1+u), P₁(u), Q(Arg_α), Q(Arg_β)
         poly_factors=[
-            make_poly_factor("P1", P_arg_shifted),
-            make_poly_factor("P1", P_arg_unshifted),
-            make_poly_factor("Q", Q_arg_alpha),
-            make_poly_factor("Q", Q_arg_beta),
+            make_poly_factor("P1", P_arg_shifted, regime=regime),
+            make_poly_factor("P1", P_arg_unshifted, regime=regime),
+            make_poly_factor("Q", Q_arg_alpha, regime=regime),
+            make_poly_factor("Q", Q_arg_beta, regime=regime),
         ],
 
         # Exp factors: exp(R·Arg_α), exp(R·Arg_β)
@@ -619,7 +633,11 @@ def make_I3_11(theta: float, R: float) -> Term:
 # (1,1) I₄ Term Builder - Single y derivative
 # =============================================================================
 
-def make_I4_11(theta: float, R: float) -> Term:
+def make_I4_11(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
     """
     Build the (1,1) I₄ term (single y derivative).
 
@@ -639,12 +657,14 @@ def make_I4_11(theta: float, R: float) -> Term:
     Args:
         theta: θ parameter (typically 4/7)
         R: R parameter (typically 1.3036)
+        kernel_regime: "raw" or "paper" for Case B/C selection
 
     Returns:
         Term object representing I₄ for (1,1)
 
     PRZZ Reference: Section 6.2.1, equation for I₄
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     # P arguments: one unshifted, one shifted by y1
     P_arg_unshifted = make_P_argument_unshifted()  # P₁(u)
     P_arg_shifted = make_P_argument("y1")  # P₁(y1 + u)
@@ -675,10 +695,10 @@ def make_I4_11(theta: float, R: float) -> Term:
 
         # Poly factors: P₁(u), P₁(y1+u), Q(Arg_α), Q(Arg_β)
         poly_factors=[
-            make_poly_factor("P1", P_arg_unshifted),
-            make_poly_factor("P1", P_arg_shifted),
-            make_poly_factor("Q", Q_arg_alpha),
-            make_poly_factor("Q", Q_arg_beta),
+            make_poly_factor("P1", P_arg_unshifted, regime=regime),
+            make_poly_factor("P1", P_arg_shifted, regime=regime),
+            make_poly_factor("Q", Q_arg_alpha, regime=regime),
+            make_poly_factor("Q", Q_arg_beta, regime=regime),
         ],
 
         # Exp factors: exp(R·Arg_α), exp(R·Arg_β)
@@ -693,22 +713,28 @@ def make_I4_11(theta: float, R: float) -> Term:
 # Convenience function to get all (1,1) terms
 # =============================================================================
 
-def make_all_terms_11(theta: float, R: float) -> List[Term]:
+def make_all_terms_11(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> List[Term]:
     """
     Build all (1,1) terms: I₁, I₂, I₃, I₄.
 
     Args:
         theta: θ parameter (typically 4/7)
         R: R parameter (typically 1.3036)
+        kernel_regime: "raw" or "paper" for Case B/C selection
 
     Returns:
         List of Term objects [I₁, I₂, I₃, I₄]
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     return [
-        make_I1_11(theta, R),
-        make_I2_11(theta, R),
-        make_I3_11(theta, R),
-        make_I4_11(theta, R),
+        make_I1_11(theta, R, kernel_regime=regime),
+        make_I2_11(theta, R, kernel_regime=regime),
+        make_I3_11(theta, R, kernel_regime=regime),
+        make_I4_11(theta, R, kernel_regime=regime),
     ]
 
 
@@ -720,13 +746,14 @@ def make_all_terms_11(theta: float, R: float) -> List[Term]:
 # with the PRZZ-correct single-variable structure.
 #
 
-def make_I1_11_v2(theta: float, R: float) -> Term:
+def make_I1_11_v2(theta: float, R: float, kernel_regime: Optional[KernelRegime] = None) -> Term:
     """
     Build the (1,1) I₁ term using standard x, y variable names.
 
     This is structurally similar to the original but uses x, y instead of x1, y1
     for consistency with the PRZZ-correct single-variable pattern.
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     Q_arg_alpha = _make_Q_arg_alpha_single(theta)
     Q_arg_beta = _make_Q_arg_beta_single(theta)
 
@@ -741,10 +768,10 @@ def make_I1_11_v2(theta: float, R: float) -> Term:
         algebraic_prefactor=_make_algebraic_prefactor_single(theta),
         poly_prefactors=[_make_poly_prefactor_power(2)],  # (1-u)² - keeping same as original
         poly_factors=[
-            make_poly_factor("P1", _make_P_argument_x()),
-            make_poly_factor("P1", _make_P_argument_y()),
-            make_poly_factor("Q", Q_arg_alpha),
-            make_poly_factor("Q", Q_arg_beta),
+            make_poly_factor("P1", _make_P_argument_x(), regime=regime),
+            make_poly_factor("P1", _make_P_argument_y(), regime=regime),
+            make_poly_factor("Q", Q_arg_alpha, regime=regime),
+            make_poly_factor("Q", Q_arg_beta, regime=regime),
         ],
         exp_factors=[
             ExpFactor(R, Q_arg_alpha),
@@ -753,12 +780,13 @@ def make_I1_11_v2(theta: float, R: float) -> Term:
     )
 
 
-def make_I2_11_v2(theta: float, R: float) -> Term:
+def make_I2_11_v2(theta: float, R: float, kernel_regime: Optional[KernelRegime] = None) -> Term:
     """
     Build the (1,1) I₂ term (decoupled, no derivatives).
 
     Unchanged from original - I₂ has no variables.
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     P_arg = make_P_argument_unshifted()
     Q_arg = make_Q_argument_at_t()
     exp_arg = make_exp_argument_at_t()
@@ -774,15 +802,15 @@ def make_I2_11_v2(theta: float, R: float) -> Term:
         algebraic_prefactor=None,
         poly_prefactors=[],
         poly_factors=[
-            make_poly_factor("P1", P_arg),
-            make_poly_factor("P1", P_arg),
-            make_poly_factor("Q", Q_arg, power=2),
+            make_poly_factor("P1", P_arg, regime=regime),
+            make_poly_factor("P1", P_arg, regime=regime),
+            make_poly_factor("Q", Q_arg, power=2, regime=regime),
         ],
         exp_factors=[ExpFactor(2 * R, exp_arg)]
     )
 
 
-def make_I3_11_v2(theta: float, R: float) -> Term:
+def make_I3_11_v2(theta: float, R: float, kernel_regime: Optional[KernelRegime] = None) -> Term:
     """
     Build the (1,1) I₃ term using PRZZ-correct prefactor structure.
 
@@ -790,6 +818,7 @@ def make_I3_11_v2(theta: float, R: float) -> Term:
     to correctly handle the product rule for:
     I₃ = -d/dx[(1+θx)/θ × integral]|_{x=0} = -(base + (1/θ)×deriv)
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     Q_arg_alpha = _make_Q_arg_alpha_x_only_single(theta)
     Q_arg_beta = _make_Q_arg_beta_x_only_single(theta)
 
@@ -804,10 +833,10 @@ def make_I3_11_v2(theta: float, R: float) -> Term:
         algebraic_prefactor=_make_algebraic_prefactor_x_only(theta),  # (1+θx)/θ = 1/θ + x
         poly_prefactors=[_make_poly_prefactor_power(1)],  # (1-u)
         poly_factors=[
-            make_poly_factor("P1", _make_P_argument_x()),
-            make_poly_factor("P1", make_P_argument_unshifted()),
-            make_poly_factor("Q", Q_arg_alpha),
-            make_poly_factor("Q", Q_arg_beta),
+            make_poly_factor("P1", _make_P_argument_x(), regime=regime),
+            make_poly_factor("P1", make_P_argument_unshifted(), regime=regime),
+            make_poly_factor("Q", Q_arg_alpha, regime=regime),
+            make_poly_factor("Q", Q_arg_beta, regime=regime),
         ],
         exp_factors=[
             ExpFactor(R, Q_arg_alpha),
@@ -816,12 +845,13 @@ def make_I3_11_v2(theta: float, R: float) -> Term:
     )
 
 
-def make_I4_11_v2(theta: float, R: float) -> Term:
+def make_I4_11_v2(theta: float, R: float, kernel_regime: Optional[KernelRegime] = None) -> Term:
     """
     Build the (1,1) I₄ term using PRZZ-correct prefactor structure.
 
     By symmetry with I₃.
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     Q_arg_alpha = _make_Q_arg_alpha_y_only_single(theta)
     Q_arg_beta = _make_Q_arg_beta_y_only_single(theta)
 
@@ -836,10 +866,10 @@ def make_I4_11_v2(theta: float, R: float) -> Term:
         algebraic_prefactor=_make_algebraic_prefactor_y_only(theta),
         poly_prefactors=[_make_poly_prefactor_power(1)],
         poly_factors=[
-            make_poly_factor("P1", make_P_argument_unshifted()),
-            make_poly_factor("P1", _make_P_argument_y()),
-            make_poly_factor("Q", Q_arg_alpha),
-            make_poly_factor("Q", Q_arg_beta),
+            make_poly_factor("P1", make_P_argument_unshifted(), regime=regime),
+            make_poly_factor("P1", _make_P_argument_y(), regime=regime),
+            make_poly_factor("Q", Q_arg_alpha, regime=regime),
+            make_poly_factor("Q", Q_arg_beta, regime=regime),
         ],
         exp_factors=[
             ExpFactor(R, Q_arg_alpha),
@@ -848,13 +878,14 @@ def make_I4_11_v2(theta: float, R: float) -> Term:
     )
 
 
-def make_all_terms_11_v2(theta: float, R: float) -> List[Term]:
+def make_all_terms_11_v2(theta: float, R: float, kernel_regime: Optional[KernelRegime] = None) -> List[Term]:
     """Build all (1,1) terms using PRZZ-correct single-variable structure."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     return [
-        make_I1_11_v2(theta, R),
-        make_I2_11_v2(theta, R),
-        make_I3_11_v2(theta, R),
-        make_I4_11_v2(theta, R),
+        make_I1_11_v2(theta, R, kernel_regime=regime),
+        make_I2_11_v2(theta, R, kernel_regime=regime),
+        make_I3_11_v2(theta, R, kernel_regime=regime),
+        make_I4_11_v2(theta, R, kernel_regime=regime),
     ]
 
 
@@ -963,11 +994,62 @@ def _make_P_argument_sum(var_list: Tuple[str, ...]) -> AffineExpr:
     )
 
 
+# Aliases for swapped generators - delegate to general versions
+def _make_P_argument_u() -> AffineExpr:
+    """Alias for make_P_argument_unshifted() for consistency."""
+    return make_P_argument_unshifted()
+
+
+def _make_Q_arg_t_only() -> AffineExpr:
+    """Alias for make_Q_argument_at_t() for consistency."""
+    return make_Q_argument_at_t()
+
+
+def _make_Q_arg_alpha_x_only(theta: float, x_vars: Tuple[str, ...]) -> AffineExpr:
+    """Q argument α with only x variables (no y): t + θt·(sum of x vars)."""
+    return _make_Q_arg_alpha_general(theta, x_vars, ())
+
+
+def _make_Q_arg_beta_x_only(theta: float, x_vars: Tuple[str, ...]) -> AffineExpr:
+    """Q argument β with only x variables (no y): t + θ(t-1)·(sum of x vars)."""
+    return _make_Q_arg_beta_general(theta, x_vars, ())
+
+
+def _make_Q_arg_alpha_y_only(theta: float, y_vars: Tuple[str, ...]) -> AffineExpr:
+    """Q argument α with only y variables (no x): t + θ(t-1)·(sum of y vars)."""
+    return _make_Q_arg_alpha_general(theta, (), y_vars)
+
+
+def _make_Q_arg_beta_y_only(theta: float, y_vars: Tuple[str, ...]) -> AffineExpr:
+    """Q argument β with only y variables (no x): t + θt·(sum of y vars)."""
+    return _make_Q_arg_beta_general(theta, (), y_vars)
+
+
+def _make_algebraic_prefactor_x_only_general(
+    theta: float,
+    x_vars: Tuple[str, ...]
+) -> AffineExpr:
+    """Algebraic prefactor with only x variables: (θS_x + 1)/θ = 1/θ + S_x."""
+    return _make_algebraic_prefactor_general(theta, x_vars, ())
+
+
+def _make_algebraic_prefactor_y_only_general(
+    theta: float,
+    y_vars: Tuple[str, ...]
+) -> AffineExpr:
+    """Algebraic prefactor with only y variables: (θS_y + 1)/θ = 1/θ + S_y."""
+    return _make_algebraic_prefactor_general(theta, (), y_vars)
+
+
 # =============================================================================
 # (2,2) PAIR TERMS
 # =============================================================================
 
-def make_I1_22(theta: float, R: float) -> Term:
+def make_I1_22(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
     """
     Build the (2,2) I₁ term (main coupled term).
 
@@ -979,6 +1061,7 @@ def make_I1_22(theta: float, R: float) -> Term:
     - P_right = P₂(y1+y2+u)  (sum of y vars + u)
     Total: 2 P factors + 2 Q factors = 4 poly_factors
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     x_vars = _make_x_vars(2)  # ("x1", "x2")
     y_vars = _make_y_vars(2)  # ("y1", "y2")
     all_vars = x_vars + y_vars
@@ -991,10 +1074,10 @@ def make_I1_22(theta: float, R: float) -> Term:
     P_arg_right = _make_P_argument_sum(y_vars)  # y1+y2+u
 
     poly_factors = [
-        make_poly_factor("P2", P_arg_left),   # P₂(x1+x2+u)
-        make_poly_factor("P2", P_arg_right),  # P₂(y1+y2+u)
-        make_poly_factor("Q", Q_arg_alpha),
-        make_poly_factor("Q", Q_arg_beta),
+        make_poly_factor("P2", P_arg_left, regime=regime),   # P₂(x1+x2+u)
+        make_poly_factor("P2", P_arg_right, regime=regime),  # P₂(y1+y2+u)
+        make_poly_factor("Q", Q_arg_alpha, regime=regime),
+        make_poly_factor("Q", Q_arg_beta, regime=regime),
     ]
 
     # Algebraic prefactor (θS+1)/θ = 1/θ + S
@@ -1018,13 +1101,18 @@ def make_I1_22(theta: float, R: float) -> Term:
     )
 
 
-def make_I2_22(theta: float, R: float) -> Term:
+def make_I2_22(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
     """
     Build the (2,2) I₂ term (decoupled, no derivatives).
 
     No formal variables - evaluated at x=y=0.
     2 P factors: P₂(u) for left, P₂(u) for right
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     P_arg = make_P_argument_unshifted()
     Q_arg = make_Q_argument_at_t()
     exp_arg = make_exp_argument_at_t()
@@ -1040,15 +1128,19 @@ def make_I2_22(theta: float, R: float) -> Term:
         algebraic_prefactor=None,
         poly_prefactors=[],
         poly_factors=[
-            make_poly_factor("P2", P_arg),  # P₂(u) for left
-            make_poly_factor("P2", P_arg),  # P₂(u) for right
-            make_poly_factor("Q", Q_arg, power=2),
+            make_poly_factor("P2", P_arg, regime=regime),  # P₂(u) for left
+            make_poly_factor("P2", P_arg, regime=regime),  # P₂(u) for right
+            make_poly_factor("Q", Q_arg, power=2, regime=regime),
         ],
         exp_factors=[ExpFactor(2 * R, exp_arg)]
     )
 
 
-def make_I3_22(theta: float, R: float) -> Term:
+def make_I3_22(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
     """
     Build the (2,2) I₃ term (x derivatives only).
 
@@ -1058,6 +1150,7 @@ def make_I3_22(theta: float, R: float) -> Term:
     - P_right: P₂(u)       - 1 P factor unshifted (y=0)
     Total: 2 P factors + 2 Q factors = 4 poly_factors
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     x_vars = _make_x_vars(2)
 
     Q_arg_alpha = AffineExpr(
@@ -1073,10 +1166,10 @@ def make_I3_22(theta: float, R: float) -> Term:
     P_arg_left = _make_P_argument_sum(x_vars)  # x1+x2+u
 
     poly_factors = [
-        make_poly_factor("P2", P_arg_left),              # P₂(x1+x2+u)
-        make_poly_factor("P2", make_P_argument_unshifted()),  # P₂(u) for y=0
-        make_poly_factor("Q", Q_arg_alpha),
-        make_poly_factor("Q", Q_arg_beta),
+        make_poly_factor("P2", P_arg_left, regime=regime),              # P₂(x1+x2+u)
+        make_poly_factor("P2", make_P_argument_unshifted(), regime=regime),  # P₂(u) for y=0
+        make_poly_factor("Q", Q_arg_alpha, regime=regime),
+        make_poly_factor("Q", Q_arg_beta, regime=regime),
     ]
 
     return Term(
@@ -1098,7 +1191,11 @@ def make_I3_22(theta: float, R: float) -> Term:
     )
 
 
-def make_I4_22(theta: float, R: float) -> Term:
+def make_I4_22(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
     """
     Build the (2,2) I₄ term (y derivatives only).
 
@@ -1108,6 +1205,7 @@ def make_I4_22(theta: float, R: float) -> Term:
     - P_right: P₂(y1+y2+u) - 1 P factor with summed y vars
     Total: 2 P factors + 2 Q factors = 4 poly_factors
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     y_vars = _make_y_vars(2)
 
     Q_arg_alpha = AffineExpr(
@@ -1123,10 +1221,10 @@ def make_I4_22(theta: float, R: float) -> Term:
     P_arg_right = _make_P_argument_sum(y_vars)  # y1+y2+u
 
     poly_factors = [
-        make_poly_factor("P2", make_P_argument_unshifted()),  # P₂(u) for x=0
-        make_poly_factor("P2", P_arg_right),                  # P₂(y1+y2+u)
-        make_poly_factor("Q", Q_arg_alpha),
-        make_poly_factor("Q", Q_arg_beta),
+        make_poly_factor("P2", make_P_argument_unshifted(), regime=regime),  # P₂(u) for x=0
+        make_poly_factor("P2", P_arg_right, regime=regime),                  # P₂(y1+y2+u)
+        make_poly_factor("Q", Q_arg_alpha, regime=regime),
+        make_poly_factor("Q", Q_arg_beta, regime=regime),
     ]
 
     return Term(
@@ -1148,13 +1246,18 @@ def make_I4_22(theta: float, R: float) -> Term:
     )
 
 
-def make_all_terms_22(theta: float, R: float) -> List[Term]:
+def make_all_terms_22(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> List[Term]:
     """Build all (2,2) terms."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     return [
-        make_I1_22(theta, R),
-        make_I2_22(theta, R),
-        make_I3_22(theta, R),
-        make_I4_22(theta, R),
+        make_I1_22(theta, R, kernel_regime=regime),
+        make_I2_22(theta, R, kernel_regime=regime),
+        make_I3_22(theta, R, kernel_regime=regime),
+        make_I4_22(theta, R, kernel_regime=regime),
     ]
 
 
@@ -1172,7 +1275,7 @@ def make_all_terms_22(theta: float, R: float) -> List[Term]:
 #   - I₃/I₄: Old DSL = +0.13 (wrong sign!), Oracle = -0.54
 #
 
-def make_I1_22_v2(theta: float, R: float) -> Term:
+def make_I1_22_v2(theta: float, R: float, kernel_regime: Optional[KernelRegime] = None) -> Term:
     """
     Build the (2,2) I₁ term using PRZZ-correct single x, y structure.
 
@@ -1181,6 +1284,7 @@ def make_I1_22_v2(theta: float, R: float) -> Term:
 
     PRZZ Reference: Section 6.2.1, ℓ₁=ℓ₂=1, lines 1530-1532
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     Q_arg_alpha = _make_Q_arg_alpha_single(theta)
     Q_arg_beta = _make_Q_arg_beta_single(theta)
 
@@ -1195,10 +1299,10 @@ def make_I1_22_v2(theta: float, R: float) -> Term:
         algebraic_prefactor=_make_algebraic_prefactor_single(theta),  # (1+θ(x+y))/θ
         poly_prefactors=[_make_poly_prefactor_power(2)],  # (1-u)² for ℓ₁=ℓ₂=1
         poly_factors=[
-            make_poly_factor("P2", _make_P_argument_x()),  # P₂(x+u)
-            make_poly_factor("P2", _make_P_argument_y()),  # P₂(y+u)
-            make_poly_factor("Q", Q_arg_alpha),
-            make_poly_factor("Q", Q_arg_beta),
+            make_poly_factor("P2", _make_P_argument_x(), regime=regime),  # P₂(x+u)
+            make_poly_factor("P2", _make_P_argument_y(), regime=regime),  # P₂(y+u)
+            make_poly_factor("Q", Q_arg_alpha, regime=regime),
+            make_poly_factor("Q", Q_arg_beta, regime=regime),
         ],
         exp_factors=[
             ExpFactor(R, Q_arg_alpha),
@@ -1207,13 +1311,14 @@ def make_I1_22_v2(theta: float, R: float) -> Term:
     )
 
 
-def make_I2_22_v2(theta: float, R: float) -> Term:
+def make_I2_22_v2(theta: float, R: float, kernel_regime: Optional[KernelRegime] = None) -> Term:
     """
     Build the (2,2) I₂ term (decoupled, no derivatives).
 
     This is unchanged from the original - I₂ has no derivatives so
     the variable structure issue doesn't affect it.
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     P_arg = make_P_argument_unshifted()
     Q_arg = make_Q_argument_at_t()
     exp_arg = make_exp_argument_at_t()
@@ -1229,15 +1334,15 @@ def make_I2_22_v2(theta: float, R: float) -> Term:
         algebraic_prefactor=None,
         poly_prefactors=[],  # No (1-u) factor for I₂
         poly_factors=[
-            make_poly_factor("P2", P_arg),
-            make_poly_factor("P2", P_arg),
-            make_poly_factor("Q", Q_arg, power=2),
+            make_poly_factor("P2", P_arg, regime=regime),
+            make_poly_factor("P2", P_arg, regime=regime),
+            make_poly_factor("Q", Q_arg, power=2, regime=regime),
         ],
         exp_factors=[ExpFactor(2 * R, exp_arg)]
     )
 
 
-def make_I3_22_v2(theta: float, R: float) -> Term:
+def make_I3_22_v2(theta: float, R: float, kernel_regime: Optional[KernelRegime] = None) -> Term:
     """
     Build the (2,2) I₃ term using PRZZ-correct single x structure.
 
@@ -1254,6 +1359,7 @@ def make_I3_22_v2(theta: float, R: float) -> Term:
     automatically produces this via: d/dx[(1/θ + x)×F]|₀ = F(0) + (1/θ)×F'(0)
     Then numeric_prefactor = -1.0 gives the negation.
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     Q_arg_alpha = _make_Q_arg_alpha_x_only_single(theta)
     Q_arg_beta = _make_Q_arg_beta_x_only_single(theta)
 
@@ -1268,10 +1374,10 @@ def make_I3_22_v2(theta: float, R: float) -> Term:
         algebraic_prefactor=_make_algebraic_prefactor_x_only(theta),  # (1+θx)/θ
         poly_prefactors=[_make_poly_prefactor_power(1)],  # (1-u)^1 for I₃ with ℓ₁=1
         poly_factors=[
-            make_poly_factor("P2", _make_P_argument_x()),  # P₂(x+u)
-            make_poly_factor("P2", make_P_argument_unshifted()),  # P₂(u) at y=0
-            make_poly_factor("Q", Q_arg_alpha),
-            make_poly_factor("Q", Q_arg_beta),
+            make_poly_factor("P2", _make_P_argument_x(), regime=regime),  # P₂(x+u)
+            make_poly_factor("P2", make_P_argument_unshifted(), regime=regime),  # P₂(u) at y=0
+            make_poly_factor("Q", Q_arg_alpha, regime=regime),
+            make_poly_factor("Q", Q_arg_beta, regime=regime),
         ],
         exp_factors=[
             ExpFactor(R, Q_arg_alpha),
@@ -1280,7 +1386,7 @@ def make_I3_22_v2(theta: float, R: float) -> Term:
     )
 
 
-def make_I4_22_v2(theta: float, R: float) -> Term:
+def make_I4_22_v2(theta: float, R: float, kernel_regime: Optional[KernelRegime] = None) -> Term:
     """
     Build the (2,2) I₄ term using PRZZ-correct single y structure.
 
@@ -1292,6 +1398,7 @@ def make_I4_22_v2(theta: float, R: float) -> Term:
 
     By symmetry with I₃.
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     Q_arg_alpha = _make_Q_arg_alpha_y_only_single(theta)
     Q_arg_beta = _make_Q_arg_beta_y_only_single(theta)
 
@@ -1306,10 +1413,10 @@ def make_I4_22_v2(theta: float, R: float) -> Term:
         algebraic_prefactor=_make_algebraic_prefactor_y_only(theta),  # (1+θy)/θ
         poly_prefactors=[_make_poly_prefactor_power(1)],  # (1-u)^1 for I₄ with ℓ₂=1
         poly_factors=[
-            make_poly_factor("P2", make_P_argument_unshifted()),  # P₂(u) at x=0
-            make_poly_factor("P2", _make_P_argument_y()),  # P₂(y+u)
-            make_poly_factor("Q", Q_arg_alpha),
-            make_poly_factor("Q", Q_arg_beta),
+            make_poly_factor("P2", make_P_argument_unshifted(), regime=regime),  # P₂(u) at x=0
+            make_poly_factor("P2", _make_P_argument_y(), regime=regime),  # P₂(y+u)
+            make_poly_factor("Q", Q_arg_alpha, regime=regime),
+            make_poly_factor("Q", Q_arg_beta, regime=regime),
         ],
         exp_factors=[
             ExpFactor(R, Q_arg_alpha),
@@ -1318,13 +1425,14 @@ def make_I4_22_v2(theta: float, R: float) -> Term:
     )
 
 
-def make_all_terms_22_v2(theta: float, R: float) -> List[Term]:
+def make_all_terms_22_v2(theta: float, R: float, kernel_regime: Optional[KernelRegime] = None) -> List[Term]:
     """Build all (2,2) terms using PRZZ-correct single-variable structure."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     return [
-        make_I1_22_v2(theta, R),
-        make_I2_22_v2(theta, R),
-        make_I3_22_v2(theta, R),
-        make_I4_22_v2(theta, R),
+        make_I1_22_v2(theta, R, kernel_regime=regime),
+        make_I2_22_v2(theta, R, kernel_regime=regime),
+        make_I3_22_v2(theta, R, kernel_regime=regime),
+        make_I4_22_v2(theta, R, kernel_regime=regime),
     ]
 
 
@@ -1332,7 +1440,11 @@ def make_all_terms_22_v2(theta: float, R: float) -> List[Term]:
 # (3,3) PAIR TERMS
 # =============================================================================
 
-def make_I1_33(theta: float, R: float) -> Term:
+def make_I1_33(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
     """
     Build the (3,3) I₁ term. 6 variables: x1,x2,x3,y1,y2,y3.
 
@@ -1341,6 +1453,7 @@ def make_I1_33(theta: float, R: float) -> Term:
     - P_right = P₃(y1+y2+y3+u)  (sum of y vars + u)
     Total: 2 P factors + 2 Q factors = 4 poly_factors
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     x_vars = _make_x_vars(3)
     y_vars = _make_y_vars(3)
     all_vars = x_vars + y_vars
@@ -1353,10 +1466,10 @@ def make_I1_33(theta: float, R: float) -> Term:
     P_arg_right = _make_P_argument_sum(y_vars)  # y1+y2+y3+u
 
     poly_factors = [
-        make_poly_factor("P3", P_arg_left),   # P₃(x1+x2+x3+u)
-        make_poly_factor("P3", P_arg_right),  # P₃(y1+y2+y3+u)
-        make_poly_factor("Q", Q_arg_alpha),
-        make_poly_factor("Q", Q_arg_beta),
+        make_poly_factor("P3", P_arg_left, regime=regime),   # P₃(x1+x2+x3+u)
+        make_poly_factor("P3", P_arg_right, regime=regime),  # P₃(y1+y2+y3+u)
+        make_poly_factor("Q", Q_arg_alpha, regime=regime),
+        make_poly_factor("Q", Q_arg_beta, regime=regime),
     ]
 
     # Algebraic prefactor (θS+1)/θ = 1/θ + S
@@ -1380,11 +1493,16 @@ def make_I1_33(theta: float, R: float) -> Term:
     )
 
 
-def make_I2_33(theta: float, R: float) -> Term:
+def make_I2_33(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
     """
     Build the (3,3) I₂ term (decoupled).
     2 P factors: P₃(u) for left, P₃(u) for right
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     P_arg = make_P_argument_unshifted()
     Q_arg = make_Q_argument_at_t()
     exp_arg = make_exp_argument_at_t()
@@ -1400,15 +1518,19 @@ def make_I2_33(theta: float, R: float) -> Term:
         algebraic_prefactor=None,
         poly_prefactors=[],
         poly_factors=[
-            make_poly_factor("P3", P_arg),  # P₃(u) for left
-            make_poly_factor("P3", P_arg),  # P₃(u) for right
-            make_poly_factor("Q", Q_arg, power=2),
+            make_poly_factor("P3", P_arg, regime=regime),  # P₃(u) for left
+            make_poly_factor("P3", P_arg, regime=regime),  # P₃(u) for right
+            make_poly_factor("Q", Q_arg, power=2, regime=regime),
         ],
         exp_factors=[ExpFactor(2 * R, exp_arg)]
     )
 
 
-def make_I3_33(theta: float, R: float) -> Term:
+def make_I3_33(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
     """
     Build the (3,3) I₃ term (x derivatives only).
 
@@ -1418,6 +1540,7 @@ def make_I3_33(theta: float, R: float) -> Term:
     - P_right: P₃(u)          - 1 P factor unshifted (y=0)
     Total: 2 P factors + 2 Q factors = 4 poly_factors
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     x_vars = _make_x_vars(3)
 
     Q_arg_alpha = AffineExpr(
@@ -1433,10 +1556,10 @@ def make_I3_33(theta: float, R: float) -> Term:
     P_arg_left = _make_P_argument_sum(x_vars)  # x1+x2+x3+u
 
     poly_factors = [
-        make_poly_factor("P3", P_arg_left),              # P₃(x1+x2+x3+u)
-        make_poly_factor("P3", make_P_argument_unshifted()),  # P₃(u) for y=0
-        make_poly_factor("Q", Q_arg_alpha),
-        make_poly_factor("Q", Q_arg_beta),
+        make_poly_factor("P3", P_arg_left, regime=regime),              # P₃(x1+x2+x3+u)
+        make_poly_factor("P3", make_P_argument_unshifted(), regime=regime),  # P₃(u) for y=0
+        make_poly_factor("Q", Q_arg_alpha, regime=regime),
+        make_poly_factor("Q", Q_arg_beta, regime=regime),
     ]
 
     return Term(
@@ -1458,7 +1581,11 @@ def make_I3_33(theta: float, R: float) -> Term:
     )
 
 
-def make_I4_33(theta: float, R: float) -> Term:
+def make_I4_33(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
     """
     Build the (3,3) I₄ term (y derivatives only).
 
@@ -1468,6 +1595,7 @@ def make_I4_33(theta: float, R: float) -> Term:
     - P_right: P₃(y1+y2+y3+u)  - 1 P factor with summed y vars
     Total: 2 P factors + 2 Q factors = 4 poly_factors
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     y_vars = _make_y_vars(3)
 
     Q_arg_alpha = AffineExpr(
@@ -1483,10 +1611,10 @@ def make_I4_33(theta: float, R: float) -> Term:
     P_arg_right = _make_P_argument_sum(y_vars)  # y1+y2+y3+u
 
     poly_factors = [
-        make_poly_factor("P3", make_P_argument_unshifted()),  # P₃(u) for x=0
-        make_poly_factor("P3", P_arg_right),                  # P₃(y1+y2+y3+u)
-        make_poly_factor("Q", Q_arg_alpha),
-        make_poly_factor("Q", Q_arg_beta),
+        make_poly_factor("P3", make_P_argument_unshifted(), regime=regime),  # P₃(u) for x=0
+        make_poly_factor("P3", P_arg_right, regime=regime),                  # P₃(y1+y2+y3+u)
+        make_poly_factor("Q", Q_arg_alpha, regime=regime),
+        make_poly_factor("Q", Q_arg_beta, regime=regime),
     ]
 
     return Term(
@@ -1508,13 +1636,18 @@ def make_I4_33(theta: float, R: float) -> Term:
     )
 
 
-def make_all_terms_33(theta: float, R: float) -> List[Term]:
+def make_all_terms_33(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> List[Term]:
     """Build all (3,3) terms."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     return [
-        make_I1_33(theta, R),
-        make_I2_33(theta, R),
-        make_I3_33(theta, R),
-        make_I4_33(theta, R),
+        make_I1_33(theta, R, kernel_regime=regime),
+        make_I2_33(theta, R, kernel_regime=regime),
+        make_I3_33(theta, R, kernel_regime=regime),
+        make_I4_33(theta, R, kernel_regime=regime),
     ]
 
 
@@ -1522,7 +1655,11 @@ def make_all_terms_33(theta: float, R: float) -> List[Term]:
 # (1,2) PAIR TERMS - Off-diagonal, asymmetric
 # =============================================================================
 
-def make_I1_12(theta: float, R: float) -> Term:
+def make_I1_12(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
     """
     Build the (1,2) I₁ term. 3 variables: x1, y1, y2.
 
@@ -1531,6 +1668,7 @@ def make_I1_12(theta: float, R: float) -> Term:
     - P_right = P₂(y1+y2+u) (sum of y vars)
     Only 2 P factors total!
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     x_vars = _make_x_vars(1)  # ("x1",)
     y_vars = _make_y_vars(2)  # ("y1", "y2")
     all_vars = x_vars + y_vars
@@ -1543,10 +1681,10 @@ def make_I1_12(theta: float, R: float) -> Term:
     P_arg_right = _make_P_argument_sum(y_vars)  # y1+y2+u
 
     poly_factors = [
-        make_poly_factor("P1", P_arg_left),   # P₁(x1+u)
-        make_poly_factor("P2", P_arg_right),  # P₂(y1+y2+u)
-        make_poly_factor("Q", Q_arg_alpha),
-        make_poly_factor("Q", Q_arg_beta),
+        make_poly_factor("P1", P_arg_left, regime=regime),   # P₁(x1+u)
+        make_poly_factor("P2", P_arg_right, regime=regime),  # P₂(y1+y2+u)
+        make_poly_factor("Q", Q_arg_alpha, regime=regime),
+        make_poly_factor("Q", Q_arg_beta, regime=regime),
     ]
 
     # Algebraic prefactor (θS+1)/θ = 1/θ + S
@@ -1570,8 +1708,13 @@ def make_I1_12(theta: float, R: float) -> Term:
     )
 
 
-def make_I2_12(theta: float, R: float) -> Term:
+def make_I2_12(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
     """Build the (1,2) I₂ term (decoupled). Only 2 P factors!"""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     P_arg = make_P_argument_unshifted()
     Q_arg = make_Q_argument_at_t()
     exp_arg = make_exp_argument_at_t()
@@ -1587,16 +1730,21 @@ def make_I2_12(theta: float, R: float) -> Term:
         algebraic_prefactor=None,
         poly_prefactors=[],
         poly_factors=[
-            make_poly_factor("P1", P_arg),  # P₁(u) for left
-            make_poly_factor("P2", P_arg),  # P₂(u) for right
-            make_poly_factor("Q", Q_arg, power=2),
+            make_poly_factor("P1", P_arg, regime=regime),  # P₁(u) for left
+            make_poly_factor("P2", P_arg, regime=regime),  # P₂(u) for right
+            make_poly_factor("Q", Q_arg, power=2, regime=regime),
         ],
         exp_factors=[ExpFactor(2 * R, exp_arg)]
     )
 
 
-def make_I3_12(theta: float, R: float) -> Term:
+def make_I3_12(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
     """Build the (1,2) I₃ term (x derivative only). Only 2 P factors!"""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     x_vars = ("x1",)
 
     Q_arg_alpha = AffineExpr(
@@ -1620,10 +1768,10 @@ def make_I3_12(theta: float, R: float) -> Term:
         algebraic_prefactor=None,
         poly_prefactors=[_make_poly_prefactor_power(1)],
         poly_factors=[
-            make_poly_factor("P1", make_P_argument("x1")),        # P₁(x1+u)
-            make_poly_factor("P2", make_P_argument_unshifted()),  # P₂(u)
-            make_poly_factor("Q", Q_arg_alpha),
-            make_poly_factor("Q", Q_arg_beta),
+            make_poly_factor("P1", make_P_argument("x1"), regime=regime),        # P₁(x1+u)
+            make_poly_factor("P2", make_P_argument_unshifted(), regime=regime),  # P₂(u)
+            make_poly_factor("Q", Q_arg_alpha, regime=regime),
+            make_poly_factor("Q", Q_arg_beta, regime=regime),
         ],
         exp_factors=[
             ExpFactor(R, Q_arg_alpha),
@@ -1632,13 +1780,18 @@ def make_I3_12(theta: float, R: float) -> Term:
     )
 
 
-def make_I4_12(theta: float, R: float) -> Term:
+def make_I4_12(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
     """
     Build the (1,2) I₄ term (y derivatives only).
 
     Variables: y1, y2 (differentiated), x=0.
     2 P factors: P₁(u) for left, P₂(y1+y2+u) for right
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     y_vars = _make_y_vars(2)
 
     Q_arg_alpha = AffineExpr(
@@ -1654,10 +1807,10 @@ def make_I4_12(theta: float, R: float) -> Term:
     P_arg_right = _make_P_argument_sum(y_vars)
 
     poly_factors = [
-        make_poly_factor("P1", make_P_argument_unshifted()),  # P₁(u) for x=0
-        make_poly_factor("P2", P_arg_right),                  # P₂(y1+y2+u)
-        make_poly_factor("Q", Q_arg_alpha),
-        make_poly_factor("Q", Q_arg_beta),
+        make_poly_factor("P1", make_P_argument_unshifted(), regime=regime),  # P₁(u) for x=0
+        make_poly_factor("P2", P_arg_right, regime=regime),                  # P₂(y1+y2+u)
+        make_poly_factor("Q", Q_arg_alpha, regime=regime),
+        make_poly_factor("Q", Q_arg_beta, regime=regime),
     ]
 
     return Term(
@@ -1679,13 +1832,18 @@ def make_I4_12(theta: float, R: float) -> Term:
     )
 
 
-def make_all_terms_12(theta: float, R: float) -> List[Term]:
+def make_all_terms_12(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> List[Term]:
     """Build all (1,2) terms."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     return [
-        make_I1_12(theta, R),
-        make_I2_12(theta, R),
-        make_I3_12(theta, R),
-        make_I4_12(theta, R),
+        make_I1_12(theta, R, kernel_regime=regime),
+        make_I2_12(theta, R, kernel_regime=regime),
+        make_I3_12(theta, R, kernel_regime=regime),
+        make_I4_12(theta, R, kernel_regime=regime),
     ]
 
 
@@ -1693,7 +1851,11 @@ def make_all_terms_12(theta: float, R: float) -> List[Term]:
 # (1,3) PAIR TERMS
 # =============================================================================
 
-def make_I1_13(theta: float, R: float) -> Term:
+def make_I1_13(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
     """
     Build the (1,3) I₁ term. 4 variables: x1, y1, y2, y3.
 
@@ -1702,6 +1864,7 @@ def make_I1_13(theta: float, R: float) -> Term:
     - P_right = P₃(y1+y2+y3+u)  (sum of y vars)
     Only 2 P factors total!
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     x_vars = _make_x_vars(1)
     y_vars = _make_y_vars(3)
     all_vars = x_vars + y_vars
@@ -1714,10 +1877,10 @@ def make_I1_13(theta: float, R: float) -> Term:
     P_arg_right = _make_P_argument_sum(y_vars)  # y1+y2+y3+u
 
     poly_factors = [
-        make_poly_factor("P1", P_arg_left),   # P₁(x1+u)
-        make_poly_factor("P3", P_arg_right),  # P₃(y1+y2+y3+u)
-        make_poly_factor("Q", Q_arg_alpha),
-        make_poly_factor("Q", Q_arg_beta),
+        make_poly_factor("P1", P_arg_left, regime=regime),   # P₁(x1+u)
+        make_poly_factor("P3", P_arg_right, regime=regime),  # P₃(y1+y2+y3+u)
+        make_poly_factor("Q", Q_arg_alpha, regime=regime),
+        make_poly_factor("Q", Q_arg_beta, regime=regime),
     ]
 
     # Algebraic prefactor (θS+1)/θ = 1/θ + S
@@ -1741,8 +1904,13 @@ def make_I1_13(theta: float, R: float) -> Term:
     )
 
 
-def make_I2_13(theta: float, R: float) -> Term:
+def make_I2_13(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
     """Build the (1,3) I₂ term (decoupled). Only 2 P factors!"""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     P_arg = make_P_argument_unshifted()
     Q_arg = make_Q_argument_at_t()
     exp_arg = make_exp_argument_at_t()
@@ -1758,16 +1926,21 @@ def make_I2_13(theta: float, R: float) -> Term:
         algebraic_prefactor=None,
         poly_prefactors=[],
         poly_factors=[
-            make_poly_factor("P1", P_arg),  # P₁(u) for left
-            make_poly_factor("P3", P_arg),  # P₃(u) for right
-            make_poly_factor("Q", Q_arg, power=2),
+            make_poly_factor("P1", P_arg, regime=regime),  # P₁(u) for left
+            make_poly_factor("P3", P_arg, regime=regime),  # P₃(u) for right
+            make_poly_factor("Q", Q_arg, power=2, regime=regime),
         ],
         exp_factors=[ExpFactor(2 * R, exp_arg)]
     )
 
 
-def make_I3_13(theta: float, R: float) -> Term:
+def make_I3_13(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
     """Build the (1,3) I₃ term (x derivative only). Only 2 P factors!"""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     Q_arg_alpha = AffineExpr(
         a0=lambda U, T: T,
         var_coeffs={"x1": lambda U, T, th=theta: th * T}
@@ -1789,10 +1962,10 @@ def make_I3_13(theta: float, R: float) -> Term:
         algebraic_prefactor=None,
         poly_prefactors=[_make_poly_prefactor_power(1)],
         poly_factors=[
-            make_poly_factor("P1", make_P_argument("x1")),        # P₁(x1+u)
-            make_poly_factor("P3", make_P_argument_unshifted()),  # P₃(u)
-            make_poly_factor("Q", Q_arg_alpha),
-            make_poly_factor("Q", Q_arg_beta),
+            make_poly_factor("P1", make_P_argument("x1"), regime=regime),        # P₁(x1+u)
+            make_poly_factor("P3", make_P_argument_unshifted(), regime=regime),  # P₃(u)
+            make_poly_factor("Q", Q_arg_alpha, regime=regime),
+            make_poly_factor("Q", Q_arg_beta, regime=regime),
         ],
         exp_factors=[
             ExpFactor(R, Q_arg_alpha),
@@ -1801,13 +1974,18 @@ def make_I3_13(theta: float, R: float) -> Term:
     )
 
 
-def make_I4_13(theta: float, R: float) -> Term:
+def make_I4_13(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
     """
     Build the (1,3) I₄ term (y derivatives only).
 
     Variables: y1, y2, y3 (differentiated), x=0.
     2 P factors: P₁(u) for left, P₃(y1+y2+y3+u) for right
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     y_vars = _make_y_vars(3)
 
     Q_arg_alpha = AffineExpr(
@@ -1823,10 +2001,10 @@ def make_I4_13(theta: float, R: float) -> Term:
     P_arg_right = _make_P_argument_sum(y_vars)
 
     poly_factors = [
-        make_poly_factor("P1", make_P_argument_unshifted()),  # P₁(u) for x=0
-        make_poly_factor("P3", P_arg_right),                  # P₃(y1+y2+y3+u)
-        make_poly_factor("Q", Q_arg_alpha),
-        make_poly_factor("Q", Q_arg_beta),
+        make_poly_factor("P1", make_P_argument_unshifted(), regime=regime),  # P₁(u) for x=0
+        make_poly_factor("P3", P_arg_right, regime=regime),                  # P₃(y1+y2+y3+u)
+        make_poly_factor("Q", Q_arg_alpha, regime=regime),
+        make_poly_factor("Q", Q_arg_beta, regime=regime),
     ]
 
     return Term(
@@ -1848,13 +2026,18 @@ def make_I4_13(theta: float, R: float) -> Term:
     )
 
 
-def make_all_terms_13(theta: float, R: float) -> List[Term]:
+def make_all_terms_13(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> List[Term]:
     """Build all (1,3) terms."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     return [
-        make_I1_13(theta, R),
-        make_I2_13(theta, R),
-        make_I3_13(theta, R),
-        make_I4_13(theta, R),
+        make_I1_13(theta, R, kernel_regime=regime),
+        make_I2_13(theta, R, kernel_regime=regime),
+        make_I3_13(theta, R, kernel_regime=regime),
+        make_I4_13(theta, R, kernel_regime=regime),
     ]
 
 
@@ -1862,7 +2045,11 @@ def make_all_terms_13(theta: float, R: float) -> List[Term]:
 # (2,3) PAIR TERMS
 # =============================================================================
 
-def make_I1_23(theta: float, R: float) -> Term:
+def make_I1_23(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
     """
     Build the (2,3) I₁ term. 5 variables: x1, x2, y1, y2, y3.
 
@@ -1871,6 +2058,7 @@ def make_I1_23(theta: float, R: float) -> Term:
     - P_right = P₃(y1+y2+y3+u)  (sum of y vars)
     Only 2 P factors total!
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     x_vars = _make_x_vars(2)
     y_vars = _make_y_vars(3)
     all_vars = x_vars + y_vars
@@ -1883,10 +2071,10 @@ def make_I1_23(theta: float, R: float) -> Term:
     P_arg_right = _make_P_argument_sum(y_vars)  # y1+y2+y3+u
 
     poly_factors = [
-        make_poly_factor("P2", P_arg_left),   # P₂(x1+x2+u)
-        make_poly_factor("P3", P_arg_right),  # P₃(y1+y2+y3+u)
-        make_poly_factor("Q", Q_arg_alpha),
-        make_poly_factor("Q", Q_arg_beta),
+        make_poly_factor("P2", P_arg_left, regime=regime),   # P₂(x1+x2+u)
+        make_poly_factor("P3", P_arg_right, regime=regime),  # P₃(y1+y2+y3+u)
+        make_poly_factor("Q", Q_arg_alpha, regime=regime),
+        make_poly_factor("Q", Q_arg_beta, regime=regime),
     ]
 
     # Algebraic prefactor (θS+1)/θ = 1/θ + S
@@ -1910,8 +2098,13 @@ def make_I1_23(theta: float, R: float) -> Term:
     )
 
 
-def make_I2_23(theta: float, R: float) -> Term:
+def make_I2_23(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
     """Build the (2,3) I₂ term (decoupled). Only 2 P factors!"""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     P_arg = make_P_argument_unshifted()
     Q_arg = make_Q_argument_at_t()
     exp_arg = make_exp_argument_at_t()
@@ -1927,21 +2120,26 @@ def make_I2_23(theta: float, R: float) -> Term:
         algebraic_prefactor=None,
         poly_prefactors=[],
         poly_factors=[
-            make_poly_factor("P2", P_arg),  # P₂(u) for left
-            make_poly_factor("P3", P_arg),  # P₃(u) for right
-            make_poly_factor("Q", Q_arg, power=2),
+            make_poly_factor("P2", P_arg, regime=regime),  # P₂(u) for left
+            make_poly_factor("P3", P_arg, regime=regime),  # P₃(u) for right
+            make_poly_factor("Q", Q_arg, power=2, regime=regime),
         ],
         exp_factors=[ExpFactor(2 * R, exp_arg)]
     )
 
 
-def make_I3_23(theta: float, R: float) -> Term:
+def make_I3_23(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
     """
     Build the (2,3) I₃ term (x derivatives only).
 
     Variables: x1, x2 (differentiated), y=0.
     2 P factors: P₂(x1+x2+u) for left, P₃(u) for right (y=0)
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     x_vars = _make_x_vars(2)
 
     Q_arg_alpha = AffineExpr(
@@ -1957,10 +2155,10 @@ def make_I3_23(theta: float, R: float) -> Term:
     P_arg_left = _make_P_argument_sum(x_vars)
 
     poly_factors = [
-        make_poly_factor("P2", P_arg_left),             # P₂(x1+x2+u)
-        make_poly_factor("P3", make_P_argument_unshifted()),  # P₃(u) for y=0
-        make_poly_factor("Q", Q_arg_alpha),
-        make_poly_factor("Q", Q_arg_beta),
+        make_poly_factor("P2", P_arg_left, regime=regime),             # P₂(x1+x2+u)
+        make_poly_factor("P3", make_P_argument_unshifted(), regime=regime),  # P₃(u) for y=0
+        make_poly_factor("Q", Q_arg_alpha, regime=regime),
+        make_poly_factor("Q", Q_arg_beta, regime=regime),
     ]
 
     return Term(
@@ -1982,13 +2180,18 @@ def make_I3_23(theta: float, R: float) -> Term:
     )
 
 
-def make_I4_23(theta: float, R: float) -> Term:
+def make_I4_23(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
     """
     Build the (2,3) I₄ term (y derivatives only).
 
     Variables: y1, y2, y3 (differentiated), x=0.
     2 P factors: P₂(u) for left, P₃(y1+y2+y3+u) for right
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     y_vars = _make_y_vars(3)
 
     Q_arg_alpha = AffineExpr(
@@ -2004,10 +2207,10 @@ def make_I4_23(theta: float, R: float) -> Term:
     P_arg_right = _make_P_argument_sum(y_vars)
 
     poly_factors = [
-        make_poly_factor("P2", make_P_argument_unshifted()),  # P₂(u) for x=0
-        make_poly_factor("P3", P_arg_right),                  # P₃(y1+y2+y3+u)
-        make_poly_factor("Q", Q_arg_alpha),
-        make_poly_factor("Q", Q_arg_beta),
+        make_poly_factor("P2", make_P_argument_unshifted(), regime=regime),  # P₂(u) for x=0
+        make_poly_factor("P3", P_arg_right, regime=regime),                  # P₃(y1+y2+y3+u)
+        make_poly_factor("Q", Q_arg_alpha, regime=regime),
+        make_poly_factor("Q", Q_arg_beta, regime=regime),
     ]
 
     return Term(
@@ -2029,33 +2232,555 @@ def make_I4_23(theta: float, R: float) -> Term:
     )
 
 
-def make_all_terms_23(theta: float, R: float) -> List[Term]:
+def make_all_terms_23(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> List[Term]:
     """Build all (2,3) terms."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     return [
-        make_I1_23(theta, R),
-        make_I2_23(theta, R),
-        make_I3_23(theta, R),
-        make_I4_23(theta, R),
+        make_I1_23(theta, R, kernel_regime=regime),
+        make_I2_23(theta, R, kernel_regime=regime),
+        make_I3_23(theta, R, kernel_regime=regime),
+        make_I4_23(theta, R, kernel_regime=regime),
     ]
+
+
+# =============================================================================
+# SWAPPED PAIR TERMS (21, 31, 32) WITH kernel_regime SUPPORT
+# =============================================================================
+# These are the "swapped" versions for ordered-pair mirror analysis.
+# For off-diagonal pair (i,j), the swap (j,i) has:
+#   - x_vars and y_vars swapped (ℓ-count)
+#   - P_i and P_j swapped
+# This matters in paper regime because Case C applies to P₂/P₃.
+
+
+def make_I1_21(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
+    """Build the (2,1) I₁ term - swap of (1,2)."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    x_vars = _make_x_vars(2)  # 2 x-variables (swapped from y)
+    y_vars = _make_y_vars(1)  # 1 y-variable (swapped from x)
+    all_vars = x_vars + y_vars
+
+    Q_arg_alpha = _make_Q_arg_alpha_general(theta, x_vars, y_vars)
+    Q_arg_beta = _make_Q_arg_beta_general(theta, x_vars, y_vars)
+
+    P_arg_left = _make_P_argument_sum(x_vars)   # x1+x2+u
+    P_arg_right = _make_P_argument_sum(y_vars)  # y1+u
+
+    poly_factors = [
+        make_poly_factor("P2", P_arg_left, regime=regime),   # P₂ on LEFT (swapped)
+        make_poly_factor("P1", P_arg_right, regime=regime),  # P₁ on RIGHT (swapped)
+        make_poly_factor("Q", Q_arg_alpha, regime=regime),
+        make_poly_factor("Q", Q_arg_beta, regime=regime),
+    ]
+
+    algebraic_prefactor = _make_algebraic_prefactor_general(theta, x_vars, y_vars)
+
+    return Term(
+        name="I1_21",
+        pair=(2, 1),
+        przz_reference="Section 6.2.1, I₁ for (2,1) - swapped",
+        vars=all_vars,
+        deriv_orders={v: 1 for v in all_vars},
+        domain="[0,1]^2",
+        numeric_prefactor=-1.0,  # (-1)^{2+1} = -1
+        algebraic_prefactor=algebraic_prefactor,
+        poly_prefactors=[_make_poly_prefactor_power(3)],  # (1-u)^{2+1}
+        poly_factors=poly_factors,
+        exp_factors=[
+            ExpFactor(R, Q_arg_alpha),
+            ExpFactor(R, Q_arg_beta),
+        ],
+    )
+
+
+def make_I2_21(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
+    """Build the (2,1) I₂ term - swap of (1,2)."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    return Term(
+        name="I2_21",
+        pair=(2, 1),
+        przz_reference="Section 6.2.1, I₂ for (2,1) - swapped",
+        vars=(),
+        deriv_orders={},
+        domain="[0,1]^2",
+        numeric_prefactor=1.0,
+        algebraic_prefactor=AffineExpr(a0=1.0 / theta, var_coeffs={}),
+        poly_prefactors=[],
+        poly_factors=[
+            make_poly_factor("P2", _make_P_argument_u(), regime=regime),
+            make_poly_factor("P1", _make_P_argument_u(), regime=regime),
+            make_poly_factor("Q", _make_Q_arg_t_only()),
+            make_poly_factor("Q", _make_Q_arg_t_only()),
+        ],
+        exp_factors=[ExpFactor(2 * R, make_exp_argument_at_t())],
+    )
+
+
+def make_I3_21(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
+    """Build the (2,1) I₃ term - swap of (1,2)."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    x_vars = _make_x_vars(2)
+
+    Q_arg_alpha = _make_Q_arg_alpha_x_only(theta, x_vars)
+    Q_arg_beta = _make_Q_arg_beta_x_only(theta, x_vars)
+
+    return Term(
+        name="I3_21",
+        pair=(2, 1),
+        przz_reference="Section 6.2.1, I₃ for (2,1) - swapped",
+        vars=x_vars,
+        deriv_orders={v: 1 for v in x_vars},
+        domain="[0,1]^2",
+        numeric_prefactor=1.0,
+        algebraic_prefactor=_make_algebraic_prefactor_x_only_general(theta, x_vars),
+        poly_prefactors=[_make_poly_prefactor_power(2)],  # (1-u)^{ℓ₁}=2
+        poly_factors=[
+            make_poly_factor("P2", _make_P_argument_sum(x_vars), regime=regime),
+            make_poly_factor("P1", _make_P_argument_u(), regime=regime),
+            make_poly_factor("Q", Q_arg_alpha, regime=regime),
+            make_poly_factor("Q", Q_arg_beta, regime=regime),
+        ],
+        exp_factors=[
+            ExpFactor(R, Q_arg_alpha),
+            ExpFactor(R, Q_arg_beta),
+        ],
+    )
+
+
+def make_I4_21(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
+    """Build the (2,1) I₄ term - swap of (1,2)."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    y_vars = _make_y_vars(1)
+
+    Q_arg_alpha = _make_Q_arg_alpha_y_only(theta, y_vars)
+    Q_arg_beta = _make_Q_arg_beta_y_only(theta, y_vars)
+
+    return Term(
+        name="I4_21",
+        pair=(2, 1),
+        przz_reference="Section 6.2.1, I₄ for (2,1) - swapped",
+        vars=y_vars,
+        deriv_orders={v: 1 for v in y_vars},
+        domain="[0,1]^2",
+        numeric_prefactor=1.0,
+        algebraic_prefactor=_make_algebraic_prefactor_y_only_general(theta, y_vars),
+        poly_prefactors=[_make_poly_prefactor_power(1)],  # (1-u)^{ℓ₂}=1
+        poly_factors=[
+            make_poly_factor("P2", _make_P_argument_u(), regime=regime),
+            make_poly_factor("P1", _make_P_argument_sum(y_vars), regime=regime),
+            make_poly_factor("Q", Q_arg_alpha, regime=regime),
+            make_poly_factor("Q", Q_arg_beta, regime=regime),
+        ],
+        exp_factors=[
+            ExpFactor(R, Q_arg_alpha),
+            ExpFactor(R, Q_arg_beta),
+        ],
+    )
+
+
+def make_all_terms_21(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> List[Term]:
+    """Build all (2,1) terms - swapped version of (1,2)."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    return [
+        make_I1_21(theta, R, kernel_regime=regime),
+        make_I2_21(theta, R, kernel_regime=regime),
+        make_I3_21(theta, R, kernel_regime=regime),
+        make_I4_21(theta, R, kernel_regime=regime),
+    ]
+
+
+def make_I1_31(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
+    """Build the (3,1) I₁ term - swap of (1,3)."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    x_vars = _make_x_vars(3)  # 3 x-variables
+    y_vars = _make_y_vars(1)  # 1 y-variable
+    all_vars = x_vars + y_vars
+
+    Q_arg_alpha = _make_Q_arg_alpha_general(theta, x_vars, y_vars)
+    Q_arg_beta = _make_Q_arg_beta_general(theta, x_vars, y_vars)
+
+    P_arg_left = _make_P_argument_sum(x_vars)
+    P_arg_right = _make_P_argument_sum(y_vars)
+
+    poly_factors = [
+        make_poly_factor("P3", P_arg_left, regime=regime),   # P₃ on LEFT
+        make_poly_factor("P1", P_arg_right, regime=regime),  # P₁ on RIGHT
+        make_poly_factor("Q", Q_arg_alpha, regime=regime),
+        make_poly_factor("Q", Q_arg_beta, regime=regime),
+    ]
+
+    algebraic_prefactor = _make_algebraic_prefactor_general(theta, x_vars, y_vars)
+
+    return Term(
+        name="I1_31",
+        pair=(3, 1),
+        przz_reference="Section 6.2.1, I₁ for (3,1) - swapped",
+        vars=all_vars,
+        deriv_orders={v: 1 for v in all_vars},
+        domain="[0,1]^2",
+        numeric_prefactor=1.0,  # (-1)^{3+1} = 1
+        algebraic_prefactor=algebraic_prefactor,
+        poly_prefactors=[_make_poly_prefactor_power(4)],  # (1-u)^{3+1}
+        poly_factors=poly_factors,
+        exp_factors=[
+            ExpFactor(R, Q_arg_alpha),
+            ExpFactor(R, Q_arg_beta),
+        ],
+    )
+
+
+def make_I2_31(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
+    """Build the (3,1) I₂ term - swap of (1,3)."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    return Term(
+        name="I2_31",
+        pair=(3, 1),
+        przz_reference="Section 6.2.1, I₂ for (3,1) - swapped",
+        vars=(),
+        deriv_orders={},
+        domain="[0,1]^2",
+        numeric_prefactor=1.0,
+        algebraic_prefactor=AffineExpr(a0=1.0 / theta, var_coeffs={}),
+        poly_prefactors=[],
+        poly_factors=[
+            make_poly_factor("P3", _make_P_argument_u(), regime=regime),
+            make_poly_factor("P1", _make_P_argument_u(), regime=regime),
+            make_poly_factor("Q", _make_Q_arg_t_only()),
+            make_poly_factor("Q", _make_Q_arg_t_only()),
+        ],
+        exp_factors=[ExpFactor(2 * R, make_exp_argument_at_t())],
+    )
+
+
+def make_I3_31(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
+    """Build the (3,1) I₃ term - swap of (1,3)."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    x_vars = _make_x_vars(3)
+
+    Q_arg_alpha = _make_Q_arg_alpha_x_only(theta, x_vars)
+    Q_arg_beta = _make_Q_arg_beta_x_only(theta, x_vars)
+
+    return Term(
+        name="I3_31",
+        pair=(3, 1),
+        przz_reference="Section 6.2.1, I₃ for (3,1) - swapped",
+        vars=x_vars,
+        deriv_orders={v: 1 for v in x_vars},
+        domain="[0,1]^2",
+        numeric_prefactor=-1.0,  # Sign from I₃ formula
+        algebraic_prefactor=_make_algebraic_prefactor_x_only_general(theta, x_vars),
+        poly_prefactors=[_make_poly_prefactor_power(3)],  # (1-u)^{ℓ₁}=3
+        poly_factors=[
+            make_poly_factor("P3", _make_P_argument_sum(x_vars), regime=regime),
+            make_poly_factor("P1", _make_P_argument_u(), regime=regime),
+            make_poly_factor("Q", Q_arg_alpha, regime=regime),
+            make_poly_factor("Q", Q_arg_beta, regime=regime),
+        ],
+        exp_factors=[
+            ExpFactor(R, Q_arg_alpha),
+            ExpFactor(R, Q_arg_beta),
+        ],
+    )
+
+
+def make_I4_31(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
+    """Build the (3,1) I₄ term - swap of (1,3)."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    y_vars = _make_y_vars(1)
+
+    Q_arg_alpha = _make_Q_arg_alpha_y_only(theta, y_vars)
+    Q_arg_beta = _make_Q_arg_beta_y_only(theta, y_vars)
+
+    return Term(
+        name="I4_31",
+        pair=(3, 1),
+        przz_reference="Section 6.2.1, I₄ for (3,1) - swapped",
+        vars=y_vars,
+        deriv_orders={v: 1 for v in y_vars},
+        domain="[0,1]^2",
+        numeric_prefactor=-1.0,  # Sign from I₄ formula
+        algebraic_prefactor=_make_algebraic_prefactor_y_only_general(theta, y_vars),
+        poly_prefactors=[_make_poly_prefactor_power(1)],  # (1-u)^{ℓ₂}=1
+        poly_factors=[
+            make_poly_factor("P3", _make_P_argument_u(), regime=regime),
+            make_poly_factor("P1", _make_P_argument_sum(y_vars), regime=regime),
+            make_poly_factor("Q", Q_arg_alpha, regime=regime),
+            make_poly_factor("Q", Q_arg_beta, regime=regime),
+        ],
+        exp_factors=[
+            ExpFactor(R, Q_arg_alpha),
+            ExpFactor(R, Q_arg_beta),
+        ],
+    )
+
+
+def make_all_terms_31(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> List[Term]:
+    """Build all (3,1) terms - swapped version of (1,3)."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    return [
+        make_I1_31(theta, R, kernel_regime=regime),
+        make_I2_31(theta, R, kernel_regime=regime),
+        make_I3_31(theta, R, kernel_regime=regime),
+        make_I4_31(theta, R, kernel_regime=regime),
+    ]
+
+
+def make_I1_32(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
+    """Build the (3,2) I₁ term - swap of (2,3)."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    x_vars = _make_x_vars(3)  # 3 x-variables
+    y_vars = _make_y_vars(2)  # 2 y-variables
+    all_vars = x_vars + y_vars
+
+    Q_arg_alpha = _make_Q_arg_alpha_general(theta, x_vars, y_vars)
+    Q_arg_beta = _make_Q_arg_beta_general(theta, x_vars, y_vars)
+
+    P_arg_left = _make_P_argument_sum(x_vars)
+    P_arg_right = _make_P_argument_sum(y_vars)
+
+    poly_factors = [
+        make_poly_factor("P3", P_arg_left, regime=regime),   # P₃ on LEFT
+        make_poly_factor("P2", P_arg_right, regime=regime),  # P₂ on RIGHT
+        make_poly_factor("Q", Q_arg_alpha, regime=regime),
+        make_poly_factor("Q", Q_arg_beta, regime=regime),
+    ]
+
+    algebraic_prefactor = _make_algebraic_prefactor_general(theta, x_vars, y_vars)
+
+    return Term(
+        name="I1_32",
+        pair=(3, 2),
+        przz_reference="Section 6.2.1, I₁ for (3,2) - swapped",
+        vars=all_vars,
+        deriv_orders={v: 1 for v in all_vars},
+        domain="[0,1]^2",
+        numeric_prefactor=-1.0,  # (-1)^{3+2} = -1
+        algebraic_prefactor=algebraic_prefactor,
+        poly_prefactors=[_make_poly_prefactor_power(5)],  # (1-u)^{3+2}
+        poly_factors=poly_factors,
+        exp_factors=[
+            ExpFactor(R, Q_arg_alpha),
+            ExpFactor(R, Q_arg_beta),
+        ],
+    )
+
+
+def make_I2_32(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
+    """Build the (3,2) I₂ term - swap of (2,3)."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    return Term(
+        name="I2_32",
+        pair=(3, 2),
+        przz_reference="Section 6.2.1, I₂ for (3,2) - swapped",
+        vars=(),
+        deriv_orders={},
+        domain="[0,1]^2",
+        numeric_prefactor=1.0,
+        algebraic_prefactor=AffineExpr(a0=1.0 / theta, var_coeffs={}),
+        poly_prefactors=[],
+        poly_factors=[
+            make_poly_factor("P3", _make_P_argument_u(), regime=regime),
+            make_poly_factor("P2", _make_P_argument_u(), regime=regime),
+            make_poly_factor("Q", _make_Q_arg_t_only()),
+            make_poly_factor("Q", _make_Q_arg_t_only()),
+        ],
+        exp_factors=[ExpFactor(2 * R, make_exp_argument_at_t())],
+    )
+
+
+def make_I3_32(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
+    """Build the (3,2) I₃ term - swap of (2,3)."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    x_vars = _make_x_vars(3)
+
+    Q_arg_alpha = _make_Q_arg_alpha_x_only(theta, x_vars)
+    Q_arg_beta = _make_Q_arg_beta_x_only(theta, x_vars)
+
+    return Term(
+        name="I3_32",
+        pair=(3, 2),
+        przz_reference="Section 6.2.1, I₃ for (3,2) - swapped",
+        vars=x_vars,
+        deriv_orders={v: 1 for v in x_vars},
+        domain="[0,1]^2",
+        numeric_prefactor=1.0,
+        algebraic_prefactor=_make_algebraic_prefactor_x_only_general(theta, x_vars),
+        poly_prefactors=[_make_poly_prefactor_power(3)],  # (1-u)^{ℓ₁}=3
+        poly_factors=[
+            make_poly_factor("P3", _make_P_argument_sum(x_vars), regime=regime),
+            make_poly_factor("P2", _make_P_argument_u(), regime=regime),
+            make_poly_factor("Q", Q_arg_alpha, regime=regime),
+            make_poly_factor("Q", Q_arg_beta, regime=regime),
+        ],
+        exp_factors=[
+            ExpFactor(R, Q_arg_alpha),
+            ExpFactor(R, Q_arg_beta),
+        ],
+    )
+
+
+def make_I4_32(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Term:
+    """Build the (3,2) I₄ term - swap of (2,3)."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    y_vars = _make_y_vars(2)
+
+    Q_arg_alpha = _make_Q_arg_alpha_y_only(theta, y_vars)
+    Q_arg_beta = _make_Q_arg_beta_y_only(theta, y_vars)
+
+    return Term(
+        name="I4_32",
+        pair=(3, 2),
+        przz_reference="Section 6.2.1, I₄ for (3,2) - swapped",
+        vars=y_vars,
+        deriv_orders={v: 1 for v in y_vars},
+        domain="[0,1]^2",
+        numeric_prefactor=1.0,
+        algebraic_prefactor=_make_algebraic_prefactor_y_only_general(theta, y_vars),
+        poly_prefactors=[_make_poly_prefactor_power(2)],  # (1-u)^{ℓ₂}=2
+        poly_factors=[
+            make_poly_factor("P3", _make_P_argument_u(), regime=regime),
+            make_poly_factor("P2", _make_P_argument_sum(y_vars), regime=regime),
+            make_poly_factor("Q", Q_arg_alpha, regime=regime),
+            make_poly_factor("Q", Q_arg_beta, regime=regime),
+        ],
+        exp_factors=[
+            ExpFactor(R, Q_arg_alpha),
+            ExpFactor(R, Q_arg_beta),
+        ],
+    )
+
+
+def make_all_terms_32(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> List[Term]:
+    """Build all (3,2) terms - swapped version of (2,3)."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    return [
+        make_I1_32(theta, R, kernel_regime=regime),
+        make_I2_32(theta, R, kernel_regime=regime),
+        make_I3_32(theta, R, kernel_regime=regime),
+        make_I4_32(theta, R, kernel_regime=regime),
+    ]
+
+
+def make_all_terms_k3_ordered(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Dict[str, List[Term]]:
+    """
+    Build ALL ordered pair terms for K=3, d=1 with kernel_regime support.
+
+    Returns dict with keys: "11", "22", "33", "12", "21", "13", "31", "23", "32"
+
+    This is for mirror diagnostics where off-diagonal pairs may need role swapping.
+    In paper regime, P₂/P₃ get Case C treatment, so swapping (1,2)↔(2,1) is
+    NOT symmetric.
+    """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    return {
+        "11": make_all_terms_11(theta, R, kernel_regime=regime),
+        "22": make_all_terms_22(theta, R, kernel_regime=regime),
+        "33": make_all_terms_33(theta, R, kernel_regime=regime),
+        "12": make_all_terms_12(theta, R, kernel_regime=regime),
+        "21": make_all_terms_21(theta, R, kernel_regime=regime),
+        "13": make_all_terms_13(theta, R, kernel_regime=regime),
+        "31": make_all_terms_31(theta, R, kernel_regime=regime),
+        "23": make_all_terms_23(theta, R, kernel_regime=regime),
+        "32": make_all_terms_32(theta, R, kernel_regime=regime),
+    }
 
 
 # =============================================================================
 # MASTER FUNCTION: Get all K=3 terms
 # =============================================================================
 
-def make_all_terms_k3(theta: float, R: float) -> Dict[str, List[Term]]:
+def make_all_terms_k3(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Dict[str, List[Term]]:
     """
     Build all terms for K=3, d=1.
 
+    Args:
+        theta: θ parameter
+        R: R parameter
+        kernel_regime: "raw" or "paper" for Case B/C selection.
+                      If None, uses DEFAULT_KERNEL_REGIME.
+
     Returns dict with keys: "11", "22", "33", "12", "13", "23"
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     return {
-        "11": make_all_terms_11(theta, R),
-        "22": make_all_terms_22(theta, R),
-        "33": make_all_terms_33(theta, R),
-        "12": make_all_terms_12(theta, R),
-        "13": make_all_terms_13(theta, R),
-        "23": make_all_terms_23(theta, R),
+        "11": make_all_terms_11(theta, R, kernel_regime=regime),
+        "22": make_all_terms_22(theta, R, kernel_regime=regime),
+        "33": make_all_terms_33(theta, R, kernel_regime=regime),
+        "12": make_all_terms_12(theta, R, kernel_regime=regime),
+        "13": make_all_terms_13(theta, R, kernel_regime=regime),
+        "23": make_all_terms_23(theta, R, kernel_regime=regime),
     }
 
 
@@ -2080,7 +2805,13 @@ def _poly_name(ell: int) -> str:
     return f"P{ell}"
 
 
-def _make_I1_generic_v2(theta: float, R: float, ell1: int, ell2: int) -> Term:
+def _make_I1_generic_v2(
+    theta: float,
+    R: float,
+    ell1: int,
+    ell2: int,
+    kernel_regime: Optional[KernelRegime] = None,
+) -> Term:
     """
     Generic I₁ builder for any (ℓ₁, ℓ₂) pair using PRZZ-correct structure.
 
@@ -2088,6 +2819,7 @@ def _make_I1_generic_v2(theta: float, R: float, ell1: int, ell2: int) -> Term:
     Derivative: d²/dxdy
     (1-u) power: (ℓ₁-1) + (ℓ₂-1) = ℓ₁ + ℓ₂ - 2
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     Q_arg_alpha = _make_Q_arg_alpha_single(theta)
     Q_arg_beta = _make_Q_arg_beta_single(theta)
 
@@ -2107,10 +2839,10 @@ def _make_I1_generic_v2(theta: float, R: float, ell1: int, ell2: int) -> Term:
         algebraic_prefactor=_make_algebraic_prefactor_single(theta),
         poly_prefactors=[_make_poly_prefactor_power(one_minus_u_power)] if one_minus_u_power > 0 else [],
         poly_factors=[
-            make_poly_factor(_poly_name(ell1), _make_P_argument_x()),
-            make_poly_factor(_poly_name(ell2), _make_P_argument_y()),
-            make_poly_factor("Q", Q_arg_alpha),
-            make_poly_factor("Q", Q_arg_beta),
+            make_poly_factor(_poly_name(ell1), _make_P_argument_x(), regime=regime),
+            make_poly_factor(_poly_name(ell2), _make_P_argument_y(), regime=regime),
+            make_poly_factor("Q", Q_arg_alpha, regime=regime),
+            make_poly_factor("Q", Q_arg_beta, regime=regime),
         ],
         exp_factors=[
             ExpFactor(R, Q_arg_alpha),
@@ -2119,8 +2851,15 @@ def _make_I1_generic_v2(theta: float, R: float, ell1: int, ell2: int) -> Term:
     )
 
 
-def _make_I2_generic_v2(theta: float, R: float, ell1: int, ell2: int) -> Term:
+def _make_I2_generic_v2(
+    theta: float,
+    R: float,
+    ell1: int,
+    ell2: int,
+    kernel_regime: Optional[KernelRegime] = None,
+) -> Term:
     """Generic I₂ builder (no derivatives, unchanged structure)."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     P_arg = make_P_argument_unshifted()
     Q_arg = make_Q_argument_at_t()
     exp_arg = make_exp_argument_at_t()
@@ -2136,15 +2875,21 @@ def _make_I2_generic_v2(theta: float, R: float, ell1: int, ell2: int) -> Term:
         algebraic_prefactor=None,
         poly_prefactors=[],
         poly_factors=[
-            make_poly_factor(_poly_name(ell1), P_arg),
-            make_poly_factor(_poly_name(ell2), P_arg),
-            make_poly_factor("Q", Q_arg, power=2),
+            make_poly_factor(_poly_name(ell1), P_arg, regime=regime),
+            make_poly_factor(_poly_name(ell2), P_arg, regime=regime),
+            make_poly_factor("Q", Q_arg, power=2, regime=regime),
         ],
         exp_factors=[ExpFactor(2 * R, exp_arg)]
     )
 
 
-def _make_I3_generic_v2(theta: float, R: float, ell1: int, ell2: int) -> Term:
+def _make_I3_generic_v2(
+    theta: float,
+    R: float,
+    ell1: int,
+    ell2: int,
+    kernel_regime: Optional[KernelRegime] = None,
+) -> Term:
     """
     Generic I₃ builder using PRZZ-correct prefactor structure.
 
@@ -2152,6 +2897,7 @@ def _make_I3_generic_v2(theta: float, R: float, ell1: int, ell2: int) -> Term:
     algebraic_prefactor = (1+θx)/θ with numeric_prefactor = -1
     (1-u) power: ℓ₁ - 1
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     Q_arg_alpha = _make_Q_arg_alpha_x_only_single(theta)
     Q_arg_beta = _make_Q_arg_beta_x_only_single(theta)
 
@@ -2169,10 +2915,10 @@ def _make_I3_generic_v2(theta: float, R: float, ell1: int, ell2: int) -> Term:
         algebraic_prefactor=_make_algebraic_prefactor_x_only(theta),
         poly_prefactors=[_make_poly_prefactor_power(one_minus_u_power)] if one_minus_u_power > 0 else [],
         poly_factors=[
-            make_poly_factor(_poly_name(ell1), _make_P_argument_x()),
-            make_poly_factor(_poly_name(ell2), make_P_argument_unshifted()),
-            make_poly_factor("Q", Q_arg_alpha),
-            make_poly_factor("Q", Q_arg_beta),
+            make_poly_factor(_poly_name(ell1), _make_P_argument_x(), regime=regime),
+            make_poly_factor(_poly_name(ell2), make_P_argument_unshifted(), regime=regime),
+            make_poly_factor("Q", Q_arg_alpha, regime=regime),
+            make_poly_factor("Q", Q_arg_beta, regime=regime),
         ],
         exp_factors=[
             ExpFactor(R, Q_arg_alpha),
@@ -2181,7 +2927,13 @@ def _make_I3_generic_v2(theta: float, R: float, ell1: int, ell2: int) -> Term:
     )
 
 
-def _make_I4_generic_v2(theta: float, R: float, ell1: int, ell2: int) -> Term:
+def _make_I4_generic_v2(
+    theta: float,
+    R: float,
+    ell1: int,
+    ell2: int,
+    kernel_regime: Optional[KernelRegime] = None,
+) -> Term:
     """
     Generic I₄ builder using PRZZ-correct prefactor structure.
 
@@ -2189,6 +2941,7 @@ def _make_I4_generic_v2(theta: float, R: float, ell1: int, ell2: int) -> Term:
     algebraic_prefactor = (1+θy)/θ with numeric_prefactor = -1
     (1-u) power: ℓ₂ - 1
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     Q_arg_alpha = _make_Q_arg_alpha_y_only_single(theta)
     Q_arg_beta = _make_Q_arg_beta_y_only_single(theta)
 
@@ -2206,10 +2959,10 @@ def _make_I4_generic_v2(theta: float, R: float, ell1: int, ell2: int) -> Term:
         algebraic_prefactor=_make_algebraic_prefactor_y_only(theta),
         poly_prefactors=[_make_poly_prefactor_power(one_minus_u_power)] if one_minus_u_power > 0 else [],
         poly_factors=[
-            make_poly_factor(_poly_name(ell1), make_P_argument_unshifted()),
-            make_poly_factor(_poly_name(ell2), _make_P_argument_y()),
-            make_poly_factor("Q", Q_arg_alpha),
-            make_poly_factor("Q", Q_arg_beta),
+            make_poly_factor(_poly_name(ell1), make_P_argument_unshifted(), regime=regime),
+            make_poly_factor(_poly_name(ell2), _make_P_argument_y(), regime=regime),
+            make_poly_factor("Q", Q_arg_alpha, regime=regime),
+            make_poly_factor("Q", Q_arg_beta, regime=regime),
         ],
         exp_factors=[
             ExpFactor(R, Q_arg_alpha),
@@ -2218,59 +2971,128 @@ def _make_I4_generic_v2(theta: float, R: float, ell1: int, ell2: int) -> Term:
     )
 
 
-def make_all_terms_33_v2(theta: float, R: float) -> List[Term]:
+def make_all_terms_33_v2(theta: float, R: float, kernel_regime: Optional[KernelRegime] = None) -> List[Term]:
     """Build all (3,3) terms using PRZZ-correct single-variable structure."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     return [
-        _make_I1_generic_v2(theta, R, 3, 3),
-        _make_I2_generic_v2(theta, R, 3, 3),
-        _make_I3_generic_v2(theta, R, 3, 3),
-        _make_I4_generic_v2(theta, R, 3, 3),
+        _make_I1_generic_v2(theta, R, 3, 3, kernel_regime=regime),
+        _make_I2_generic_v2(theta, R, 3, 3, kernel_regime=regime),
+        _make_I3_generic_v2(theta, R, 3, 3, kernel_regime=regime),
+        _make_I4_generic_v2(theta, R, 3, 3, kernel_regime=regime),
     ]
 
 
-def make_all_terms_12_v2(theta: float, R: float) -> List[Term]:
+def make_all_terms_12_v2(theta: float, R: float, kernel_regime: Optional[KernelRegime] = None) -> List[Term]:
     """Build all (1,2) terms using PRZZ-correct single-variable structure."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     return [
-        _make_I1_generic_v2(theta, R, 1, 2),
-        _make_I2_generic_v2(theta, R, 1, 2),
-        _make_I3_generic_v2(theta, R, 1, 2),
-        _make_I4_generic_v2(theta, R, 1, 2),
+        _make_I1_generic_v2(theta, R, 1, 2, kernel_regime=regime),
+        _make_I2_generic_v2(theta, R, 1, 2, kernel_regime=regime),
+        _make_I3_generic_v2(theta, R, 1, 2, kernel_regime=regime),
+        _make_I4_generic_v2(theta, R, 1, 2, kernel_regime=regime),
     ]
 
 
-def make_all_terms_13_v2(theta: float, R: float) -> List[Term]:
+def make_all_terms_13_v2(theta: float, R: float, kernel_regime: Optional[KernelRegime] = None) -> List[Term]:
     """Build all (1,3) terms using PRZZ-correct single-variable structure."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     return [
-        _make_I1_generic_v2(theta, R, 1, 3),
-        _make_I2_generic_v2(theta, R, 1, 3),
-        _make_I3_generic_v2(theta, R, 1, 3),
-        _make_I4_generic_v2(theta, R, 1, 3),
+        _make_I1_generic_v2(theta, R, 1, 3, kernel_regime=regime),
+        _make_I2_generic_v2(theta, R, 1, 3, kernel_regime=regime),
+        _make_I3_generic_v2(theta, R, 1, 3, kernel_regime=regime),
+        _make_I4_generic_v2(theta, R, 1, 3, kernel_regime=regime),
     ]
 
 
-def make_all_terms_23_v2(theta: float, R: float) -> List[Term]:
+def make_all_terms_23_v2(theta: float, R: float, kernel_regime: Optional[KernelRegime] = None) -> List[Term]:
     """Build all (2,3) terms using PRZZ-correct single-variable structure."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     return [
-        _make_I1_generic_v2(theta, R, 2, 3),
-        _make_I2_generic_v2(theta, R, 2, 3),
-        _make_I3_generic_v2(theta, R, 2, 3),
-        _make_I4_generic_v2(theta, R, 2, 3),
+        _make_I1_generic_v2(theta, R, 2, 3, kernel_regime=regime),
+        _make_I2_generic_v2(theta, R, 2, 3, kernel_regime=regime),
+        _make_I3_generic_v2(theta, R, 2, 3, kernel_regime=regime),
+        _make_I4_generic_v2(theta, R, 2, 3, kernel_regime=regime),
     ]
 
 
-def make_all_terms_k3_v2(theta: float, R: float) -> Dict[str, List[Term]]:
+def make_all_terms_k3_v2(theta: float, R: float, kernel_regime: Optional[KernelRegime] = None) -> Dict[str, List[Term]]:
     """
     Build all terms for K=3, d=1 using PRZZ-correct single-variable structure.
 
     Returns dict with keys: "11", "22", "33", "12", "13", "23"
     """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
     return {
-        "11": make_all_terms_11_v2(theta, R),
-        "22": make_all_terms_22_v2(theta, R),
-        "33": make_all_terms_33_v2(theta, R),
-        "12": make_all_terms_12_v2(theta, R),
-        "13": make_all_terms_13_v2(theta, R),
-        "23": make_all_terms_23_v2(theta, R),
+        "11": make_all_terms_11_v2(theta, R, kernel_regime=regime),
+        "22": make_all_terms_22_v2(theta, R, kernel_regime=regime),
+        "33": make_all_terms_33_v2(theta, R, kernel_regime=regime),
+        "12": make_all_terms_12_v2(theta, R, kernel_regime=regime),
+        "13": make_all_terms_13_v2(theta, R, kernel_regime=regime),
+        "23": make_all_terms_23_v2(theta, R, kernel_regime=regime),
+    }
+
+
+# =============================================================================
+# ORDERED PAIR GENERATORS (for mirror diagnostics)
+# =============================================================================
+# These generate terms for swapped off-diagonal pairs (21, 31, 32).
+# Used to test whether the mirror transform requires P_ell1 <-> P_ell2 swap.
+
+
+def make_all_terms_21_v2(theta: float, R: float, kernel_regime: Optional[KernelRegime] = None) -> List[Term]:
+    """Build all (2,1) terms - swapped roles from (1,2)."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    return [
+        _make_I1_generic_v2(theta, R, 2, 1, kernel_regime=regime),
+        _make_I2_generic_v2(theta, R, 2, 1, kernel_regime=regime),
+        _make_I3_generic_v2(theta, R, 2, 1, kernel_regime=regime),
+        _make_I4_generic_v2(theta, R, 2, 1, kernel_regime=regime),
+    ]
+
+
+def make_all_terms_31_v2(theta: float, R: float, kernel_regime: Optional[KernelRegime] = None) -> List[Term]:
+    """Build all (3,1) terms - swapped roles from (1,3)."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    return [
+        _make_I1_generic_v2(theta, R, 3, 1, kernel_regime=regime),
+        _make_I2_generic_v2(theta, R, 3, 1, kernel_regime=regime),
+        _make_I3_generic_v2(theta, R, 3, 1, kernel_regime=regime),
+        _make_I4_generic_v2(theta, R, 3, 1, kernel_regime=regime),
+    ]
+
+
+def make_all_terms_32_v2(theta: float, R: float, kernel_regime: Optional[KernelRegime] = None) -> List[Term]:
+    """Build all (3,2) terms - swapped roles from (2,3)."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    return [
+        _make_I1_generic_v2(theta, R, 3, 2, kernel_regime=regime),
+        _make_I2_generic_v2(theta, R, 3, 2, kernel_regime=regime),
+        _make_I3_generic_v2(theta, R, 3, 2, kernel_regime=regime),
+        _make_I4_generic_v2(theta, R, 3, 2, kernel_regime=regime),
+    ]
+
+
+def make_all_terms_k3_ordered_v2(
+    theta: float, R: float, kernel_regime: Optional[KernelRegime] = None
+) -> Dict[str, List[Term]]:
+    """
+    Build ALL ordered pair terms for K=3, d=1.
+
+    Returns dict with keys: "11", "22", "33", "12", "21", "13", "31", "23", "32"
+
+    This is for mirror diagnostics where off-diagonal pairs may need role swapping.
+    """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    return {
+        "11": make_all_terms_11_v2(theta, R, kernel_regime=regime),
+        "22": make_all_terms_22_v2(theta, R, kernel_regime=regime),
+        "33": make_all_terms_33_v2(theta, R, kernel_regime=regime),
+        "12": make_all_terms_12_v2(theta, R, kernel_regime=regime),
+        "21": make_all_terms_21_v2(theta, R, kernel_regime=regime),
+        "13": make_all_terms_13_v2(theta, R, kernel_regime=regime),
+        "31": make_all_terms_31_v2(theta, R, kernel_regime=regime),
+        "23": make_all_terms_23_v2(theta, R, kernel_regime=regime),
+        "32": make_all_terms_32_v2(theta, R, kernel_regime=regime),
     }
 
 

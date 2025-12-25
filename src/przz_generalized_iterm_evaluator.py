@@ -2,22 +2,21 @@
 src/przz_generalized_iterm_evaluator.py
 Generalized I-Term Evaluator with Correct Pair-Dependent Weights
 
-Key insight: PRZZ uses ell-indexing starting at 0 (ell=0 is mu piece).
-Our indexing starts at 1 (ell=1 is mu piece, uses P1).
-So: przz_ell = our_ell - 1
+Key insight: The (1-u) weights come from the Euler-Maclaurin expansion,
+specifically from the number of singleton blocks in the Ψ expansion.
 
-Weight structure (from PRZZ):
-- I1 weight = (1-u)^{przz_ell1 + przz_ell2}
-- I2 has NO weight
-- I3 weight = (1-u)^{przz_ell1}
-- I4 weight = (1-u)^{przz_ell2}
+CORRECTED Weight structure (validated against oracle for (1,1)):
+- I1 weight = (1-u)^{ell + ellbar}  (from AB monomial: a+b singletons)
+- I2 has NO weight                   (from D monomial: paired block)
+- I3 weight = (1-u)^{ell}           (from -AC monomial: a singletons)
+- I4 weight = (1-u)^{ellbar}        (from -BC monomial: b singletons)
 
-For our pair (ell, ellbar):
-- przz_ell1 = ell - 1
-- przz_ell2 = ellbar - 1
-- I1 weight = (1-u)^{ell + ellbar - 2}
-- I3 weight = (1-u)^{ell - 1}
-- I4 weight = (1-u)^{ellbar - 1}
+For (1,1): I1=(1-u)², I2=1, I3=(1-u)¹, I4=(1-u)¹
+Validated: I1=0.426028, I2=0.384629, I3=-0.225749, I4=-0.225749, Total=0.359159
+
+Note: PRZZ uses 0-based ell indexing (ell=0 is mu piece). Our indexing
+starts at 1 (ell=1 is mu piece). However, the weight formula uses our
+ell values directly, NOT przz_ell = ell - 1.
 """
 
 from __future__ import annotations
@@ -25,6 +24,9 @@ import numpy as np
 from numpy.polynomial.legendre import leggauss
 from typing import Tuple, NamedTuple
 from math import exp
+
+from src.case_c_kernel import compute_case_c_kernel, compute_case_c_kernel_derivative
+from src.kernel_registry import KernelRegime, kernel_spec_for_piece
 
 
 def gauss_legendre_01(n: int) -> Tuple[np.ndarray, np.ndarray]:
@@ -55,8 +57,19 @@ class GeneralizedItermEvaluator:
     - Correct pair-dependent weights
     """
 
-    def __init__(self, P_left, P_right, Q, theta: float, R: float,
-                 ell: int, ellbar: int, n_quad: int = 60):
+    def __init__(
+        self,
+        P_left,
+        P_right,
+        Q,
+        theta: float,
+        R: float,
+        ell: int,
+        ellbar: int,
+        n_quad: int = 60,
+        kernel_regime: KernelRegime = "raw",
+        n_quad_a: int = 40,
+    ):
         self.P_left = P_left
         self.P_right = P_right
         self.Q = Q
@@ -65,15 +78,25 @@ class GeneralizedItermEvaluator:
         self.ell = ell
         self.ellbar = ellbar
         self.n_quad = n_quad
+        self.kernel_regime = kernel_regime
+        self.n_quad_a = int(n_quad_a)
 
-        # PRZZ indexing (0-based)
+        left_spec = kernel_spec_for_piece(ell, d=1, regime=kernel_regime)
+        right_spec = kernel_spec_for_piece(ellbar, d=1, regime=kernel_regime)
+        self.omega_left = left_spec.omega
+        self.omega_right = right_spec.omega
+
+        # PRZZ indexing (0-based) - kept for reference but NOT used for weights
         self.przz_ell1 = ell - 1
         self.przz_ell2 = ellbar - 1
 
-        # Weight exponents
-        self.I1_weight_exp = self.przz_ell1 + self.przz_ell2  # (1-u)^{przz_ell1+przz_ell2}
-        self.I3_weight_exp = self.przz_ell1  # (1-u)^{przz_ell1}
-        self.I4_weight_exp = self.przz_ell2  # (1-u)^{przz_ell2}
+        # Weight exponents - CORRECTED to use ell, not przz_ell
+        # Validated against oracle: (1,1) requires I1 weight (1-u)^2, not (1-u)^0
+        # The weight comes from the block structure (number of singletons),
+        # which corresponds to our ell indexing, not PRZZ's 0-based indexing.
+        self.I1_weight_exp = ell + ellbar  # (1-u)^{ell+ellbar}
+        self.I3_weight_exp = ell           # (1-u)^{ell}
+        self.I4_weight_exp = ellbar        # (1-u)^{ellbar}
 
         # Set up quadrature
         self.u_nodes, self.u_weights = gauss_legendre_01(n_quad)
@@ -83,14 +106,50 @@ class GeneralizedItermEvaluator:
         self._precompute()
 
     def _precompute(self):
-        """Precompute polynomial and derivative values."""
-        # Left polynomial
-        self.P_L = self.P_left.eval(self.u_nodes)
-        self.Pp_L = self.P_left.eval_deriv(self.u_nodes, 1)
+        """Precompute profile (P or Case C kernel) values and derivatives."""
+        if self.omega_left <= 0:
+            self.P_L = self.P_left.eval(self.u_nodes)
+            self.Pp_L = self.P_left.eval_deriv(self.u_nodes, 1)
+        else:
+            self.P_L = compute_case_c_kernel(
+                P_eval=lambda z: self.P_left.eval(z),
+                u_grid=self.u_nodes,
+                omega=self.omega_left,
+                R=self.R,
+                theta=self.theta,
+                n_quad_a=self.n_quad_a,
+            )
+            self.Pp_L = compute_case_c_kernel_derivative(
+                P_eval=lambda z: self.P_left.eval(z),
+                P_deriv_eval=lambda z: self.P_left.eval_deriv(z, 1),
+                u_grid=self.u_nodes,
+                omega=self.omega_left,
+                R=self.R,
+                theta=self.theta,
+                n_quad_a=self.n_quad_a,
+            )
 
-        # Right polynomial
-        self.P_R = self.P_right.eval(self.u_nodes)
-        self.Pp_R = self.P_right.eval_deriv(self.u_nodes, 1)
+        if self.omega_right <= 0:
+            self.P_R = self.P_right.eval(self.u_nodes)
+            self.Pp_R = self.P_right.eval_deriv(self.u_nodes, 1)
+        else:
+            self.P_R = compute_case_c_kernel(
+                P_eval=lambda z: self.P_right.eval(z),
+                u_grid=self.u_nodes,
+                omega=self.omega_right,
+                R=self.R,
+                theta=self.theta,
+                n_quad_a=self.n_quad_a,
+            )
+            self.Pp_R = compute_case_c_kernel_derivative(
+                P_eval=lambda z: self.P_right.eval(z),
+                P_deriv_eval=lambda z: self.P_right.eval_deriv(z, 1),
+                u_grid=self.u_nodes,
+                omega=self.omega_right,
+                R=self.R,
+                theta=self.theta,
+                n_quad_a=self.n_quad_a,
+            )
 
         # Q polynomial and derivatives
         self.Q_t = self.Q.eval(self.t_nodes)

@@ -36,6 +36,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.ratios.delta_track import compute_delta_record, DeltaRecord
 from src.ratios.j1_euler_maclaurin import LaurentMode
+from src.ratios.plus5_harness import (
+    compute_plus5_signature_split,
+    Plus5SplitResult,
+)
 
 
 @dataclass
@@ -247,6 +251,104 @@ def print_report(decompositions: Dict[str, DeltaDecomposition]) -> None:
     print()
 
 
+def print_plus5_split_report(benchmarks: List[str]) -> Dict[str, Plus5SplitResult]:
+    """
+    Print Phase 20 +5 split report showing main-only vs with-error.
+
+    This is the "north star" diagnostic for Phase 20:
+    - Shows whether J15 is required for B/A ≈ 5
+    - Per-piece contributions to A and B
+    - Gap analysis for both modes
+
+    Returns:
+        Dict mapping benchmark name to Plus5SplitResult
+    """
+    print()
+    print("=" * 90)
+    print("PHASE 20: +5 SPLIT DIAGNOSTIC (Main-Only vs With-Error)")
+    print("=" * 90)
+    print()
+    print("GOAL: Main-only B/A should equal 5 (=2K-1 for K=3) WITHOUT J₁,₅.")
+    print("      If J₁,₅ is required, we're computing the wrong main-term object.")
+    print()
+
+    results = {}
+
+    for benchmark in benchmarks:
+        result = compute_plus5_signature_split(benchmark)
+        results[benchmark] = result
+
+    # Summary table
+    print("-" * 90)
+    print(f"{'Benchmark':<12} {'Main B/A':<12} {'Full B/A':<12} {'J15 Δ':<12} "
+          f"{'Main Gap%':<12} {'Full Gap%':<12} {'J15 Req?':<10}")
+    print("-" * 90)
+
+    for benchmark, result in results.items():
+        j15_req = "YES ⚠" if result.j15_required_for_target else "no"
+        print(
+            f"{benchmark:<12} {result.B_over_A_main_only:<12.4f} "
+            f"{result.B_over_A_with_error:<12.4f} {result.j15_contribution_ratio:+12.4f} "
+            f"{result.gap_percent_main_only:+11.2f}% {result.gap_percent:+11.2f}% "
+            f"{j15_req:<10}"
+        )
+
+    print("-" * 90)
+
+    # Detailed per-benchmark analysis
+    for benchmark, result in results.items():
+        print(f"\n{benchmark.upper()} DETAILED BREAKDOWN (R={result.R}):")
+        print("-" * 70)
+
+        print("\n  MAIN-TERM ONLY (J₁,₅ excluded):")
+        print(f"    A = {result.A_main_only:.8f}")
+        print(f"    B = {result.B_main_only:.8f}")
+        print(f"    B/A = {result.B_over_A_main_only:.6f}")
+        print(f"    Gap from 5: {result.gap_percent_main_only:+.2f}%")
+        print(f"    δ = {result.delta_main_only:.6f}")
+
+        print("\n  WITH ERROR TERMS (J₁,₅ included):")
+        print(f"    A = {result.A:.8f}")
+        print(f"    B = {result.B:.8f}")
+        print(f"    B/A = {result.B_over_A:.6f}")
+        print(f"    Gap from 5: {result.gap_percent:+.2f}%")
+        print(f"    δ = {result.delta:.6f}")
+
+        print("\n  J₁,₅ CONTRIBUTION:")
+        print(f"    ΔA (J15 adds to A): {result.j15_contribution_A:+.8f}")
+        print(f"    ΔB (J15 adds to B): {result.j15_contribution_B:+.8f}")
+        print(f"    Δ(B/A): {result.j15_contribution_ratio:+.6f}")
+
+        if result.j15_required_for_target:
+            print("\n  ⚠ PROBLEM: J₁,₅ is REQUIRED to achieve B/A ≈ 5")
+            print("    The derivation is using error terms to match the target.")
+            print("    Phase 20.2 goal: fix main term so J₁,₅ is unnecessary.")
+        else:
+            print("\n  ✓ J₁,₅ is NOT required for B/A ≈ 5")
+
+    # Analysis summary
+    print("\n" + "=" * 90)
+    print("ANALYSIS SUMMARY")
+    print("=" * 90)
+
+    all_require_j15 = all(r.j15_required_for_target for r in results.values())
+    avg_main_gap = sum(abs(r.gap_percent_main_only) for r in results.values()) / len(results)
+    avg_j15_contribution = sum(r.j15_contribution_ratio for r in results.values()) / len(results)
+
+    print(f"\n  All benchmarks require J₁,₅: {'YES' if all_require_j15 else 'NO'}")
+    print(f"  Average main-only gap: {avg_main_gap:.2f}%")
+    print(f"  Average J₁,₅ contribution to B/A: {avg_j15_contribution:+.4f}")
+
+    if all_require_j15:
+        missing = 5.0 - sum(r.B_over_A_main_only for r in results.values()) / len(results)
+        print(f"\n  PHASE 20.2 TARGET: Find ~{missing:.2f} in main-term to eliminate J₁,₅ dependence")
+
+    print()
+    print("=" * 90)
+
+    return results
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Generate Phase 19 delta decomposition report"
@@ -279,8 +381,45 @@ def main():
         default=True,
         help="Check and report invariant violations",
     )
+    parser.add_argument(
+        "--plus5-split",
+        action="store_true",
+        help="Show Phase 20 +5 split analysis (main-only vs with-error)",
+    )
 
     args = parser.parse_args()
+
+    # Handle --plus5-split mode separately
+    if args.plus5_split:
+        plus5_results = print_plus5_split_report(args.bench)
+        # Optionally save to JSON
+        if args.output:
+            output_path = Path(args.output)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            json_data = {
+                bench: {
+                    "R": result.R,
+                    "A_main_only": result.A_main_only,
+                    "B_main_only": result.B_main_only,
+                    "A_with_error": result.A,
+                    "B_with_error": result.B,
+                    "B_over_A_main_only": result.B_over_A_main_only,
+                    "B_over_A_with_error": result.B_over_A_with_error,
+                    "gap_percent_main_only": result.gap_percent_main_only,
+                    "gap_percent_with_error": result.gap_percent,
+                    "j15_contribution_A": result.j15_contribution_A,
+                    "j15_contribution_B": result.j15_contribution_B,
+                    "j15_contribution_ratio": result.j15_contribution_ratio,
+                    "j15_required_for_target": result.j15_required_for_target,
+                    "delta_main_only": result.delta_main_only,
+                    "delta_with_error": result.delta,
+                }
+                for bench, result in plus5_results.items()
+            }
+            with open(output_path, "w") as f:
+                json.dump(json_data, f, indent=2)
+            print(f"\nPlus5 split report saved to: {output_path}")
+        return  # Exit after plus5-split report
 
     # Determine modes to run
     if args.mode == "both":

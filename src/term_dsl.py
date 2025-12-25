@@ -348,19 +348,40 @@ class PolyFactor:
             # Import here to avoid circular dependency
             from src.mollifier_profiles import case_c_taylor_coeffs
 
-            # u0 is a 2D grid - we need to compute coefficients for each grid point
-            # Shape of u0: (n, n) for n×n quadrature grid
+            # u0 is a 2D grid; in this repo's PRZZ term tables, profile arguments
+            # are always of the form u + (nilpotent perturbation), so u0 depends
+            # only on the u-node (i index) and is constant across the t-axis.
+            #
+            # Computing Case C coefficients for every (u,t) node is therefore
+            # needlessly expensive. We detect common separable shapes and
+            # compute only along the varying axis, then broadcast.
             grid_shape = u0.shape
-            taylor_grid = np.zeros(grid_shape + (max_order + 1,))
+            taylor_grid = np.zeros(grid_shape + (max_order + 1,), dtype=float)
 
-            # Compute Case C Taylor coefficients for each grid point
-            for i in range(grid_shape[0]):
-                for j in range(grid_shape[1]):
-                    u_val = u0[i, j]
+            if u0.ndim == 2 and grid_shape[0] > 0 and grid_shape[1] > 0 and np.all(u0 == u0[:, [0]]):
+                # u0 varies only along axis 0 (U-grid): broadcast across t-axis
+                u_vals = u0[:, 0]
+                for i, u_val in enumerate(u_vals):
                     coeffs = case_c_taylor_coeffs(
-                        poly, u_val, self.omega, R, theta, max_order, n_quad_a
+                        poly, float(u_val), self.omega, R, theta, max_order, n_quad_a
                     )
-                    taylor_grid[i, j, :] = coeffs
+                    taylor_grid[i, :, :] = coeffs
+            elif u0.ndim == 2 and grid_shape[0] > 0 and grid_shape[1] > 0 and np.all(u0 == u0[[0], :]):
+                # u0 varies only along axis 1 (T-grid): broadcast across u-axis
+                u_vals = u0[0, :]
+                for j, u_val in enumerate(u_vals):
+                    coeffs = case_c_taylor_coeffs(
+                        poly, float(u_val), self.omega, R, theta, max_order, n_quad_a
+                    )
+                    taylor_grid[:, j, :] = coeffs
+            else:
+                # Fallback: general u0(u,t) dependence
+                for i in range(grid_shape[0]):
+                    for j in range(grid_shape[1]):
+                        coeffs = case_c_taylor_coeffs(
+                            poly, float(u0[i, j]), self.omega, R, theta, max_order, n_quad_a
+                        )
+                        taylor_grid[i, j, :] = coeffs
 
             # Use profile composition with pre-computed grid coefficients
             series = compose_profile_on_affine_grid(taylor_grid, lin, ctx.var_names)
@@ -417,6 +438,421 @@ class ExpFactor:
 
         # Delegate to composition module
         return compose_exp_on_affine(self.scale, u0, lin, ctx.var_names)
+
+
+@dataclass(frozen=True)
+class CombinedMirrorFactor:
+    """
+    TeX combined integral factor: ∫_0^1 (N^{x+y}T)^{-s(α+β)} ds × log(N^{x+y}T)
+
+    This represents the combined mirror structure from TeX lines 1503-1510:
+        (N^{αx+βy} - T^{-α-β}N^{-βx-αy}) / (α+β)
+        = N^{αx+βy} × log(N^{x+y}T) × ∫_0^1 (N^{x+y}T)^{-s(α+β)} ds
+
+    At α = β = -R/L (PRZZ evaluation point):
+        - The s-integral becomes: ∫_0^1 exp(2sR(1 + θ(x+y))) ds
+        - The log factor becomes: L(1 + θ(x+y)) where L = log T
+
+    The L factor is asymptotic and absorbed elsewhere, so this class computes:
+        (1 + θ(x+y)) × ∫_0^1 exp(2sR(1 + θ(x+y))) ds
+
+    Attributes:
+        R: The PRZZ R parameter
+        theta: The θ = log N / log T parameter (typically 4/7)
+        n_quad_s: Number of quadrature points for s-integral (default 20)
+
+    Gate test (scalar limit at x=y=0):
+        (exp(2R) - 1) / (2R)
+
+    Example:
+        >>> factor = CombinedMirrorFactor(R=1.3036, theta=4/7)
+        >>> ctx = SeriesContext(var_names=("x", "y"))
+        >>> U = np.array([[0.5]])
+        >>> T = np.array([[0.5]])
+        >>> series = factor.evaluate(U, T, ctx)
+    """
+    R: float
+    theta: float
+    n_quad_s: int = 20
+
+    def evaluate(
+        self,
+        U: np.ndarray,
+        T: np.ndarray,
+        ctx: SeriesContext
+    ) -> TruncatedSeries:
+        """
+        Evaluate the combined mirror integral as a TruncatedSeries.
+
+        Computes: (1 + θ(x+y)) × ∫_0^1 exp(2sR(1 + θ(x+y))) ds
+
+        The s-integral is evaluated via Gauss-Legendre quadrature, keeping
+        formal variables (x, y) active throughout.
+
+        Args:
+            U: Grid array for u variable
+            T: Grid array for t variable
+            ctx: SeriesContext for variable names (must contain "x" and "y")
+
+        Returns:
+            TruncatedSeries with s-integral pre-computed, formal vars active
+        """
+        from src.quadrature import gauss_legendre_01
+
+        s_nodes, s_weights = gauss_legendre_01(self.n_quad_s)
+
+        # Initialize result as zero series
+        result = ctx.zero_series()
+
+        # Integrate over s
+        for s_idx, s in enumerate(s_nodes):
+            # Exponent: 2*R*s*(1 + θ*(x+y))
+            # = 2Rs + 2Rsθx + 2Rsθy
+            s_base = 2 * self.R * s * np.ones_like(U)
+            s_lin = {
+                "x": 2 * self.R * s * self.theta * np.ones_like(U),
+                "y": 2 * self.R * s * self.theta * np.ones_like(U),
+            }
+
+            # exp(2Rs(1 + θ(x+y))) as a series
+            s_exp = compose_exp_on_affine(1.0, s_base, s_lin, ctx.var_names)
+
+            # Accumulate weighted contribution
+            result = result + s_exp * s_weights[s_idx]
+
+        # Multiply by log factor: (1 + θ*(x+y))
+        log_factor = ctx.scalar_series(np.ones_like(U))
+        log_factor = log_factor + ctx.variable_series("x") * self.theta
+        log_factor = log_factor + ctx.variable_series("y") * self.theta
+
+        return result * log_factor
+
+    def scalar_limit(self) -> float:
+        """
+        Compute the scalar limit (x=y=0) analytically.
+
+        Returns:
+            (exp(2R) - 1) / (2R)
+        """
+        return (np.exp(2 * self.R) - 1) / (2 * self.R)
+
+
+@dataclass(frozen=True)
+class CombinedI1Integrand:
+    """
+    TeX-exact I₁ integrand with Q-shift in mirror branch (Run 19).
+
+    This implements the COMBINED structure where Q operators are applied
+    INSIDE the combined object, with proper Q-shift in the minus branch.
+
+    Structure:
+        Plus branch:  Q(arg_α) × Q(arg_β) × exp(R·arg_α) × exp(R·arg_β)
+        Minus branch: Q(arg_α+σ) × Q(arg_β+σ) × exp(-R·arg_α) × exp(-R·arg_β) × exp(2R)
+
+    Where:
+        arg_α = t + θt·x + (θt-θ)·y
+        arg_β = t + (θt-θ)·x + θt·y
+        σ = 1.0 (Q-shift, NOT derived from α+β)
+
+    Key difference from Run 18's CombinedMirrorFactor:
+        - Q factors are INSIDE the combined structure, not multiplied externally
+        - Q-shift is applied in the minus branch
+        - No separate s-integral factor
+
+    Attributes:
+        R: The PRZZ R parameter
+        theta: The θ = log N / log T parameter (typically 4/7)
+        Q: The Q polynomial
+        Q_shifted: The shifted polynomial Q(x+σ)
+
+    Gate test (scalar limit at x=y=0):
+        Q(t)² exp(2Rt) + Q(t+σ)² exp(-2Rt) exp(2R)
+        = Q(t)² exp(2Rt) + Q(t+σ)² exp(2R(1-t))
+    """
+    R: float
+    theta: float
+    Q: PolyLike
+    Q_shifted: PolyLike
+
+    def evaluate(
+        self,
+        U: np.ndarray,
+        T: np.ndarray,
+        ctx: SeriesContext
+    ) -> TruncatedSeries:
+        """
+        Evaluate the combined I₁ integrand as a TruncatedSeries.
+
+        Computes:
+            Plus branch:  Q(arg_α) × Q(arg_β) × exp(R·arg_α) × exp(R·arg_β)
+            Minus branch: Q(arg_α+σ) × Q(arg_β+σ) × exp(-R·arg_α) × exp(-R·arg_β) × exp(2R)
+
+        Both branches are combined as a SINGLE series before derivative extraction.
+
+        Args:
+            U: Grid array for u variable
+            T: Grid array for t variable
+            ctx: SeriesContext for variable names (must contain "x" and "y")
+
+        Returns:
+            TruncatedSeries combining both branches
+        """
+        # Build arg_α = t + θt·x + (θt-θ)·y
+        arg_alpha_u0 = T
+        arg_alpha_lin = {
+            "x": self.theta * T,
+            "y": self.theta * T - self.theta,
+        }
+
+        # Build arg_β = t + (θt-θ)·x + θt·y
+        arg_beta_u0 = T
+        arg_beta_lin = {
+            "x": self.theta * T - self.theta,
+            "y": self.theta * T,
+        }
+
+        # --- PLUS BRANCH: Q(arg_α) × Q(arg_β) × exp(R·arg_α) × exp(R·arg_β) ---
+
+        # Q(arg_α) at +R
+        Q_alpha_plus = compose_polynomial_on_affine(
+            self.Q, arg_alpha_u0, arg_alpha_lin, ctx.var_names
+        )
+
+        # Q(arg_β) at +R
+        Q_beta_plus = compose_polynomial_on_affine(
+            self.Q, arg_beta_u0, arg_beta_lin, ctx.var_names
+        )
+
+        # exp(R·arg_α)
+        exp_alpha_plus = compose_exp_on_affine(
+            self.R, arg_alpha_u0, arg_alpha_lin, ctx.var_names
+        )
+
+        # exp(R·arg_β)
+        exp_beta_plus = compose_exp_on_affine(
+            self.R, arg_beta_u0, arg_beta_lin, ctx.var_names
+        )
+
+        plus_branch = Q_alpha_plus * Q_beta_plus * exp_alpha_plus * exp_beta_plus
+
+        # --- MINUS BRANCH: Q_shifted(arg_α) × Q_shifted(arg_β) × exp(-R·arg_α) × exp(-R·arg_β) × exp(2R) ---
+
+        # Q_shifted(arg_α) in mirror branch
+        Q_alpha_minus = compose_polynomial_on_affine(
+            self.Q_shifted, arg_alpha_u0, arg_alpha_lin, ctx.var_names
+        )
+
+        # Q_shifted(arg_β) in mirror branch
+        Q_beta_minus = compose_polynomial_on_affine(
+            self.Q_shifted, arg_beta_u0, arg_beta_lin, ctx.var_names
+        )
+
+        # exp(-R·arg_α)
+        exp_alpha_minus = compose_exp_on_affine(
+            -self.R, arg_alpha_u0, arg_alpha_lin, ctx.var_names
+        )
+
+        # exp(-R·arg_β)
+        exp_beta_minus = compose_exp_on_affine(
+            -self.R, arg_beta_u0, arg_beta_lin, ctx.var_names
+        )
+
+        # Mirror prefactor: exp(2R)
+        exp_2R = np.exp(2 * self.R)
+
+        minus_branch = Q_alpha_minus * Q_beta_minus * exp_alpha_minus * exp_beta_minus * exp_2R
+
+        # Combine as a SINGLE series
+        return plus_branch + minus_branch
+
+    def scalar_limit(self, t_val: float = 0.5) -> float:
+        """
+        Compute the scalar limit (x=y=0) at a specific t value.
+
+        At x=y=0:
+            arg_α = arg_β = t
+            Plus: Q(t)² × exp(2Rt)
+            Minus: Q(t+σ)² × exp(-2Rt) × exp(2R) = Q(t+σ)² × exp(2R(1-t))
+
+        Returns:
+            Q(t)² × exp(2Rt) + Q(t+σ)² × exp(2R(1-t))
+        """
+        # Evaluate Q(t) and Q_shifted(t) = Q(t+σ)
+        t_arr = np.array([t_val])
+        Q_t = float(self.Q.eval(t_arr)[0])
+        Q_t_shifted = float(self.Q_shifted.eval(t_arr)[0])
+
+        plus_contrib = Q_t ** 2 * np.exp(2 * self.R * t_val)
+        minus_contrib = Q_t_shifted ** 2 * np.exp(2 * self.R * (1 - t_val))
+
+        return plus_contrib + minus_contrib
+
+
+@dataclass(frozen=True)
+class TexCombinedMirrorCore:
+    """
+    TeX-exact combined mirror structure (Run 20A).
+
+    Implements the PRZZ difference quotient → log×integral identity (TeX 1502-1511):
+
+        (N^{αx+βy} - T^{-α-β}N^{-βx-αy}) / (α+β)
+        = N^{αx+βy} × log(N^{x+y}T) × ∫₀¹ (N^{x+y}T)^{-s(α+β)} ds
+
+    At α = β = -R/L (PRZZ evaluation point, where L = log T):
+        - N = T^θ, so N^{αx+βy} = exp(-Rθ(x+y))
+        - log(N^{x+y}T) = L × (1 + θ(x+y))
+        - (N^{x+y}T)^{-s(α+β)} = exp(2sR(1 + θ(x+y)))
+
+    Combined (absorbing asymptotic L factor):
+        exp(-Rθ(x+y)) × (1 + θ(x+y)) × ∫₀¹ exp(2sR(1 + θ(x+y))) ds
+
+    Key differences from CombinedMirrorFactor (Run 18):
+        - Includes outer exp(-Rθ(x+y)) factor from N^{αx+βy}
+        - This class is for the combined structure BEFORE Q operators
+        - Q operators should be applied AFTER this object is formed
+
+    Key differences from CombinedI1Integrand (Run 19):
+        - Uses correct log×integral structure (not naive plus+minus)
+        - Does NOT include Q factors inside
+
+    Attributes:
+        R: The PRZZ R parameter (shift in critical line)
+        theta: The θ = log N / log T parameter (typically 4/7)
+        n_quad_s: Number of quadrature points for s-integral (default 20)
+
+    Gate test (scalar limit at x=y=0):
+        = 1 × 1 × ∫₀¹ exp(2sR) ds
+        = (exp(2R) - 1) / (2R)
+    """
+    R: float
+    theta: float
+    n_quad_s: int = 20
+
+    def evaluate(
+        self,
+        U: np.ndarray,
+        T: np.ndarray,
+        ctx: SeriesContext
+    ) -> TruncatedSeries:
+        """
+        Evaluate the TeX combined mirror structure as a TruncatedSeries.
+
+        Computes:
+            exp(-Rθ(x+y)) × (1 + θ(x+y)) × ∫₀¹ exp(2sR(1 + θ(x+y))) ds
+
+        The s-integral is evaluated via Gauss-Legendre quadrature, keeping
+        formal variables (x, y) active throughout.
+
+        Args:
+            U: Grid array for u variable (not used but passed for consistency)
+            T: Grid array for t variable (not used but passed for consistency)
+            ctx: SeriesContext for variable names (must contain "x" and "y")
+
+        Returns:
+            TruncatedSeries with combined structure, formal vars active
+        """
+        from src.quadrature import gauss_legendre_01
+
+        s_nodes, s_weights = gauss_legendre_01(self.n_quad_s)
+
+        # --- Part 1: Outer exponential factor exp(-Rθ(x+y)) ---
+        # This is N^{αx+βy} at α=β=-R/L
+        outer_base = np.zeros_like(U)  # exp(0) = 1 at x=y=0
+        outer_lin = {
+            "x": -self.R * self.theta * np.ones_like(U),
+            "y": -self.R * self.theta * np.ones_like(U),
+        }
+        outer_exp = compose_exp_on_affine(1.0, outer_base, outer_lin, ctx.var_names)
+
+        # --- Part 2: Log factor (1 + θ(x+y)) ---
+        # The L = log T is asymptotic and absorbed elsewhere
+        log_factor = ctx.scalar_series(np.ones_like(U))
+        log_factor = log_factor + ctx.variable_series("x") * self.theta
+        log_factor = log_factor + ctx.variable_series("y") * self.theta
+
+        # --- Part 3: s-integral ∫₀¹ exp(2sR(1 + θ(x+y))) ds ---
+        s_integral = ctx.zero_series()
+        for s_idx, s in enumerate(s_nodes):
+            # Exponent: 2Rs(1 + θ(x+y)) = 2Rs + 2Rsθx + 2Rsθy
+            s_base = 2 * self.R * s * np.ones_like(U)
+            s_lin = {
+                "x": 2 * self.R * s * self.theta * np.ones_like(U),
+                "y": 2 * self.R * s * self.theta * np.ones_like(U),
+            }
+            s_exp = compose_exp_on_affine(1.0, s_base, s_lin, ctx.var_names)
+            s_integral = s_integral + s_exp * s_weights[s_idx]
+
+        # --- Combine all three parts ---
+        return outer_exp * log_factor * s_integral
+
+    def scalar_limit(self) -> float:
+        """
+        Compute the scalar limit (x=y=0) analytically.
+
+        At x=y=0:
+            outer_exp = exp(0) = 1
+            log_factor = 1
+            s_integral = ∫₀¹ exp(2sR) ds = (exp(2R) - 1) / (2R)
+
+        Returns:
+            (exp(2R) - 1) / (2R)
+        """
+        return (np.exp(2 * self.R) - 1) / (2 * self.R)
+
+    def difference_quotient_test(
+        self,
+        x_val: float,
+        y_val: float,
+        L: float = 10.0
+    ) -> Tuple[float, float]:
+        """
+        Compare against direct difference quotient for gate testing.
+
+        At α = β = -R/L, computes:
+            LHS: This combined structure evaluated at (x, y)
+            RHS: (N^{αx+βy} - T^{-α-β}N^{-βx-αy}) / (α+β)
+
+        The RHS is computed directly (with finite L) for validation.
+
+        Args:
+            x_val: Test x value (should be small, e.g. 0.01)
+            y_val: Test y value (should be small, e.g. 0.01)
+            L: log T value for direct computation (larger = more asymptotic)
+
+        Returns:
+            Tuple of (combined_value, direct_quotient_value)
+        """
+        # Parameters
+        T_val = np.exp(L)
+        N_val = T_val ** self.theta
+        alpha = -self.R / L
+        beta = alpha  # α = β = -R/L
+
+        # Direct difference quotient:
+        # (N^{αx+βy} - T^{-α-β} × N^{-βx-αy}) / (α+β)
+        term1 = N_val ** (alpha * x_val + beta * y_val)
+        term2 = T_val ** (-alpha - beta) * N_val ** (-beta * x_val - alpha * y_val)
+        denominator = alpha + beta
+        direct_quotient = (term1 - term2) / denominator
+
+        # Combined structure (without L factor, which we absorb):
+        # exp(-Rθ(x+y)) × (1 + θ(x+y)) × ∫₀¹ exp(2sR(1 + θ(x+y))) ds
+        from src.quadrature import gauss_legendre_01
+        s_nodes, s_weights = gauss_legendre_01(self.n_quad_s)
+
+        outer = np.exp(-self.R * self.theta * (x_val + y_val))
+        log_term = 1 + self.theta * (x_val + y_val)
+
+        s_integral = 0.0
+        for s, w in zip(s_nodes, s_weights):
+            s_integral += w * np.exp(2 * s * self.R * (1 + self.theta * (x_val + y_val)))
+
+        combined = outer * log_term * s_integral
+
+        # Scale by L to match the log(N^{x+y}T) = L(1+θ(x+y)) factor
+        combined_scaled = combined * L
+
+        return combined_scaled, direct_quotient
 
 
 @dataclass

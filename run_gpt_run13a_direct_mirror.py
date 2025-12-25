@@ -321,9 +321,55 @@ def main():
         ("κ*", polys_kappa_star, TARGETS["kappa_star"]),
     ]
 
+    # =========================================================================
+    # SECTION 1: PAIR-LEVEL ANALYSIS (Direct I-terms for individual pairs)
+    # =========================================================================
     print("=" * 70)
-    print("SECTION 1: (1,1) Pair - Direct I-term Computation")
+    print("SECTION 1: PAIR-LEVEL ANALYSIS")
     print("=" * 70)
+    print()
+    print("Computing DIRECT TeX I-terms for individual pairs.")
+    print("These values represent ONE pair's contribution, NOT the full assembly.")
+    print()
+    print("NOTE: tex_mirror does not expose per-pair breakdowns in its public")
+    print("interface. For a true pair-level comparison, we would need to:")
+    print("  1. Extract per-pair values from tex_mirror's internal computation")
+    print("  2. Compare direct (ℓ₁,ℓ₂) against tex_mirror's (ℓ₁,ℓ₂) contribution")
+    print()
+
+    for bench_name, polys, target in benchmarks:
+        R = target["R"]
+
+        print(f"\nBenchmark: {bench_name} (R={R})")
+        print("-" * 50)
+
+        # Compute direct I-terms for (1,1)
+        P1 = polys["P1"]
+        Q = polys["Q"]
+
+        I1_direct = compute_I1_direct_11(THETA, R, P1, P1, Q, n_quad=60)
+        I2_direct = compute_I2_direct_11(THETA, R, P1, P1, Q, n_quad=60)
+        I3_direct = compute_I3_direct_11(THETA, R, P1, P1, Q, n_quad=60)
+        I4_direct = compute_I4_direct_11(THETA, R, P1, P1, Q, n_quad=60)
+        sum_direct = I1_direct + I2_direct + I3_direct + I4_direct
+
+        print(f"(1,1) Pair - Direct TeX formulas:")
+        print(f"  I₁ = {I1_direct:+.6f}")
+        print(f"  I₂ = {I2_direct:+.6f}")
+        print(f"  I₃ = {I3_direct:+.6f}")
+        print(f"  I₄ = {I4_direct:+.6f}")
+        print(f"  Sum(1,1) = {sum_direct:+.6f}")
+
+    # =========================================================================
+    # SECTION 2: FULL-ASSEMBLY ANALYSIS (tex_mirror totals)
+    # =========================================================================
+    print()
+    print("=" * 70)
+    print("SECTION 2: FULL-ASSEMBLY ANALYSIS")
+    print("=" * 70)
+    print()
+    print("tex_mirror assembles ALL 6 pairs: (1,1), (2,2), (3,3), (1,2), (1,3), (2,3)")
+    print("These values are TOTALS, not single-pair contributions.")
     print()
 
     for bench_name, polys, target in benchmarks:
@@ -333,7 +379,7 @@ def main():
         print(f"\nBenchmark: {bench_name} (R={R})")
         print("-" * 50)
 
-        # Get tex_mirror result for comparison
+        # Get tex_mirror result
         tex_result = compute_c_paper_tex_mirror(
             theta=THETA,
             R=R,
@@ -343,35 +389,56 @@ def main():
             tex_exp_component="exp_R_ref",
         )
 
-        # Compute direct I-terms for (1,1)
-        P1 = polys["P1"]
-        P2 = polys["P1"]  # (1,1) uses P1 twice
-        Q = polys["Q"]
+        print(f"tex_mirror model (ALL pairs combined):")
+        print(f"  I1_plus (total)  = {tex_result.I1_plus:+.6f}")
+        print(f"  I2_plus (total)  = {tex_result.I2_plus:+.6f}")
+        print(f"  S34_plus (total) = {tex_result.S34_plus:+.6f}")
+        print(f"  m1, m2           = {tex_result.m1:.4f}, {tex_result.m2:.4f}")
+        print(f"  c (assembled)    = {tex_result.c:.6f}")
+        print(f"  c_target         = {c_target:.6f}")
+        print(f"  c gap            = {100 * (tex_result.c - c_target) / c_target:+.2f}%")
 
-        I1_direct = compute_I1_direct_11(THETA, R, P1, P2, Q, n_quad=60)
-        I2_direct = compute_I2_direct_11(THETA, R, P1, P2, Q, n_quad=60)
-        I3_direct = compute_I3_direct_11(THETA, R, P1, P2, Q, n_quad=60)
-        I4_direct = compute_I4_direct_11(THETA, R, P1, P2, Q, n_quad=60)
-
-        print(f"Direct TeX formulas (1,1) pair:")
-        print(f"  I₁ = {I1_direct:.6f}")
-        print(f"  I₂ = {I2_direct:.6f}")
-        print(f"  I₃ = {I3_direct:.6f}")
-        print(f"  I₄ = {I4_direct:.6f}")
-        print(f"  Sum = {I1_direct + I2_direct + I3_direct + I4_direct:.6f}")
-        print()
-        print(f"tex_mirror model (full assembly):")
-        print(f"  I1_plus = {tex_result.I1_plus:.6f}")
-        print(f"  I2_plus = {tex_result.I2_plus:.6f}")
-        print(f"  S34_plus = {tex_result.S34_plus:.6f}")
-        print(f"  c = {tex_result.c:.6f}")
-        print(f"  c_target = {c_target:.6f}")
-        print(f"  gap = {100 * (tex_result.c - c_target) / c_target:+.2f}%")
-
+    # =========================================================================
+    # SECTION 3: COMPARISON INTERPRETATION
+    # =========================================================================
     print()
     print("=" * 70)
-    print("SECTION 2: (2,2) Pair - Direct I-term Computation")
+    print("SECTION 3: COMPARISON INTERPRETATION")
     print("=" * 70)
+    print("""
+CRITICAL: Section 1 and Section 2 values are NOT directly comparable!
+
+  Section 1: Direct I-terms for (1,1) pair ONLY
+  Section 2: tex_mirror totals across ALL 6 pairs
+
+Why they differ:
+  - Direct (1,1) is ONE pair; tex_mirror sums 6 pairs
+  - tex_mirror uses shape×amplitude factorization
+  - tex_mirror separates +R/-R; TeX combines them
+
+What a proper comparison would need:
+  1. Extract tex_mirror's per-pair breakdown (not currently exposed)
+  2. Compute direct I-terms for ALL 6 pairs with correct (1-u) powers
+  3. Sum direct values across pairs
+  4. Compare: Direct total vs tex_mirror total
+
+The numbers above should be interpreted as:
+  - Section 1: Shows WHAT direct TeX computation produces for one pair
+  - Section 2: Shows WHAT tex_mirror produces for full assembly
+  - NOT as a direct A=B comparison!
+""")
+
+    # =========================================================================
+    # SECTION 4: (2,2) Pair for reference (incomplete - wrong power)
+    # =========================================================================
+    print()
+    print("=" * 70)
+    print("SECTION 4: (2,2) Pair Reference (INCOMPLETE)")
+    print("=" * 70)
+    print()
+    print("WARNING: The functions below use (1-u)^2 for all pairs.")
+    print("For (2,2), the correct power is (1-u)^4 (OLD) or (1-u)^2 (V2).")
+    print("These values are for ILLUSTRATION only, not accurate (2,2) values.")
     print()
 
     for bench_name, polys, target in benchmarks:
@@ -384,28 +451,24 @@ def main():
         P2_poly = polys["P2"]
         Q = polys["Q"]
 
-        # Note: For (2,2), the (1-u) power should be 4 (OLD) or 2 (V2)
-        # Using (1-u)^2 here as a test (matches (1,1))
-        # A full implementation would need to adjust the power
-
         I1_direct = compute_I1_direct_11(THETA, R, P2_poly, P2_poly, Q, n_quad=60)
         I2_direct = compute_I2_direct_11(THETA, R, P2_poly, P2_poly, Q, n_quad=60)
         I3_direct = compute_I3_direct_11(THETA, R, P2_poly, P2_poly, Q, n_quad=60)
         I4_direct = compute_I4_direct_11(THETA, R, P2_poly, P2_poly, Q, n_quad=60)
 
-        print(f"Direct TeX formulas (2,2) pair with (1-u)² [should be (1-u)⁴]:")
-        print(f"  I₁ = {I1_direct:.6f}")
-        print(f"  I₂ = {I2_direct:.6f}")
-        print(f"  I₃ = {I3_direct:.6f}")
-        print(f"  I₄ = {I4_direct:.6f}")
-        print(f"  Sum = {I1_direct + I2_direct + I3_direct + I4_direct:.6f}")
-        print()
-        print("Note: (2,2) needs (1-u)^4 power for correct OLD formula.")
-        print("This version uses (1-u)^2 for illustration only.")
+        print(f"(2,2) Pair - Direct (WRONG POWER - using (1-u)² instead of (1-u)⁴):")
+        print(f"  I₁ = {I1_direct:+.6f}")
+        print(f"  I₂ = {I2_direct:+.6f}")
+        print(f"  I₃ = {I3_direct:+.6f}")
+        print(f"  I₄ = {I4_direct:+.6f}")
+        print(f"  Sum = {I1_direct + I2_direct + I3_direct + I4_direct:+.6f}")
 
+    # =========================================================================
+    # SECTION 5: STRUCTURAL ANALYSIS
+    # =========================================================================
     print()
     print("=" * 70)
-    print("ANALYSIS")
+    print("SECTION 5: STRUCTURAL ANALYSIS")
     print("=" * 70)
     print("""
 KEY OBSERVATIONS:

@@ -1,0 +1,82 @@
+{
+  "phase": "14K",
+  "description": "Delta convergence study",
+  "baseline": [
+    {
+      "benchmark": "kappa",
+      "laurent_mode": "raw_logderiv",
+      "delta": 0.2525733341639576,
+      "B_over_A": 5.252573334163957,
+      "gap_percent": 5.051466683279138
+    },
+    {
+      "benchmark": "kappa_star",
+      "laurent_mode": "raw_logderiv",
+      "delta": 0.07914805015341247,
+      "B_over_A": 5.079148050153412,
+      "gap_percent": 1.5829610030682415
+    }
+  ],
+  "attribution": {
+    "kappa": {
+      "delta": 0.2525733341639576,
+      "delta_s12": 0.7051194303994753,
+      "delta_s34": -0.4525460962355178,
+      "s12_pct": 279.1741387638919,
+      "s34_pct": -179.1741387638919,
+      "I12_plus": 0.794073100035224,
+      "I12_minus": 1.126154046819208,
+      "I34_plus": -0.509636617647863
+    },
+    "kappa_star": {
+      "delta": 0.07914805015341247,
+      "delta_s12": 0.5815399496150323,
+      "delta_s34": -0.5023918994616198,
+      "s12_pct": 734.7495591967646,
+      "s34_pct": -634.7495591967645,
+      "I12_plus": 0.43358948384564666,
+      "I12_minus": 0.7455884744163735,
+      "I34_plus": -0.37457760987873323
+    }
+  },
+  "mode_comparison": {
+    "kappa": {
+      "raw_logderiv": {
+        "delta": 0.2525733341639576,
+        "B_over_A": 5.252573334163957,
+        "gap_percent": 5.051466683279138
+      },
+      "pole_cancelled": {
+        "delta": 0.33070926172389287,
+        "B_over_A": 5.330709261723893,
+        "gap_percent": 6.614185234477858
+      }
+    },
+    "kappa_star": {
+      "raw_logderiv": {
+        "delta": 0.07914805015341247,
+        "B_over_A": 5.079148050153412,
+        "gap_percent": 1.5829610030682415
+      },
+      "pole_cancelled": {
+        "delta": 0.2527385592739809,
+        "B_over_A": 5.252738559273981,
+        "gap_percent": 5.054771185479616
+      }
+    }
+  },
+  "classification": {
+    "kappa": {
+      "delta": 0.2525733341639576,
+      "gap_percent": 5.051466683279138,
+      "s12_dominates": true,
+      "classification": "structural"
+    },
+    "kappa_star": {
+      "delta": 0.07914805015341247,
+      "gap_percent": 1.5829610030682415,
+      "s12_dominates": true,
+      "classification": "acceptable"
+    }
+  }
+}

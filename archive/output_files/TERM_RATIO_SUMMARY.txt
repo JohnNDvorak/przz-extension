@@ -1,0 +1,160 @@
+================================================================================
+TERM STRUCTURE COMPARISON: κ vs κ* for (2,2) Pair
+================================================================================
+Date: 2025-12-17
+Question: Where does the 2.43x ratio (vs target 1.10) come from?
+
+================================================================================
+INDIVIDUAL TERM RATIOS
+================================================================================
+
+Term        κ Value    κ* Value   Ratio    Distance from 1.10
+────────────────────────────────────────────────────────────────
+I₁ (mixed)   1.1686     0.4897    2.39     +1.29
+I₂ (base)    0.9088     0.3406    2.67     +1.57 (WORST)
+I₃ (d/dx)   -0.5444    -0.2117    2.57     +1.47
+I₄ (d/dy)   -0.5444    -0.2117    2.57     +1.47
+────────────────────────────────────────────────────────────────
+TOTAL        0.9887     0.4070    2.43     +1.33
+
+================================================================================
+RATIO DECOMPOSITION (I₂ ONLY)
+================================================================================
+
+I₂ = (1/θ) × [∫P₂² du] × [∫Q²·e^{2Rt} dt]
+
+Component                    κ          κ*       Ratio
+──────────────────────────────────────────────────────
+∫P₂² du                   0.7250     0.3181    2.28  ← 85% of problem
+∫Q²·e^{2Rt} dt            0.7163     0.6117    1.17  ← 15% of problem
+──────────────────────────────────────────────────────
+I₂ = (1/θ) × product      0.9088     0.3406    2.67
+
+Verification: 2.28 × 1.17 = 2.67 ✓
+
+================================================================================
+EFFECT OF DERIVATIVES
+================================================================================
+
+Component           Ratio    Effect
+──────────────────────────────────────
+I₂ alone            2.67     (baseline)
+I₂ + I₁             2.50     -0.17 (improves by 6%)
+I₂ + I₁ + I₃ + I₄   2.43     -0.24 (improves by 9%)
+
+Derivative sum:
+  I₁+I₃+I₄ (κ):  0.080
+  I₁+I₃+I₄ (κ*): 0.066
+  Ratio:         1.20  ← Much better than individual terms!
+
+KEY FINDING: Derivatives HELP by reducing ratio from 2.67 → 2.43
+
+================================================================================
+ROOT CAUSE BREAKDOWN
+================================================================================
+
+Source                          Contribution    Percentage
+─────────────────────────────────────────────────────────
+P₂ polynomial L² norm (2.28x)   +1.28           85%
+Q·exp integral (1.17x)          +0.17           11%
+Derivative cancellation (0.91x) -0.10           4%
+─────────────────────────────────────────────────────────
+Total discrepancy               +1.33           100%
+
+(Target is 1.10, observed is 2.43, so discrepancy is 1.33)
+
+================================================================================
+POLYNOMIAL STRUCTURE
+================================================================================
+
+Benchmark   P₂ Structure         Tilde Deg   ∫P₂² du
+──────────────────────────────────────────────────────
+κ           degree 3 (x·P̃₂)      2          0.7250
+κ*          degree 2 (x·P̃₁)      1          0.3181
+
+The κ P₂ has HIGHER DEGREE and LARGER MAGNITUDE.
+
+================================================================================
+Q POLYNOMIAL STRUCTURE
+================================================================================
+
+Benchmark   R        ∫Q² dt    ∫Q²·e^{2Rt} dt
+──────────────────────────────────────────────
+κ           1.3036   0.3436    0.7163
+κ*          1.1167   0.3229    0.6117
+
+Ratio:      1.17     1.06      1.17
+
+The Q polynomials are SIMILAR (ratio 1.06).
+The exp(2Rt) weighting adds ~10% due to R difference.
+
+================================================================================
+DERIVATIVE TERM CONTRIBUTIONS (as % of total)
+================================================================================
+
+                   κ Benchmark          κ* Benchmark
+Term        Value    % of Total   Value    % of Total
+────────────────────────────────────────────────────────
+I₁          1.169     118.2%      0.490     120.3%
+I₂          0.909      91.9%      0.341      83.7%
+I₃         -0.544     -55.1%     -0.212     -52.0%
+I₄         -0.544     -55.1%     -0.212     -52.0%
+
+NOTE: Percentages don't sum to 100% because of cancellation.
+      The relative importance is SIMILAR between benchmarks.
+
+================================================================================
+CONTRADICTS HANDOFF CLAIM
+================================================================================
+
+Handoff statement: "Derivative terms make ratio WORSE (1.92 vs 1.71)"
+
+For (2,2) pair:
+  - I₂ alone:        2.67
+  - With derivatives: 2.43
+  - Change:          -0.24 (9% improvement)
+
+Conclusion: Derivatives make ratio BETTER, not worse.
+
+The handoff may have been referring to:
+  1. A different pair (not 2,2)
+  2. An aggregate over all pairs
+  3. A different diagnostic measurement
+
+================================================================================
+RECOMMENDED ACTIONS
+================================================================================
+
+Priority 1: Search PRZZ for polynomial normalization
+  → Look for factors like 1/(∫P²) or "normalized polynomial"
+  → The 2.28x factor from P₂ is 85% of the problem
+
+Priority 2: Check Q polynomial transcription
+  → Verify κ Q coeffs (PRZZ lines 1456-1460)
+  → Verify κ* Q coeffs (PRZZ lines 2595-2598)
+  → Though Q difference is small (1.06), should verify
+
+Priority 3: Re-read PRZZ Section 7 formulas
+  → Line 1548 (I₂ formula)
+  → Check for any R-dependent prefactors
+  → Check for any polynomial-dependent prefactors
+
+Priority 4: Test normalization hypothesis
+  → Try I₂_normalized = I₂ / (∫P₂²)
+  → See if this brings ratio closer to 1.10
+
+================================================================================
+CONCLUSION
+================================================================================
+
+The 2.43x ratio comes from:
+  • 85% from P₂ polynomial (2.28x larger L² norm in κ vs κ*)
+  • 15% from Q·exp integral (1.17x, due to R and Q differences)
+  • Derivatives HELP by reducing the ratio by 9%
+
+The problem is NOT in derivative extraction.
+The problem is understanding how PRZZ normalizes polynomial contributions.
+
+Most likely missing: normalization factor involving ∫P₂² or similar.
+
+================================================================================

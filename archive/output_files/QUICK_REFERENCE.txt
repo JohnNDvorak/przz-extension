@@ -1,0 +1,87 @@
+================================================================================
+QUICK REFERENCE: κ/κ* RATIO ANALYSIS
+================================================================================
+
+QUESTION ASKED:
+---------------
+Is the ratio reversal coming from specific pairs or is it uniform?
+
+ANSWER:
+-------
+PAIR-SPECIFIC. Ratios range from 0.43x to 3.32x (6.6x variation).
+This variation is EXPECTED and NOT the source of the mystery.
+
+LARGEST DISCREPANCIES (I₂ component ratio κ/κ*):
+-----------------------------------------------
+1. (3,3): 3.32x  (+200% from target 1.103)
+2. (2,2): 2.67x  (+142% from target)
+3. (1,2): 1.79x  (+62% from target)
+4. (1,3): 0.50x  (-54% from target)
+5. (2,3): 0.50x  (-54% from target)
+6. (1,1): 1.20x  (+9% from target) ← CLOSEST
+
+WHY RATIOS VARY:
+----------------
+• κ* uses SIMPLER polynomials:
+  - Q is LINEAR (degree 1 vs 5)
+  - P₂, P₃ are degree 2 (vs 3 for κ)
+
+• Polynomial coefficients differ significantly:
+  - P₂ x² coefficient: κ = +1.32, κ* = -0.097 (SIGN FLIP!)
+  - P₃ x¹ coefficient: κ = +0.52, κ* = +0.035 (15x difference!)
+
+• Different polynomial degrees → different integral magnitudes
+  - ∫P₂² du: κ = 0.725, κ* = 0.318 (2.3x ratio)
+  - ∫P₃² du: κ = 0.007, κ* = 0.003 (2.8x ratio)
+
+WHY THIS IS EXPECTED:
+---------------------
+Target ratio c(κ)/c(κ*) = 1.103 comes from:
+  c = exp(R·(1-κ))
+
+Individual components DON'T have to equal 1.103.
+They compensate when weighted and summed.
+
+REAL MYSTERY IDENTIFIED:
+------------------------
+BOTH κ and κ* give NEGATIVE c values:
+  κ:  c = -1.042  (target: +2.137)  ← 148% error
+  κ*: c = -0.587  (target: +1.938)  ← 130% error
+
+ROOT CAUSE:
+  Derivative terms (I₁+I₃+I₄) are large and negative,
+  overwhelming the positive I₂ terms.
+
+CONCLUSION:
+-----------
+✓ Individual pair ratio variation is MATHEMATICALLY CORRECT
+✗ Negative c values indicate IMPLEMENTATION ERROR in derivatives
+
+NEXT STEPS:
+-----------
+1. Test I₂-only computation (should be positive)
+2. Validate (1,1) pair independently
+3. Check I₁ sign convention for cross-pairs
+4. Verify κ* polynomial transcription
+
+FILES CREATED:
+--------------
+1. analyze_kappa_ratio.py - I₂ component analysis
+2. detailed_ratio_analysis.py - Polynomial comparison
+3. simple_ratio_breakdown.py - Full c per pair
+4. RATIO_ANALYSIS_SUMMARY.md - Detailed writeup
+5. RATIO_TABLE.txt - Comprehensive data
+6. MYSTERY_SOLVED.md - Full explanation
+7. QUICK_REFERENCE.txt - This file
+
+DATA OUTPUTS:
+-------------
+• ratio_analysis_output.txt
+• detailed_analysis_output.txt
+• full_breakdown_output.txt
+
+WORKING DIRECTORY:
+------------------
+/Users/john.n.dvorak/Documents/Git/Zeta_Mollifier_Optimization/przz-extension
+
+================================================================================
