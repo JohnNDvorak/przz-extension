@@ -33,24 +33,40 @@ from src.composition import PolyLike
 from src.kernel_registry import KernelRegime
 
 
-@dataclass
-class TermResult:
-    """Result of evaluating a single term."""
-    name: str
-    value: float
-    # For debugging: intermediate values
-    extracted_coeff_sample: Optional[float] = None  # coeff at grid center
-    series_term_count: Optional[int] = None  # number of series terms
+# =============================================================================
+# RESULT TYPES AND SPEC LOCKS - Extracted to src/evaluator/result_types.py
+# =============================================================================
+#
+# The following types are imported from src.evaluator for backwards compatibility:
+# - TermResult: Result of evaluating a single term
+# - EvaluationResult: Result of evaluating multiple terms
+# - S34OrderedPairsError: Raised when using wrong pair convention
+# - I34MirrorForbiddenError: Raised when applying mirror to I3/I4
+#
+# Helper functions (also in src.evaluator):
+# - get_s34_triangle_pairs(): S34 triangle x 2 convention
+# - get_s34_factorial_normalization(): Factorial normalization factors
+# - assert_s34_triangle_convention(): Guard against ordered pairs
+# - assert_i34_no_mirror(): Guard against I3/I4 mirror
+#
+# SPEC LOCK: I3/I4 Mirror is FORBIDDEN
+# Per TRUTH_SPEC.md Section 10: I1/I2 have mirror, I3/I4 do NOT
+#
+# SPEC LOCK: S34 uses TRIANGLE x 2 convention, NOT 9 ordered pairs
+# Using 9 ordered pairs causes +11% OVERSHOOT.
+# Reference: TRUTH_SPEC.md Section 13
+# =============================================================================
 
-
-@dataclass
-class EvaluationResult:
-    """Result of evaluating multiple terms."""
-    total: float
-    per_term: Dict[str, float]
-    n: int
-    # Additional metadata
-    term_results: Optional[List[TermResult]] = None
+from src.evaluator.result_types import (
+    TermResult,
+    EvaluationResult,
+    S34OrderedPairsError,
+    I34MirrorForbiddenError,
+    get_s34_triangle_pairs,
+    get_s34_factorial_normalization,
+    assert_s34_triangle_convention as _assert_s34_triangle_convention,
+    assert_i34_no_mirror as _assert_i34_no_mirror,
+)
 
 
 def _coerce_to_grid_shape(
@@ -378,6 +394,7 @@ def evaluate_c_full(
     mode: str = "main",
     kernel_regime: KernelRegime = "raw",
     n_quad_a: int = 40,
+    terms_version: str = "old",  # Run 10A: "old" or "v2"
 ) -> EvaluationResult:
     """
     Evaluate full c from all K=3 pair contributions.
@@ -424,7 +441,11 @@ def evaluate_c_full(
     # Validate mode
     if mode not in ("main", "with_error_terms"):
         raise ValueError(f"mode must be 'main' or 'with_error_terms', got '{mode}'")
-    from src.terms_k3_d1 import make_all_terms_k3
+    # Run 10A: Dispatch based on terms_version
+    if terms_version == "v2":
+        from src.terms_k3_d1 import make_all_terms_k3_v2 as make_all_terms_k3
+    else:
+        from src.terms_k3_d1 import make_all_terms_k3
     import math
 
     all_terms = make_all_terms_k3(theta, R, kernel_regime=kernel_regime)
@@ -660,6 +681,7 @@ def evaluate_c_hybrid(
     kernel_regime: KernelRegime = "paper",
     mode: str = "main",
     n_quad_a: int = 40,
+    terms_version: str = "old",  # Run 10A: "old" or "v2"
 ) -> EvaluationResult:
     """Evaluate c using a hybrid pair assembly.
 
@@ -669,7 +691,12 @@ def evaluate_c_hybrid(
     if mode not in ("main", "with_error_terms"):
         raise ValueError(f"mode must be 'main' or 'with_error_terms', got '{mode}'")
 
-    from src.terms_k3_d1 import make_all_terms_k3, make_all_terms_k3_ordered
+    # Run 10A: Dispatch based on terms_version
+    if terms_version == "v2":
+        from src.terms_k3_d1 import make_all_terms_k3_v2 as make_all_terms_k3
+        from src.terms_k3_d1 import make_all_terms_k3_ordered_v2 as make_all_terms_k3_ordered
+    else:
+        from src.terms_k3_d1 import make_all_terms_k3, make_all_terms_k3_ordered
     import math
 
     triangle_terms = make_all_terms_k3(theta, R, kernel_regime=kernel_regime)
@@ -967,10 +994,173 @@ def compute_c_paper_with_mirror(
     if mode != "main":
         raise ValueError("compute_c_paper_with_mirror only supports mode='main' (I₅ forbidden per PRZZ)")
 
-    if mirror_mode not in ("empirical_scalar", "operator_q_shift", "operator_q_shift_joint"):
+    if mirror_mode not in ("empirical_scalar", "operator_q_shift", "operator_q_shift_joint", "difference_quotient", "difference_quotient_v2"):
         raise ValueError(
-            "mirror_mode must be 'empirical_scalar', 'operator_q_shift', or 'operator_q_shift_joint', "
-            f"got '{mirror_mode}'"
+            "mirror_mode must be 'empirical_scalar', 'operator_q_shift', 'operator_q_shift_joint', "
+            f"'difference_quotient', or 'difference_quotient_v2', got '{mirror_mode}'"
+        )
+
+    # Handle difference_quotient mode early - use unified bracket evaluator
+    if mirror_mode == "difference_quotient":
+        from src.unified_bracket_evaluator import compute_s12_with_difference_quotient
+        from src.terms_k3_d1 import make_all_terms_k3
+
+        # Compute S12 using difference quotient approach
+        s12_result = compute_s12_with_difference_quotient(
+            polynomials=polynomials,
+            theta=theta,
+            R=R,
+            n=n,
+            use_factorial_normalization=use_factorial_normalization,
+            benchmark="difference_quotient",
+        )
+
+        # For S34, still use empirical approach (I3/I4 don't need mirror)
+        all_terms_plus = make_all_terms_k3(theta, R, kernel_regime="paper")
+
+        import math
+        factorial_norm = {
+            "11": 1.0 / (math.factorial(1) * math.factorial(1)),
+            "22": 1.0 / (math.factorial(2) * math.factorial(2)),
+            "33": 1.0 / (math.factorial(3) * math.factorial(3)),
+            "12": 1.0 / (math.factorial(1) * math.factorial(2)),
+            "13": 1.0 / (math.factorial(1) * math.factorial(3)),
+            "23": 1.0 / (math.factorial(2) * math.factorial(3)),
+        }
+        symmetry_factor = {
+            "11": 1.0, "22": 1.0, "33": 1.0,
+            "12": 2.0, "13": 2.0, "23": 2.0
+        }
+
+        i3_i4_plus_total = 0.0
+        per_term = {}
+
+        for pair_key in ["11", "22", "33", "12", "13", "23"]:
+            terms_plus = all_terms_plus[pair_key]
+            norm = factorial_norm[pair_key] if use_factorial_normalization else 1.0
+            sym = symmetry_factor[pair_key]
+            full_norm = sym * norm
+
+            # I₃ and I₄ (indices 2, 3) - NO mirror
+            for term_plus in terms_plus[2:4]:  # I₃, I₄
+                result_plus = evaluate_term(
+                    term_plus, polynomials, n, R=R, theta=theta, n_quad_a=n_quad_a
+                )
+                contrib = full_norm * result_plus.value
+                i3_i4_plus_total += contrib
+                per_term[term_plus.name] = result_plus.value
+
+        # Combine S12 (from difference quotient) with S34 (empirical)
+        # In difference quotient mode: S12_plus = 0, S12_minus = A
+        mirror_mult = math.exp(R) + (2 * K - 1)
+        total = s12_result.S12_minus * mirror_mult + i3_i4_plus_total
+
+        # Store diagnostic breakdown
+        per_term["_S12_plus_total"] = s12_result.S12_plus
+        per_term["_S12_minus_total"] = s12_result.S12_minus
+        per_term["_S34_total"] = i3_i4_plus_total
+        per_term["_I3_I4_plus_total"] = i3_i4_plus_total
+        per_term["_mirror_multiplier"] = mirror_mult
+        per_term["_mirror_mode"] = mirror_mode
+        per_term["_s12_per_pair"] = s12_result.per_pair
+        per_term["_abd_D"] = s12_result.abd.D
+        per_term["_abd_B_over_A"] = s12_result.abd.B_over_A
+        per_term["_assembly"] = (
+            f"c = {mirror_mult:.4f}×S12_minus + S34 (difference quotient: S12_plus=0)"
+        )
+
+        return EvaluationResult(
+            total=total,
+            per_term=per_term,
+            n=n,
+            term_results=None
+        )
+
+    # Handle difference_quotient_v2 mode - uses unified S12 evaluator with symmetry-based D=0
+    if mirror_mode == "difference_quotient_v2":
+        from src.unified_s12_evaluator import compute_S12_unified_v2, run_dual_benchmark_v2
+        from src.terms_k3_d1 import make_all_terms_k3
+        import math
+
+        # Compute S12 using the unified difference quotient structure
+        # Key insight: I1(+R) = exp(2R) × I1(-R), so S12_combined = 0
+        s12_result = compute_S12_unified_v2(
+            R=R,
+            theta=theta,
+            n_quad=n,
+            I34_plus=0.0,  # Micro-case: I34 = 0
+            benchmark="difference_quotient_v2",
+        )
+
+        # For S34, still use empirical approach (I3/I4 don't need mirror)
+        all_terms_plus = make_all_terms_k3(theta, R, kernel_regime="paper")
+
+        factorial_norm = {
+            "11": 1.0 / (math.factorial(1) * math.factorial(1)),
+            "22": 1.0 / (math.factorial(2) * math.factorial(2)),
+            "33": 1.0 / (math.factorial(3) * math.factorial(3)),
+            "12": 1.0 / (math.factorial(1) * math.factorial(2)),
+            "13": 1.0 / (math.factorial(1) * math.factorial(3)),
+            "23": 1.0 / (math.factorial(2) * math.factorial(3)),
+        }
+        symmetry_factor = {
+            "11": 1.0, "22": 1.0, "33": 1.0,
+            "12": 2.0, "13": 2.0, "23": 2.0
+        }
+
+        i3_i4_plus_total = 0.0
+        per_term = {}
+
+        for pair_key in ["11", "22", "33", "12", "13", "23"]:
+            terms_plus = all_terms_plus[pair_key]
+            norm = factorial_norm[pair_key] if use_factorial_normalization else 1.0
+            sym = symmetry_factor[pair_key]
+            full_norm = sym * norm
+
+            # I₃ and I₄ (indices 2, 3) - NO mirror
+            for term_plus in terms_plus[2:4]:  # I₃, I₄
+                result_plus = evaluate_term(
+                    term_plus, polynomials, n, R=R, theta=theta, n_quad_a=n_quad_a
+                )
+                contrib = full_norm * result_plus.value
+                i3_i4_plus_total += contrib
+                per_term[term_plus.name] = result_plus.value
+
+        # In the unified structure:
+        # - S12_combined = I1_plus - exp(2R)*I1_minus = 0 (by symmetry)
+        # - The baseline A = I1_minus
+        # - D = 0 by construction
+        # - c = A × exp(R) + B where B = 5A + D = 5A (since D=0)
+        # - Therefore c = A × (exp(R) + 5) + I34
+
+        mirror_mult = math.exp(R) + (2 * K - 1)  # exp(R) + 5 for K=3
+        A = s12_result.I1_minus  # The baseline value
+        total = A * mirror_mult + i3_i4_plus_total
+
+        # Store diagnostic breakdown
+        per_term["_S12_combined"] = s12_result.S12_combined
+        per_term["_I1_plus"] = s12_result.I1_plus
+        per_term["_I1_minus"] = s12_result.I1_minus
+        per_term["_ratio"] = s12_result.ratio
+        per_term["_expected_ratio"] = s12_result.expected_ratio
+        per_term["_S34_total"] = i3_i4_plus_total
+        per_term["_I3_I4_plus_total"] = i3_i4_plus_total
+        per_term["_mirror_multiplier"] = mirror_mult
+        per_term["_mirror_mode"] = mirror_mode
+        per_term["_abd_D"] = s12_result.abd.D
+        per_term["_abd_B_over_A"] = s12_result.abd.B_over_A
+        per_term["_abd_A"] = s12_result.abd.A
+        per_term["_abd_B"] = s12_result.abd.B
+        per_term["_symmetry_holds"] = abs(s12_result.ratio - s12_result.expected_ratio) < 1e-10
+        per_term["_assembly"] = (
+            f"c = A×(exp(R)+5) + S34 where A=I1_minus (unified: D={s12_result.abd.D:.2e})"
+        )
+
+        return EvaluationResult(
+            total=total,
+            per_term=per_term,
+            n=n,
+            term_results=None
         )
 
     # Q(D)[T^{-α-β} F] = T^{-α-β} Q(1+D)F  ⇒  mirror branch uses Q(x+1).
@@ -1360,13 +1550,19 @@ def compute_c_paper_ordered(
                 per_term[f"{term_plus.name}_minus"] = result_minus.value
 
     # =====================================================================
-    # PART 2: S34 (I3+I4) with ORDERED pairs, NO mirror
+    # PART 2: S34 (I3+I4) with TRIANGLE pairs ×2, NO mirror
     # =====================================================================
-    for pair_key in ["11", "22", "33", "12", "21", "13", "31", "23", "32"]:
+    # NOTE (2025-12-22): Despite S34 being term-asymmetric (I₃(1,2) ≠ I₃(2,1)),
+    # PRZZ sums over ℓ₁ ≤ ℓ₂ with symmetry factor 2 for off-diagonal.
+    # The asymmetry test (Δ_S34 = 0.54) proved terms differ, but PRZZ never
+    # evaluates both (1,2) and (2,1) — they use triangle convention throughout.
+    # Numerical verification: triangle×2 gives -1.3% error, ordered gives +11%.
+    for pair_key in ["11", "22", "33", "12", "13", "23"]:
         terms = ordered_plus[pair_key]
 
-        norm = f_ordered[pair_key] if use_factorial_normalization else 1.0
-        # NO symmetry factor for ordered pairs
+        norm = f_triangle[pair_key] if use_factorial_normalization else 1.0
+        sym = sym_s12[pair_key]  # 1 for diagonal, 2 for off-diagonal
+        full_norm = sym * norm
 
         # I₃ and I₄ (indices 2, 3)
         for i in [2, 3]:  # I₃, I₄
@@ -1375,11 +1571,11 @@ def compute_c_paper_ordered(
                 term, polynomials, n, R=R, theta=theta, n_quad_a=n_quad_a
             )
 
-            contrib = norm * result.value
+            contrib = full_norm * result.value
             s34_ordered_total += contrib
             total += contrib
 
-            per_term[f"{term.name}_ordered"] = result.value
+            per_term[f"{term.name}_triangle"] = result.value
 
     # Store diagnostic breakdown
     per_term["_I1_plus_total"] = i1_plus_total
@@ -1401,10 +1597,10 @@ def compute_c_paper_ordered(
     per_term["_s12_pair_mode"] = s12_pair_mode
 
     per_term["_assembly"] = (
-        f"c = S12(+R) + {mirror_mult:.4f}×S12(-R) + S34_ordered(+R)"
+        f"c = S12(+R) + {mirror_mult:.4f}×S12(-R) + S34_triangle(+R)"
     )
     per_term["_note"] = (
-        "S12 uses triangle×2 (symmetric), S34 uses ordered sum (NOT symmetric)"
+        "S12 uses triangle×2, S34 uses triangle×2 (PRZZ convention, not ordered)"
     )
 
     return EvaluationResult(
@@ -2768,6 +2964,7 @@ def evaluate_c_ordered(
     kernel_regime: KernelRegime = "paper",
     mode: str = "main",
     n_quad_a: int = 40,
+    terms_version: str = "old",  # Run 10A: "old" or "v2"
 ) -> EvaluationResult:
     """
     Evaluate c by summing ALL 9 ordered pairs directly.
@@ -2795,7 +2992,11 @@ def evaluate_c_ordered(
     if mode not in ("main", "with_error_terms"):
         raise ValueError(f"mode must be 'main' or 'with_error_terms', got '{mode}'")
 
-    from src.terms_k3_d1 import make_all_terms_k3_ordered
+    # Run 10A: Dispatch based on terms_version
+    if terms_version == "v2":
+        from src.terms_k3_d1 import make_all_terms_k3_ordered_v2 as make_all_terms_k3_ordered
+    else:
+        from src.terms_k3_d1 import make_all_terms_k3_ordered
     import math
 
     # Get all 9 ordered pairs
@@ -3137,7 +3338,9 @@ def compute_c_paper_operator_v2(
     lift_scope: str = "i1_only",
     sigma: float = 1.0,
     allow_unstable: bool = False,
+    i1_source: str = "dsl",  # GPT Phase 1: "dsl" (default) or "post_identity_operator"
     i2_source: str = "dsl",  # Run 8A: "dsl" (default) or "direct_case_c" (proven)
+    terms_version: str = "old",  # Run 10A: "old" or "v2"
 ) -> EvaluationResult:
     """
     Operator mode V2 with factor localization and configurable shift magnitude.
@@ -3168,6 +3371,9 @@ def compute_c_paper_operator_v2(
             - "i1_right_only": Apply only to Q(Arg_β) in I₁
         sigma: Shift magnitude (default 1.0 for Q(1+x))
         allow_unstable: Allow unstable normalizations like q1_ratio
+        i1_source: Source for I1 computation:
+            - "dsl" (default): Use DSL-based term evaluation
+            - "post_identity_operator": Use post-identity operator approach (GPT Phase 1)
         i2_source: Source for I2 computation:
             - "dsl" (default): Use DSL-based term evaluation
             - "direct_case_c": Use proven Case C kernel evaluation (Run 7/8)
@@ -3176,7 +3382,11 @@ def compute_c_paper_operator_v2(
         EvaluationResult with c and detailed channel breakdown
     """
     from dataclasses import replace
-    from src.terms_k3_d1 import make_all_terms_k3_ordered
+    # Run 10A: Dispatch based on terms_version
+    if terms_version == "v2":
+        from src.terms_k3_d1 import make_all_terms_k3_ordered_v2 as make_all_terms_k3_ordered
+    else:
+        from src.terms_k3_d1 import make_all_terms_k3_ordered
     from src.q_operator import binomial_shift_coeffs
     from src.polynomials import Polynomial
     from src.quadrature import gauss_legendre_01
@@ -3353,53 +3563,96 @@ def compute_c_paper_operator_v2(
     # =========================================================================
     # PART 1: I₁ (terms[0] for each pair)
     # =========================================================================
-    for pair_key in ["11", "22", "33", "12", "21", "13", "31", "23", "32"]:
-        terms_plus = ordered_plus[pair_key]
-        terms_minus = ordered_minus[pair_key]
-        norm = f_ordered[pair_key] if use_factorial_normalization else 1.0
+    # GPT Phase 1: Support both DSL and post-identity operator sources
+    if i1_source == "post_identity_operator":
+        # Use post-identity operator evaluation (GPT Phase 1)
+        from src.operator_post_identity import compute_I1_operator_post_identity_pair
 
-        term_plus = terms_plus[0]
-        term_minus = terms_minus[0]
+        for pair_key in ["11", "22", "33", "12", "21", "13", "31", "23", "32"]:
+            ell1, ell2 = int(pair_key[0]), int(pair_key[1])
+            norm = f_ordered[pair_key] if use_factorial_normalization else 1.0
 
-        result_plus = evaluate_term(
-            term_plus, polys_base, n, R=R, theta=theta, n_quad_a=n_quad_a
-        )
-        result_minus_base = evaluate_term(
-            term_minus, polys_base, n, R=-R, theta=theta, n_quad_a=n_quad_a
-        )
+            # Post-identity gives I1 at +R and -R
+            result_plus = compute_I1_operator_post_identity_pair(
+                theta, R, ell1, ell2, n, polys_base
+            )
+            result_minus = compute_I1_operator_post_identity_pair(
+                theta, -R, ell1, ell2, n, polys_base
+            )
 
-        if apply_lift_to_i1:
-            if i1_partial_mode:
-                if lift_scope == "i1_left_only":
-                    term_minus_op = _rename_i1_q_factors(term_minus, left_name="Q_lift", right_name="Q")
+            i1_plus_raw = result_plus.I1_value
+            i1_minus_base_raw = result_minus.I1_value
+
+            # For post_identity_operator, skip Q-lift (like direct_case_c does for I2)
+            # The post-identity operator doesn't support Q-lift
+            i1_minus_op_raw = i1_minus_base_raw
+
+            # Store weighted per-pair channels
+            pair = pair_breakdown.setdefault(pair_key, {"weight": float(norm)})
+            pair["I1_plus"] = float(norm * i1_plus_raw)
+            pair["I1_minus_base"] = float(norm * i1_minus_base_raw)
+            pair["I1_minus_op"] = float(norm * i1_minus_op_raw)
+            pair["I1_plus_raw"] = float(i1_plus_raw)
+            pair["I1_minus_base_raw"] = float(i1_minus_base_raw)
+            pair["I1_minus_op_raw"] = float(i1_minus_op_raw)
+
+            val = i1_plus_raw + i1_minus_op_raw
+            contrib = norm * val
+
+            i1_plus_total += norm * i1_plus_raw
+            i1_minus_base += norm * i1_minus_base_raw
+            i1_minus_op += norm * i1_minus_op_raw
+            total += contrib
+
+    else:
+        # Default: Use DSL-based term evaluation
+        for pair_key in ["11", "22", "33", "12", "21", "13", "31", "23", "32"]:
+            terms_plus = ordered_plus[pair_key]
+            terms_minus = ordered_minus[pair_key]
+            norm = f_ordered[pair_key] if use_factorial_normalization else 1.0
+
+            term_plus = terms_plus[0]
+            term_minus = terms_minus[0]
+
+            result_plus = evaluate_term(
+                term_plus, polys_base, n, R=R, theta=theta, n_quad_a=n_quad_a
+            )
+            result_minus_base = evaluate_term(
+                term_minus, polys_base, n, R=-R, theta=theta, n_quad_a=n_quad_a
+            )
+
+            if apply_lift_to_i1:
+                if i1_partial_mode:
+                    if lift_scope == "i1_left_only":
+                        term_minus_op = _rename_i1_q_factors(term_minus, left_name="Q_lift", right_name="Q")
+                    else:
+                        term_minus_op = _rename_i1_q_factors(term_minus, left_name="Q", right_name="Q_lift")
+                    result_minus_op = evaluate_term(
+                        term_minus_op, polys_lift_partial, n, R=-R, theta=theta, n_quad_a=n_quad_a
+                    )
                 else:
-                    term_minus_op = _rename_i1_q_factors(term_minus, left_name="Q", right_name="Q_lift")
-                result_minus_op = evaluate_term(
-                    term_minus_op, polys_lift_partial, n, R=-R, theta=theta, n_quad_a=n_quad_a
-                )
+                    result_minus_op = evaluate_term(
+                        term_minus, polys_lift_full, n, R=-R, theta=theta, n_quad_a=n_quad_a
+                    )
             else:
-                result_minus_op = evaluate_term(
-                    term_minus, polys_lift_full, n, R=-R, theta=theta, n_quad_a=n_quad_a
-                )
-        else:
-            result_minus_op = result_minus_base
+                result_minus_op = result_minus_base
 
-        # Store weighted per-pair channels
-        pair = pair_breakdown.setdefault(pair_key, {"weight": float(norm)})
-        pair["I1_plus"] = float(norm * result_plus.value)
-        pair["I1_minus_base"] = float(norm * result_minus_base.value)
-        pair["I1_minus_op"] = float(norm * result_minus_op.value)
-        pair["I1_plus_raw"] = float(result_plus.value)
-        pair["I1_minus_base_raw"] = float(result_minus_base.value)
-        pair["I1_minus_op_raw"] = float(result_minus_op.value)
+            # Store weighted per-pair channels
+            pair = pair_breakdown.setdefault(pair_key, {"weight": float(norm)})
+            pair["I1_plus"] = float(norm * result_plus.value)
+            pair["I1_minus_base"] = float(norm * result_minus_base.value)
+            pair["I1_minus_op"] = float(norm * result_minus_op.value)
+            pair["I1_plus_raw"] = float(result_plus.value)
+            pair["I1_minus_base_raw"] = float(result_minus_base.value)
+            pair["I1_minus_op_raw"] = float(result_minus_op.value)
 
-        val = result_plus.value + result_minus_op.value
-        contrib = norm * val
+            val = result_plus.value + result_minus_op.value
+            contrib = norm * val
 
-        i1_plus_total += norm * result_plus.value
-        i1_minus_base += norm * result_minus_base.value
-        i1_minus_op += norm * result_minus_op.value
-        total += contrib
+            i1_plus_total += norm * result_plus.value
+            i1_minus_base += norm * result_minus_base.value
+            i1_minus_op += norm * result_minus_op.value
+            total += contrib
 
     # =========================================================================
     # PART 2: I₂ (terms[1] for each pair)
@@ -3534,6 +3787,7 @@ def compute_c_paper_operator_v2(
     per_term["_normalization"] = normalization_key
     per_term["_lift_scope"] = lift_scope
     per_term["_sigma"] = sigma
+    per_term["_i1_source"] = i1_source
     per_term["_i2_source"] = i2_source
     per_term["_Q_0"] = Q_0
     per_term["_Q_1"] = Q_1
@@ -3612,7 +3866,9 @@ def compute_operator_implied_weights(
     n: int = 60,
     n_quad_a: int = 40,
     verbose: bool = False,
+    i1_source: str = "dsl",  # GPT Phase 1: "dsl" or "post_identity_operator"
     i2_source: str = "dsl",  # Run 8A: "dsl" or "direct_case_c"
+    terms_version: str = "old",  # Run 10A: "old" or "v2"
 ) -> OperatorImpliedWeights:
     """
     Compute operator-implied weights WITHOUT any 2×2 solve.
@@ -3634,6 +3890,7 @@ def compute_operator_implied_weights(
         n: Number of quadrature points per dimension
         n_quad_a: Quadrature points for Case C a-integral
         verbose: Print diagnostic information
+        i1_source: "dsl" (DSL-based) or "post_identity_operator" (GPT Phase 1)
         i2_source: "dsl" (DSL-based) or "direct_case_c" (proven Run 7)
 
     Returns:
@@ -3655,7 +3912,9 @@ def compute_operator_implied_weights(
         normalization=normalization,
         lift_scope=lift_scope,
         sigma=sigma,
+        i1_source=i1_source,  # GPT Phase 1
         i2_source=i2_source,
+        terms_version=terms_version,  # Run 10A
     )
 
     # Extract channel values
@@ -5123,6 +5382,9 @@ def compute_c_paper_tex_mirror(
     use_factorial_normalization: bool = True,
     n_quad_a: int = 40,
     verbose: bool = False,
+    i1_source: str = "dsl",  # GPT Phase 1: "dsl" or "post_identity_operator"
+    i2_source: str = "dsl",  # Run 10B: "dsl" or "direct_case_c"
+    terms_version: str = "old",  # Run 10A: "old" or "v2"
 ) -> TexMirrorResult:
     """
     Compute c using TeX-derived mirror assembly (NO FITTING).
@@ -5162,6 +5424,12 @@ def compute_c_paper_tex_mirror(
         use_factorial_normalization: Apply 1/(ℓ₁!×ℓ₂!) normalization
         n_quad_a: Quadrature points for Case C a-integral
         verbose: Print diagnostic information
+        i1_source: Source for I1 computation:
+            - "dsl" (default): Use DSL-based term evaluation
+            - "post_identity_operator": Use post-identity operator (GPT Phase 1)
+        i2_source: Source for I2 computation:
+            - "dsl" (default): Use DSL-based term evaluation
+            - "direct_case_c": Use proven Case C kernel evaluation
 
     Returns:
         TexMirrorResult with c and full breakdown
@@ -5191,6 +5459,18 @@ def compute_c_paper_tex_mirror(
 
         GPT Run 5 path forward: Replace amplitude model with direct TeX I2 evaluation.
     """
+    # GPT Run 14: Hard guard against V2 + tex_mirror combination
+    # V2 terms are proven correct individually (Run 9-11) but catastrophically fail
+    # under tex_mirror assembly (I1_plus flips sign from +0.085 to -0.111).
+    # This causes c to collapse to ~0.775 vs target ~2.137.
+    # Use OLD + tex_mirror for production. See GPT Run 12-13 findings.
+    if terms_version == "v2":
+        raise ValueError(
+            "FATAL: terms_version='v2' is FORBIDDEN with tex_mirror. "
+            "V2 terms catastrophically fail under mirror assembly (I1_plus sign flip). "
+            "Use terms_version='old' (default). See docs/HANDOFF_GPT_RUN12_13.md."
+        )
+
     # Get implied weights from operator mode
     implied = compute_operator_implied_weights(
         theta=theta,
@@ -5202,6 +5482,9 @@ def compute_c_paper_tex_mirror(
         n=n,
         n_quad_a=n_quad_a,
         verbose=verbose,
+        i1_source=i1_source,  # GPT Phase 1
+        i2_source=i2_source,  # Run 10B
+        terms_version=terms_version,  # Run 10A
     )
 
     # Get TeX-derived amplitudes
@@ -5415,3 +5698,1052 @@ def validate_tex_mirror_against_diagnostic(
         "A_stable": A_stable,
         "c_acceptable": c_acceptable,
     }
+
+
+# =============================================================================
+# Run 18: TeX Combined Integral Structure
+# =============================================================================
+
+@dataclass
+class TexCombinedResult:
+    """Result from TeX combined integral computation."""
+    I1_combined: float
+    scalar_limit: float
+    n_quad: int
+    n_quad_s: int
+
+
+def compute_I1_tex_combined_11(
+    theta: float,
+    R: float,
+    n: int,
+    polynomials: Dict[str, PolyLike],
+    n_quad_s: int = 20,
+    verbose: bool = False,
+) -> TexCombinedResult:
+    """
+    Compute I1 for (1,1) using TeX combined integral structure.
+
+    This implements Stage 18B of Run 18: The TeX combined structure from
+    lines 1503-1510, where the mirror difference is converted to an integral
+    BEFORE applying Q and P operators.
+
+    The combined structure is:
+        (1 + θ(x+y)) × ∫_0^1 exp(2sR(1 + θ(x+y))) ds
+
+    This replaces the naive I(+R) + exp(2R)×I(-R) assembly.
+
+    Args:
+        theta: θ parameter (typically 4/7)
+        R: R parameter
+        n: Number of quadrature points for (u, t)
+        polynomials: Dict with "P1", "Q"
+        n_quad_s: Quadrature points for s-integral
+        verbose: Print debug info
+
+    Returns:
+        TexCombinedResult with I1_combined value
+    """
+    from src.quadrature import tensor_grid_2d
+    from src.term_dsl import SeriesContext, CombinedMirrorFactor, AffineExpr
+    from src.composition import compose_polynomial_on_affine, compose_exp_on_affine
+
+    # Get polynomials
+    P1 = polynomials["P1"]
+    Q = polynomials["Q"]
+
+    # Build quadrature grid
+    U, T, W = tensor_grid_2d(n)
+
+    # Create series context with x, y variables
+    ctx = SeriesContext(var_names=("x", "y"))
+
+    # Build the CombinedMirrorFactor
+    combined_factor = CombinedMirrorFactor(R=R, theta=theta, n_quad_s=n_quad_s)
+    combined_series = combined_factor.evaluate(U, T, ctx)
+
+    # Build P₁(x+u) series
+    P1_x_u0 = U  # base: u
+    P1_x_lin = {"x": np.ones_like(U)}  # x coefficient = 1
+    P1_x_series = compose_polynomial_on_affine(P1, P1_x_u0, P1_x_lin, ctx.var_names)
+
+    # Build P₁(y+u) series
+    P1_y_u0 = U  # base: u
+    P1_y_lin = {"y": np.ones_like(U)}  # y coefficient = 1
+    P1_y_series = compose_polynomial_on_affine(P1, P1_y_u0, P1_y_lin, ctx.var_names)
+
+    # Build Q(Arg_α) series
+    # Arg_α = t + θ·t·x + (θ·t-θ)·y
+    Q_alpha_u0 = T
+    Q_alpha_lin = {
+        "x": theta * T,
+        "y": theta * T - theta,
+    }
+    Q_alpha_series = compose_polynomial_on_affine(Q, Q_alpha_u0, Q_alpha_lin, ctx.var_names)
+
+    # Build Q(Arg_β) series
+    # Arg_β = t + (θ·t-θ)·x + θ·t·y
+    Q_beta_u0 = T
+    Q_beta_lin = {
+        "x": theta * T - theta,
+        "y": theta * T,
+    }
+    Q_beta_series = compose_polynomial_on_affine(Q, Q_beta_u0, Q_beta_lin, ctx.var_names)
+
+    # Build exp(R·Arg_α) × exp(R·Arg_β) = exp(R(Arg_α + Arg_β))
+    # Combined argument: Arg_α + Arg_β = 2t + (2θt - θ)(x + y)
+    exp_combined_u0 = 2 * R * T
+    exp_combined_lin = {
+        "x": R * (2 * theta * T - theta),
+        "y": R * (2 * theta * T - theta),
+    }
+    exp_combined_series = compose_exp_on_affine(1.0, exp_combined_u0, exp_combined_lin, ctx.var_names)
+
+    # Build algebraic prefactor: (1/θ + x + y)
+    prefactor_series = ctx.scalar_series(np.ones_like(U) / theta)
+    prefactor_series = prefactor_series + ctx.variable_series("x")
+    prefactor_series = prefactor_series + ctx.variable_series("y")
+
+    # Multiply all series together
+    # Structure: combined_mirror × exp × P₁ × P₁ × Q × Q × prefactor
+    integrand = combined_series
+    integrand = integrand * exp_combined_series
+    integrand = integrand * P1_x_series
+    integrand = integrand * P1_y_series
+    integrand = integrand * Q_alpha_series
+    integrand = integrand * Q_beta_series
+    integrand = integrand * prefactor_series
+
+    # Extract d²/dxdy coefficient (mask = 0b11 = 3 for vars ("x", "y"))
+    xy_coeff = integrand.extract(("x", "y"))
+
+    # Apply poly prefactor: (1-u)²
+    poly_prefactor = (1 - U) ** 2
+    xy_coeff = xy_coeff * poly_prefactor
+
+    # Integrate over (u, t)
+    I1_combined = np.sum(W * xy_coeff)
+
+    if verbose:
+        scalar_val = combined_factor.scalar_limit()
+        print(f"I1_tex_combined_11:")
+        print(f"  CombinedMirrorFactor scalar limit: {scalar_val:.6f}")
+        print(f"  I1_combined: {I1_combined:.6f}")
+
+    return TexCombinedResult(
+        I1_combined=I1_combined,
+        scalar_limit=combined_factor.scalar_limit(),
+        n_quad=n,
+        n_quad_s=n_quad_s,
+    )
+
+
+def compute_I1_tex_combined_11_replace(
+    theta: float,
+    R: float,
+    n: int,
+    polynomials: Dict[str, PolyLike],
+    n_quad_s: int = 20,
+    verbose: bool = False,
+) -> TexCombinedResult:
+    """
+    Compute I1 for (1,1) using TeX combined structure REPLACING exp factors.
+
+    This version interprets the TeX combined structure as replacing the
+    exp(R·Arg_α) × exp(R·Arg_β) factors entirely, rather than multiplying
+    in addition to them.
+
+    The combined structure is:
+        (1 + θ(x+y)) × ∫_0^1 exp(2sR(1 + θ(x+y))) ds
+
+    Args:
+        theta: θ parameter (typically 4/7)
+        R: R parameter
+        n: Number of quadrature points for (u, t)
+        polynomials: Dict with "P1", "Q"
+        n_quad_s: Quadrature points for s-integral
+        verbose: Print debug info
+
+    Returns:
+        TexCombinedResult with I1_combined value
+    """
+    from src.quadrature import tensor_grid_2d
+    from src.term_dsl import SeriesContext, CombinedMirrorFactor
+
+    # Get polynomials
+    P1 = polynomials["P1"]
+    Q = polynomials["Q"]
+
+    # Build quadrature grid
+    U, T, W = tensor_grid_2d(n)
+
+    # Create series context with x, y variables
+    ctx = SeriesContext(var_names=("x", "y"))
+
+    # Build the CombinedMirrorFactor - this REPLACES exp factors
+    combined_factor = CombinedMirrorFactor(R=R, theta=theta, n_quad_s=n_quad_s)
+    combined_series = combined_factor.evaluate(U, T, ctx)
+
+    # Build P₁(x+u) series
+    from src.composition import compose_polynomial_on_affine
+    P1_x_u0 = U
+    P1_x_lin = {"x": np.ones_like(U)}
+    P1_x_series = compose_polynomial_on_affine(P1, P1_x_u0, P1_x_lin, ctx.var_names)
+
+    # Build P₁(y+u) series
+    P1_y_u0 = U
+    P1_y_lin = {"y": np.ones_like(U)}
+    P1_y_series = compose_polynomial_on_affine(P1, P1_y_u0, P1_y_lin, ctx.var_names)
+
+    # Build Q(Arg_α) series - evaluated at t (no exp factors!)
+    Q_alpha_u0 = T
+    Q_alpha_lin = {
+        "x": theta * T,
+        "y": theta * T - theta,
+    }
+    Q_alpha_series = compose_polynomial_on_affine(Q, Q_alpha_u0, Q_alpha_lin, ctx.var_names)
+
+    # Build Q(Arg_β) series
+    Q_beta_u0 = T
+    Q_beta_lin = {
+        "x": theta * T - theta,
+        "y": theta * T,
+    }
+    Q_beta_series = compose_polynomial_on_affine(Q, Q_beta_u0, Q_beta_lin, ctx.var_names)
+
+    # Build algebraic prefactor: (1/θ + x + y)
+    prefactor_series = ctx.scalar_series(np.ones_like(U) / theta)
+    prefactor_series = prefactor_series + ctx.variable_series("x")
+    prefactor_series = prefactor_series + ctx.variable_series("y")
+
+    # Multiply all series together - NO exp factors, combined replaces them
+    # Structure: combined_mirror × P₁ × P₁ × Q × Q × prefactor
+    integrand = combined_series
+    integrand = integrand * P1_x_series
+    integrand = integrand * P1_y_series
+    integrand = integrand * Q_alpha_series
+    integrand = integrand * Q_beta_series
+    integrand = integrand * prefactor_series
+
+    # Extract d²/dxdy coefficient
+    xy_coeff = integrand.extract(("x", "y"))
+
+    # Apply poly prefactor: (1-u)²
+    poly_prefactor = (1 - U) ** 2
+    xy_coeff = xy_coeff * poly_prefactor
+
+    # Integrate over (u, t)
+    I1_combined = np.sum(W * xy_coeff)
+
+    if verbose:
+        scalar_val = combined_factor.scalar_limit()
+        print(f"I1_tex_combined_11_replace:")
+        print(f"  CombinedMirrorFactor scalar limit: {scalar_val:.6f}")
+        print(f"  I1_combined (replace exp): {I1_combined:.6f}")
+
+    return TexCombinedResult(
+        I1_combined=I1_combined,
+        scalar_limit=combined_factor.scalar_limit(),
+        n_quad=n,
+        n_quad_s=n_quad_s,
+    )
+
+
+# =============================================================================
+# Stage 18C: I2 Channel with Combined Structure
+# =============================================================================
+
+@dataclass
+class TexCombinedI2Result:
+    """Result from I2 combined computation."""
+    I2_combined: float
+    I2_base: float
+    combined_factor_scalar: float
+    n_quad: int
+
+
+def compute_I2_tex_combined_11(
+    theta: float,
+    R: float,
+    n: int,
+    polynomials: Dict[str, PolyLike],
+    verbose: bool = False,
+) -> TexCombinedI2Result:
+    """
+    Compute I2 for (1,1) using TeX combined structure.
+
+    I2 has no formal variables (x, y), so the combined mirror factor
+    reduces to its scalar limit: (exp(2R) - 1) / (2R).
+
+    For I2, the combined structure effectively multiplies the base
+    integral by this scalar.
+
+    Args:
+        theta: θ parameter (typically 4/7)
+        R: R parameter
+        n: Number of quadrature points for (u, t)
+        polynomials: Dict with "P1", "Q"
+        verbose: Print debug info
+
+    Returns:
+        TexCombinedI2Result with I2_combined value
+    """
+    from src.quadrature import tensor_grid_2d
+    from src.term_dsl import CombinedMirrorFactor
+
+    # Get polynomials
+    P1 = polynomials["P1"]
+    Q = polynomials["Q"]
+
+    # Build quadrature grid
+    U, T, W = tensor_grid_2d(n)
+
+    # Compute base I2 integrand (no formal variables, just scalar integral)
+    # Structure: (1/θ) × P₁(u)² × Q(t)² × exp(2Rt)
+    P1_u = P1.eval(U)
+    Q_t = Q.eval(T)
+    exp_2Rt = np.exp(2 * R * T)
+
+    I2_integrand = (1.0 / theta) * P1_u * P1_u * Q_t * Q_t * exp_2Rt
+
+    # Integrate over (u, t)
+    I2_base = np.sum(W * I2_integrand)
+
+    # For I2 (no x, y variables), the combined mirror factor is just the scalar limit
+    combined_factor = CombinedMirrorFactor(R=R, theta=theta)
+    combined_scalar = combined_factor.scalar_limit()
+
+    # I2 combined = I2_base × combined_factor_scalar
+    I2_combined = I2_base * combined_scalar
+
+    if verbose:
+        print(f"I2_tex_combined_11:")
+        print(f"  I2_base: {I2_base:.6f}")
+        print(f"  combined_factor_scalar: {combined_scalar:.6f}")
+        print(f"  I2_combined: {I2_combined:.6f}")
+
+    return TexCombinedI2Result(
+        I2_combined=I2_combined,
+        I2_base=I2_base,
+        combined_factor_scalar=combined_scalar,
+        n_quad=n,
+    )
+
+
+# =============================================================================
+# Stage 18D: S34 Channel with Combined Structure
+# =============================================================================
+
+@dataclass
+class TexCombinedS34Result:
+    """Result from S34 combined computation."""
+    I3_combined: float
+    I4_combined: float
+    S34_combined: float
+    n_quad: int
+    n_quad_s: int
+
+
+def compute_S34_tex_combined_11(
+    theta: float,
+    R: float,
+    n: int,
+    polynomials: Dict[str, PolyLike],
+    n_quad_s: int = 20,
+    verbose: bool = False,
+    apply_mirror: bool = False,  # SPEC LOCK: Must remain False
+) -> TexCombinedS34Result:
+    """
+    Compute S34 (I3 + I4) for (1,1) using TeX combined structure.
+
+    I3 has derivative d/dx (y=0), I4 has derivative d/dy (x=0).
+    For the combined structure:
+    - I3: uses (1 + θx) × ∫ exp(2sR(1 + θx)) ds with y=0
+    - I4: uses (1 + θy) × ∫ exp(2sR(1 + θy)) ds with x=0
+
+    S34 = I3 + I4.
+
+    SPEC LOCK: I3/I4 do NOT have mirror structure (TRUTH_SPEC.md Section 10).
+    The apply_mirror parameter exists only to catch accidental misuse.
+    Setting apply_mirror=True will RAISE I34MirrorForbiddenError.
+
+    Args:
+        theta: θ parameter (typically 4/7)
+        R: R parameter
+        n: Number of quadrature points for (u, t)
+        polynomials: Dict with "P1", "Q"
+        n_quad_s: Quadrature points for s-integral
+        verbose: Print debug info
+        apply_mirror: FORBIDDEN - raises if True (spec lock)
+
+    Returns:
+        TexCombinedS34Result with I3, I4, and S34 values
+
+    Raises:
+        I34MirrorForbiddenError: If apply_mirror=True
+    """
+    _assert_i34_no_mirror(apply_mirror, "compute_S34_tex_combined_11")
+    from src.quadrature import tensor_grid_2d, gauss_legendre_01
+    from src.term_dsl import SeriesContext
+    from src.composition import compose_polynomial_on_affine, compose_exp_on_affine
+
+    P1 = polynomials["P1"]
+    Q = polynomials["Q"]
+
+    U, T, W = tensor_grid_2d(n)
+    s_nodes, s_weights = gauss_legendre_01(n_quad_s)
+
+    # ===== I3 (d/dx, y=0) =====
+    # Single variable x
+    ctx_x = SeriesContext(var_names=("x",))
+
+    # Build combined factor for x only: (1 + θx) × ∫ exp(2sR(1 + θx)) ds
+    combined_s_x = ctx_x.zero_series()
+    for s_idx, s in enumerate(s_nodes):
+        s_base = 2 * R * s * np.ones_like(U)
+        s_lin = {"x": 2 * R * s * theta * np.ones_like(U)}
+        s_exp = compose_exp_on_affine(1.0, s_base, s_lin, ctx_x.var_names)
+        combined_s_x = combined_s_x + s_exp * s_weights[s_idx]
+
+    log_factor_x = ctx_x.scalar_series(np.ones_like(U))
+    log_factor_x = log_factor_x + ctx_x.variable_series("x") * theta
+    combined_x = combined_s_x * log_factor_x
+
+    # Build P₁(x+u) and P₁(u) series
+    P1_x_u0 = U
+    P1_x_lin = {"x": np.ones_like(U)}
+    P1_x_series = compose_polynomial_on_affine(P1, P1_x_u0, P1_x_lin, ctx_x.var_names)
+
+    P1_u_series = ctx_x.scalar_series(P1.eval(U))
+
+    # Build Q(Arg_α) and Q(Arg_β) with y=0
+    # Arg_α = t + θ·t·x, Arg_β = t + (θ·t-θ)·x
+    Q_alpha_u0 = T
+    Q_alpha_lin = {"x": theta * T}
+    Q_alpha_x = compose_polynomial_on_affine(Q, Q_alpha_u0, Q_alpha_lin, ctx_x.var_names)
+
+    Q_beta_u0 = T
+    Q_beta_lin = {"x": theta * T - theta}
+    Q_beta_x = compose_polynomial_on_affine(Q, Q_beta_u0, Q_beta_lin, ctx_x.var_names)
+
+    # Build algebraic prefactor: (1/θ + x)
+    prefactor_x = ctx_x.scalar_series(np.ones_like(U) / theta)
+    prefactor_x = prefactor_x + ctx_x.variable_series("x")
+
+    # Multiply all together
+    integrand_x = combined_x * P1_x_series * P1_u_series * Q_alpha_x * Q_beta_x * prefactor_x
+
+    # Extract d/dx coefficient (mask = 1 for "x")
+    x_coeff = integrand_x.extract(("x",))
+
+    # Apply poly prefactor (1-u) and numeric prefactor -1
+    poly_pref_x = (1 - U)
+    x_coeff = -1.0 * poly_pref_x * x_coeff
+
+    I3_combined = np.sum(W * x_coeff)
+
+    # ===== I4 (d/dy, x=0) =====
+    # Single variable y
+    ctx_y = SeriesContext(var_names=("y",))
+
+    # Build combined factor for y only
+    combined_s_y = ctx_y.zero_series()
+    for s_idx, s in enumerate(s_nodes):
+        s_base = 2 * R * s * np.ones_like(U)
+        s_lin = {"y": 2 * R * s * theta * np.ones_like(U)}
+        s_exp = compose_exp_on_affine(1.0, s_base, s_lin, ctx_y.var_names)
+        combined_s_y = combined_s_y + s_exp * s_weights[s_idx]
+
+    log_factor_y = ctx_y.scalar_series(np.ones_like(U))
+    log_factor_y = log_factor_y + ctx_y.variable_series("y") * theta
+    combined_y = combined_s_y * log_factor_y
+
+    # Build P₁(u) and P₁(y+u) series
+    P1_u_y_series = ctx_y.scalar_series(P1.eval(U))
+
+    P1_y_u0 = U
+    P1_y_lin = {"y": np.ones_like(U)}
+    P1_y_series = compose_polynomial_on_affine(P1, P1_y_u0, P1_y_lin, ctx_y.var_names)
+
+    # Build Q(Arg_α) and Q(Arg_β) with x=0
+    # Arg_α = t + (θ·t-θ)·y, Arg_β = t + θ·t·y
+    Q_alpha_y_u0 = T
+    Q_alpha_y_lin = {"y": theta * T - theta}
+    Q_alpha_y = compose_polynomial_on_affine(Q, Q_alpha_y_u0, Q_alpha_y_lin, ctx_y.var_names)
+
+    Q_beta_y_u0 = T
+    Q_beta_y_lin = {"y": theta * T}
+    Q_beta_y = compose_polynomial_on_affine(Q, Q_beta_y_u0, Q_beta_y_lin, ctx_y.var_names)
+
+    # Build algebraic prefactor: (1/θ + y)
+    prefactor_y = ctx_y.scalar_series(np.ones_like(U) / theta)
+    prefactor_y = prefactor_y + ctx_y.variable_series("y")
+
+    # Multiply all together
+    integrand_y = combined_y * P1_u_y_series * P1_y_series * Q_alpha_y * Q_beta_y * prefactor_y
+
+    # Extract d/dy coefficient (mask = 1 for "y")
+    y_coeff = integrand_y.extract(("y",))
+
+    # Apply poly prefactor (1-u) and numeric prefactor -1
+    poly_pref_y = (1 - U)
+    y_coeff = -1.0 * poly_pref_y * y_coeff
+
+    I4_combined = np.sum(W * y_coeff)
+
+    S34_combined = I3_combined + I4_combined
+
+    if verbose:
+        print(f"S34_tex_combined_11:")
+        print(f"  I3_combined: {I3_combined:.6f}")
+        print(f"  I4_combined: {I4_combined:.6f}")
+        print(f"  S34_combined: {S34_combined:.6f}")
+
+    return TexCombinedS34Result(
+        I3_combined=I3_combined,
+        I4_combined=I4_combined,
+        S34_combined=S34_combined,
+        n_quad=n,
+        n_quad_s=n_quad_s,
+    )
+
+
+def compute_S34_base_11(
+    theta: float,
+    R: float,
+    n: int,
+    polynomials: Dict[str, PolyLike],
+    verbose: bool = False,
+    apply_mirror: bool = False,  # SPEC LOCK: Must remain False
+) -> float:
+    """
+    Compute S34 (I3 + I4) for (1,1) WITHOUT combined factor.
+
+    Per PRZZ TRUTH_SPEC Section 10: I₃ and I₄ do NOT require mirror.
+    So S34 uses the base structure only, no combined mirror factor.
+
+    SPEC LOCK: I3/I4 do NOT have mirror structure (TRUTH_SPEC.md Section 10).
+    The apply_mirror parameter exists only to catch accidental misuse.
+    Setting apply_mirror=True will RAISE I34MirrorForbiddenError.
+
+    Args:
+        theta: θ parameter
+        R: R parameter
+        n: Number of quadrature points
+        polynomials: Dict with "P1", "Q"
+        verbose: Print debug info
+        apply_mirror: FORBIDDEN - raises if True (spec lock)
+
+    Returns:
+        S34 value (scalar)
+
+    Raises:
+        I34MirrorForbiddenError: If apply_mirror=True
+    """
+    _assert_i34_no_mirror(apply_mirror, "compute_S34_base_11")
+    from src.quadrature import tensor_grid_2d
+    from src.term_dsl import SeriesContext
+    from src.composition import compose_polynomial_on_affine, compose_exp_on_affine
+
+    P1 = polynomials["P1"]
+    Q = polynomials["Q"]
+
+    U, T, W = tensor_grid_2d(n)
+
+    # ===== I3 (d/dx, y=0) =====
+    ctx_x = SeriesContext(var_names=("x",))
+
+    # Build P₁(x+u) and P₁(u) series
+    P1_x_u0 = U
+    P1_x_lin = {"x": np.ones_like(U)}
+    P1_x_series = compose_polynomial_on_affine(P1, P1_x_u0, P1_x_lin, ctx_x.var_names)
+    P1_u_series = ctx_x.scalar_series(P1.eval(U))
+
+    # Build Q series (y=0)
+    Q_alpha_u0 = T
+    Q_alpha_lin = {"x": theta * T}
+    Q_alpha_x = compose_polynomial_on_affine(Q, Q_alpha_u0, Q_alpha_lin, ctx_x.var_names)
+
+    Q_beta_u0 = T
+    Q_beta_lin = {"x": theta * T - theta}
+    Q_beta_x = compose_polynomial_on_affine(Q, Q_beta_u0, Q_beta_lin, ctx_x.var_names)
+
+    # Build exp factors (y=0)
+    # exp(R·Arg_α) × exp(R·Arg_β) where Arg_α = t + θtx, Arg_β = t + (θt-θ)x
+    exp_u0_x = 2 * R * T
+    exp_lin_x = {"x": R * (2 * theta * T - theta)}
+    exp_x = compose_exp_on_affine(1.0, exp_u0_x, exp_lin_x, ctx_x.var_names)
+
+    # Build algebraic prefactor: (1/θ + x)
+    prefactor_x = ctx_x.scalar_series(np.ones_like(U) / theta)
+    prefactor_x = prefactor_x + ctx_x.variable_series("x")
+
+    # Multiply all
+    integrand_x = P1_x_series * P1_u_series * Q_alpha_x * Q_beta_x * exp_x * prefactor_x
+
+    # Extract d/dx coefficient
+    x_coeff = integrand_x.extract(("x",))
+
+    # Apply poly prefactor (1-u) and numeric prefactor -1
+    x_coeff = -1.0 * (1 - U) * x_coeff
+    I3 = np.sum(W * x_coeff)
+
+    # ===== I4 (d/dy, x=0) =====
+    ctx_y = SeriesContext(var_names=("y",))
+
+    # Build P₁(u) and P₁(y+u) series
+    P1_u_y_series = ctx_y.scalar_series(P1.eval(U))
+    P1_y_u0 = U
+    P1_y_lin = {"y": np.ones_like(U)}
+    P1_y_series = compose_polynomial_on_affine(P1, P1_y_u0, P1_y_lin, ctx_y.var_names)
+
+    # Build Q series (x=0)
+    Q_alpha_y_u0 = T
+    Q_alpha_y_lin = {"y": theta * T - theta}
+    Q_alpha_y = compose_polynomial_on_affine(Q, Q_alpha_y_u0, Q_alpha_y_lin, ctx_y.var_names)
+
+    Q_beta_y_u0 = T
+    Q_beta_y_lin = {"y": theta * T}
+    Q_beta_y = compose_polynomial_on_affine(Q, Q_beta_y_u0, Q_beta_y_lin, ctx_y.var_names)
+
+    # Build exp factors (x=0)
+    exp_u0_y = 2 * R * T
+    exp_lin_y = {"y": R * (2 * theta * T - theta)}
+    exp_y = compose_exp_on_affine(1.0, exp_u0_y, exp_lin_y, ctx_y.var_names)
+
+    # Build algebraic prefactor: (1/θ + y)
+    prefactor_y = ctx_y.scalar_series(np.ones_like(U) / theta)
+    prefactor_y = prefactor_y + ctx_y.variable_series("y")
+
+    # Multiply all
+    integrand_y = P1_u_y_series * P1_y_series * Q_alpha_y * Q_beta_y * exp_y * prefactor_y
+
+    # Extract d/dy coefficient
+    y_coeff = integrand_y.extract(("y",))
+
+    # Apply poly prefactor (1-u) and numeric prefactor -1
+    y_coeff = -1.0 * (1 - U) * y_coeff
+    I4 = np.sum(W * y_coeff)
+
+    S34 = I3 + I4
+
+    if verbose:
+        print(f"S34_base_11:")
+        print(f"  I3: {I3:.6f}")
+        print(f"  I4: {I4:.6f}")
+        print(f"  S34: {S34:.6f}")
+
+    return S34
+
+
+# =============================================================================
+# Run 19: TeX-Exact Mirror Core with Q-Shift Inside Combined Structure
+# =============================================================================
+
+
+@dataclass
+class TexExactI1Result:
+    """Result from I1 TeX-exact computation (Run 19)."""
+    I1_tex_exact: float
+    scalar_limit_t05: float  # Scalar limit at t=0.5
+    n_quad: int
+
+
+def compute_I1_tex_exact_11(
+    theta: float,
+    R: float,
+    n: int,
+    polynomials: Dict[str, PolyLike],
+    verbose: bool = False,
+) -> TexExactI1Result:
+    """
+    Compute I1 for (1,1) using TeX-exact combined structure (Run 19).
+
+    This implements the CORRECT structure where Q operators are applied
+    INSIDE the combined object with proper Q-shift in the minus branch.
+
+    Structure:
+        Plus branch:  Q(arg_α) × Q(arg_β) × exp(R·arg_α) × exp(R·arg_β)
+        Minus branch: Q(arg_α+1) × Q(arg_β+1) × exp(-R·arg_α) × exp(-R·arg_β) × exp(2R)
+
+    Key difference from Run 18:
+        - Q factors are INSIDE the combined structure, not multiplied externally
+        - Q-shift (sigma=1.0) is applied in the minus branch
+
+    Args:
+        theta: θ parameter (typically 4/7)
+        R: R parameter
+        n: Number of quadrature points for (u, t)
+        polynomials: Dict with "P1", "Q"
+        verbose: Print debug info
+
+    Returns:
+        TexExactI1Result with I1_tex_exact value
+    """
+    from src.quadrature import tensor_grid_2d
+    from src.term_dsl import SeriesContext, CombinedI1Integrand
+    from src.composition import compose_polynomial_on_affine
+    from src.q_operator import lift_poly_by_shift
+
+    # Get polynomials
+    P1 = polynomials["P1"]
+    Q = polynomials["Q"]
+
+    # Build Q_shifted = Q(x+1)
+    Q_shifted = lift_poly_by_shift(Q, shift=1.0)
+
+    # Build quadrature grid
+    U, T, W = tensor_grid_2d(n)
+
+    # Create series context with x, y variables
+    ctx = SeriesContext(var_names=("x", "y"))
+
+    # Build the CombinedI1Integrand with Q-shift inside
+    combined_integrand = CombinedI1Integrand(
+        R=R,
+        theta=theta,
+        Q=Q,
+        Q_shifted=Q_shifted,
+    )
+    combined_series = combined_integrand.evaluate(U, T, ctx)
+
+    # Build P₁(x+u) series
+    P1_x_u0 = U
+    P1_x_lin = {"x": np.ones_like(U)}
+    P1_x_series = compose_polynomial_on_affine(P1, P1_x_u0, P1_x_lin, ctx.var_names)
+
+    # Build P₁(y+u) series
+    P1_y_u0 = U
+    P1_y_lin = {"y": np.ones_like(U)}
+    P1_y_series = compose_polynomial_on_affine(P1, P1_y_u0, P1_y_lin, ctx.var_names)
+
+    # Build algebraic prefactor: (1/θ + x + y)
+    prefactor_series = ctx.scalar_series(np.ones_like(U) / theta)
+    prefactor_series = prefactor_series + ctx.variable_series("x")
+    prefactor_series = prefactor_series + ctx.variable_series("y")
+
+    # Multiply all series together
+    # Structure: combined_integrand (with Q inside) × P₁ × P₁ × prefactor
+    # Note: Q factors are ALREADY inside combined_series, not multiplied separately
+    integrand = combined_series
+    integrand = integrand * P1_x_series
+    integrand = integrand * P1_y_series
+    integrand = integrand * prefactor_series
+
+    # Extract d²/dxdy coefficient
+    xy_coeff = integrand.extract(("x", "y"))
+
+    # Apply poly prefactor: (1-u)²
+    poly_prefactor = (1 - U) ** 2
+    xy_coeff = xy_coeff * poly_prefactor
+
+    # Integrate over (u, t)
+    I1_tex_exact = np.sum(W * xy_coeff)
+
+    if verbose:
+        scalar_val = combined_integrand.scalar_limit(t_val=0.5)
+        print(f"I1_tex_exact_11:")
+        print(f"  CombinedI1Integrand scalar limit (t=0.5): {scalar_val:.6f}")
+        print(f"  I1_tex_exact: {I1_tex_exact:.6f}")
+
+    return TexExactI1Result(
+        I1_tex_exact=I1_tex_exact,
+        scalar_limit_t05=combined_integrand.scalar_limit(t_val=0.5),
+        n_quad=n,
+    )
+
+
+# =============================================================================
+# Run 20: TeX Combined Mirror Core (difference quotient → log×integral)
+# =============================================================================
+
+
+@dataclass
+class TexCombinedCoreResult:
+    """Result from I1 TeX-combined-core computation (Run 20).
+
+    Key differences from Run 18/19:
+    - Uses TexCombinedMirrorCore with outer exp(-Rθ(x+y)) factor
+    - Q operators applied AFTER combined structure (per PRZZ TeX)
+    """
+    I1_combined_core: float
+    scalar_limit: float
+    xy_coeff_before_integration: float  # For diagnostics
+    n_quad: int
+    n_quad_s: int
+
+
+def compute_I1_tex_combined_core_11(
+    theta: float,
+    R: float,
+    n: int,
+    polynomials: Dict[str, PolyLike],
+    n_quad_s: int = 20,
+    verbose: bool = False,
+) -> TexCombinedCoreResult:
+    """
+    Compute I1 for (1,1) using Run 20 TeX combined mirror core.
+
+    Implements the PRZZ difference quotient → log×integral identity (TeX 1502-1511):
+        (N^{αx+βy} - T^{-α-β}N^{-βx-αy}) / (α+β)
+        = N^{αx+βy} × log(N^{x+y}T) × ∫₀¹ (N^{x+y}T)^{-s(α+β)} ds
+
+    At α = β = -R/L:
+        = exp(-Rθ(x+y)) × (1 + θ(x+y)) × ∫₀¹ exp(2sR(1 + θ(x+y))) ds
+
+    Key innovation (Stage 20C): Q operators are applied AFTER the combined
+    structure is formed, matching PRZZ's TeX derivation order.
+
+    Structure:
+        combined_core × Q(arg_α) × Q(arg_β) × P₁(x+u) × P₁(y+u) × prefactor
+
+    Args:
+        theta: θ parameter (typically 4/7)
+        R: R parameter
+        n: Number of quadrature points for (u, t)
+        polynomials: Dict with "P1", "Q"
+        n_quad_s: Quadrature points for s-integral
+        verbose: Print debug info
+
+    Returns:
+        TexCombinedCoreResult with I1_combined_core value
+    """
+    from src.quadrature import tensor_grid_2d
+    from src.term_dsl import SeriesContext, TexCombinedMirrorCore
+    from src.composition import compose_polynomial_on_affine
+
+    # Get polynomials
+    P1 = polynomials["P1"]
+    Q = polynomials["Q"]
+
+    # Build quadrature grid
+    U, T_grid, W = tensor_grid_2d(n)
+
+    # Create series context with x, y variables
+    ctx = SeriesContext(var_names=("x", "y"))
+
+    # --- Step 1: Build the TexCombinedMirrorCore (NO Q yet!) ---
+    # This implements the TeX combined structure with outer exp factor
+    combined_core = TexCombinedMirrorCore(R=R, theta=theta, n_quad_s=n_quad_s)
+    core_series = combined_core.evaluate(U, T_grid, ctx)
+
+    # --- Step 2: Build Q factors SEPARATELY (applied after combined core) ---
+    # Q(Arg_α) where Arg_α = t + θ·t·x + (θ·t-θ)·y
+    Q_alpha_u0 = T_grid
+    Q_alpha_lin = {
+        "x": theta * T_grid,
+        "y": theta * T_grid - theta,
+    }
+    Q_alpha_series = compose_polynomial_on_affine(Q, Q_alpha_u0, Q_alpha_lin, ctx.var_names)
+
+    # Q(Arg_β) where Arg_β = t + (θ·t-θ)·x + θ·t·y
+    Q_beta_u0 = T_grid
+    Q_beta_lin = {
+        "x": theta * T_grid - theta,
+        "y": theta * T_grid,
+    }
+    Q_beta_series = compose_polynomial_on_affine(Q, Q_beta_u0, Q_beta_lin, ctx.var_names)
+
+    # --- Step 3: Multiply Q AFTER combined core (Stage 20C key insight) ---
+    integrand = core_series * Q_alpha_series * Q_beta_series
+
+    # --- Step 4: Build P₁ factors ---
+    # P₁(x+u) series
+    P1_x_u0 = U
+    P1_x_lin = {"x": np.ones_like(U)}
+    P1_x_series = compose_polynomial_on_affine(P1, P1_x_u0, P1_x_lin, ctx.var_names)
+
+    # P₁(y+u) series
+    P1_y_u0 = U
+    P1_y_lin = {"y": np.ones_like(U)}
+    P1_y_series = compose_polynomial_on_affine(P1, P1_y_u0, P1_y_lin, ctx.var_names)
+
+    integrand = integrand * P1_x_series * P1_y_series
+
+    # --- Step 5: Build algebraic prefactor: (1/θ + x + y) ---
+    prefactor_series = ctx.scalar_series(np.ones_like(U) / theta)
+    prefactor_series = prefactor_series + ctx.variable_series("x")
+    prefactor_series = prefactor_series + ctx.variable_series("y")
+    integrand = integrand * prefactor_series
+
+    # --- Step 6: Extract d²/dxdy coefficient ---
+    xy_coeff = integrand.extract(("x", "y"))
+
+    # Diagnostic: save xy_coeff before poly prefactor
+    xy_coeff_sample = float(xy_coeff[0, 0]) if xy_coeff.size > 0 else 0.0
+
+    # --- Step 7: Apply poly prefactor: (1-u)² ---
+    poly_prefactor = (1 - U) ** 2
+    xy_coeff = xy_coeff * poly_prefactor
+
+    # --- Step 8: Integrate over (u, t) ---
+    I1_combined_core = np.sum(W * xy_coeff)
+
+    if verbose:
+        print(f"I1_tex_combined_core_11 (Run 20):")
+        print(f"  TexCombinedMirrorCore scalar limit: {combined_core.scalar_limit():.6f}")
+        print(f"  xy_coeff sample (before poly prefactor): {xy_coeff_sample:.6f}")
+        print(f"  I1_combined_core: {I1_combined_core:.6f}")
+
+    return TexCombinedCoreResult(
+        I1_combined_core=I1_combined_core,
+        scalar_limit=combined_core.scalar_limit(),
+        xy_coeff_before_integration=xy_coeff_sample,
+        n_quad=n,
+        n_quad_s=n_quad_s,
+    )
+
+
+# =============================================================================
+# Phase 10.3: Derived Mirror Computation
+# =============================================================================
+#
+# This function computes c using the derived mirror operator from Phase 10.2,
+# which uses the swap/sign conjugation from (-β,-α) instead of the empirical
+# m₁ scalar multiplier.
+#
+# Assembly formula:
+#   c_derived = S12_direct(+R) + S12_mirror_exact(+R) + S34(+R)
+#
+# where S12_mirror_exact uses the operator transform with swapped eigenvalues,
+# NOT m₁ × S12(-R).
+# =============================================================================
+
+
+@dataclass
+class DerivedMirrorCResult:
+    """Result from derived mirror c computation."""
+    c: float
+    """Total c value with derived mirror."""
+
+    S12_direct: float
+    """S12 computed at +R (direct)."""
+
+    S12_mirror_operator: float
+    """S12 mirror computed via operator approach."""
+
+    S34: float
+    """S34 at +R (no mirror)."""
+
+    m1_eff: float
+    """Effective m₁ = S12_mirror / S12_basis (diagnostic only)."""
+
+    S12_basis: float
+    """S12 at -R (DSL minus basis, for m₁_eff calculation)."""
+
+    kappa: float
+    """κ = 1 - log(c)/R."""
+
+    R: float
+    theta: float
+    n: int
+
+
+def compute_c_derived_mirror(
+    theta: float,
+    R: float,
+    n: int,
+    polynomials: Dict[str, PolyLike],
+    K: int = 3,
+    verbose: bool = False,
+) -> DerivedMirrorCResult:
+    """
+    Compute c using derived mirror operator (Phase 10.3).
+
+    This is the goal of Phase 10: replace empirical m₁ with derived operator.
+
+    Assembly formula:
+        c = S12_direct(+R) + S12_mirror_operator(+R) + S34(+R)
+
+    The mirror contribution is computed from the operator transform with
+    swapped eigenvalues, NOT from m₁ × S12(-R).
+
+    Args:
+        theta: PRZZ θ parameter (4/7)
+        R: PRZZ R parameter
+        n: Quadrature points
+        polynomials: Dict with P1, P2, P3, Q
+        K: Number of mollifier pieces
+        verbose: Print diagnostics
+
+    Returns:
+        DerivedMirrorCResult with c value and breakdown
+    """
+    from src.mirror_operator_exact import compute_S12_mirror_operator_exact
+    from src.mirror_exact import compute_S12_minus_basis
+
+    # Import the harness for S12_direct computation
+    from src.mirror_transform_harness import MirrorTransformHarness
+
+    harness = MirrorTransformHarness(theta, R, n, polynomials, K)
+
+    # Compute S12 direct (+R)
+    S12_direct = 0.0
+    for pair_key in harness.PAIRS:
+        ell1 = int(pair_key[0])
+        ell2 = int(pair_key[1])
+        norm = harness.FACTORIAL_NORM[pair_key] * harness.SYMMETRY[pair_key]
+        direct = harness._compute_S12_direct_pair(ell1, ell2)
+        S12_direct += norm * direct
+
+    # Compute S12 mirror via operator approach
+    S12_mirror_operator = compute_S12_mirror_operator_exact(
+        theta=theta, R=R, n=n, polynomials=polynomials, K=K, verbose=verbose
+    )
+
+    # Compute S12 minus basis (for m₁_eff diagnostic)
+    S12_basis = compute_S12_minus_basis(
+        theta=theta, R=R, n=n, polynomials=polynomials, K=K
+    )
+
+    # Compute S34 (no mirror)
+    # For now, use the harness method (which returns 0 as placeholder)
+    S34 = 0.0
+    for pair_key in harness.PAIRS:
+        ell1 = int(pair_key[0])
+        ell2 = int(pair_key[1])
+        norm = harness.FACTORIAL_NORM[pair_key] * harness.SYMMETRY[pair_key]
+        s34 = harness._compute_S34_pair(ell1, ell2)
+        S34 += norm * s34
+
+    # Assembly
+    c = S12_direct + S12_mirror_operator + S34
+
+    # Compute κ
+    if c > 0:
+        kappa = 1.0 - np.log(c) / R
+    else:
+        kappa = float('nan')
+
+    # Effective m₁ (diagnostic only)
+    if abs(S12_basis) > 1e-15:
+        m1_eff = S12_mirror_operator / S12_basis
+    else:
+        m1_eff = float('inf')
+
+    if verbose:
+        print(f"\n=== Derived Mirror c Computation ===")
+        print(f"R = {R}, θ = {theta:.6f}, n = {n}")
+        print(f"S12_direct:         {S12_direct:.6f}")
+        print(f"S12_mirror_operator: {S12_mirror_operator:.6f}")
+        print(f"S34:                {S34:.6f}")
+        print(f"c = {c:.6f}")
+        print(f"κ = {kappa:.6f}")
+        print(f"")
+        print(f"For comparison:")
+        print(f"S12_basis (-R):     {S12_basis:.6f}")
+        print(f"m₁_eff (diagnostic): {m1_eff:.4f}")
+        print(f"m₁_empirical:       {np.exp(R) + 5:.4f}")
+
+    return DerivedMirrorCResult(
+        c=c,
+        S12_direct=S12_direct,
+        S12_mirror_operator=S12_mirror_operator,
+        S34=S34,
+        m1_eff=m1_eff,
+        S12_basis=S12_basis,
+        kappa=kappa,
+        R=R,
+        theta=theta,
+        n=n,
+    )
