@@ -2,8 +2,16 @@
 src/evaluator/g_first_principles.py
 Phase 45: I1/I2 Component Decomposition
 
+================================================================================
+                    ⚠️  DIAGNOSTIC ONLY - NOT FOR PRODUCTION  ⚠️
+================================================================================
+
 This module provides the DECOMPOSITION of the empirical correction into I1/I2
-components. NOTE: g_I1 and g_I2 are CALIBRATED (not derived from first principles).
+components. The g_I1 and g_I2 values here are CALIBRATED (solved from targets).
+
+FOR PRODUCTION USE: Use src/kappa_engine.py which has closed-form formulas:
+  g_I1 = 1 + θ(1-θ)(2(K-1)+θ) / (8K(2K+1)²)
+  g_I2 = 1 + θ(2-θ) / (2K(2K+1))
 
 HONEST ASSESSMENT:
 ==================
@@ -62,15 +70,20 @@ from src.terms_k3_d1 import make_all_terms_k3
 from src.evaluate import evaluate_term
 
 
-# CALIBRATED values from solving the 2-benchmark system
-# These are NOT derived from first principles - they are curve-fit parameters
-# that make BOTH κ and κ* exact simultaneously (2 params, 2 equations = exact)
-G_I1_CALIBRATED = 1.00091428  # Calibrated correction for I1
-G_I2_CALIBRATED = 1.01945154  # Calibrated correction for I2
+# ============================================================================
+# CALIBRATED VALUES - DIAGNOSTIC ONLY, NOT FOR PRODUCTION
+# ============================================================================
+# These values were obtained by solving a 2×2 system using c_target as input.
+# They are CURVE-FIT parameters, NOT derived from first principles.
+#
+# FOR PRODUCTION: Use kappa_engine.compute_g_I1() and compute_g_I2()
+# ============================================================================
+G_I1_CALIBRATED = 1.00091428  # Calibrated correction for I1 (DIAGNOSTIC)
+G_I2_CALIBRATED = 1.01945154  # Calibrated correction for I2 (DIAGNOSTIC)
 
-# Aliases for backwards compatibility
-G_I1_DERIVED = G_I1_CALIBRATED  # DEPRECATED: use G_I1_CALIBRATED
-G_I2_DERIVED = G_I2_CALIBRATED  # DEPRECATED: use G_I2_CALIBRATED
+# DEPRECATED aliases - kept for backwards compatibility in diagnostic code
+G_I1_DERIVED = G_I1_CALIBRATED  # DEPRECATED
+G_I2_DERIVED = G_I2_CALIBRATED  # DEPRECATED
 
 
 @dataclass

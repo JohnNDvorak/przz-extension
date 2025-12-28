@@ -1,7 +1,12 @@
-# Phase 45: I1/I2 Component Decomposition
+# Phase 45: I1/I2 Component Decomposition (ANCHORED - NOT FIRST-PRINCIPLES)
 
 **Date:** 2025-12-27
-**Status:** DECOMPOSITION COMPLETE (with calibrated parameters)
+**Status:** ANCHORED MODE - Uses 2-benchmark solve with c_target values
+
+**WARNING:** This document describes the ANCHORED mode which achieves ~0% gap by
+solving a 2×2 linear system using c_target values. This is CALIBRATION, not
+first-principles derivation. For the genuine first-principles derivation
+(~0.4% gap, no targets), see `PHASE_45_FIRST_PRINCIPLES.md`.
 
 ---
 
