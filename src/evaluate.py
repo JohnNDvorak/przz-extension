@@ -954,6 +954,9 @@ def compute_c_paper_with_mirror(
     n_quad_a: int = 40,
     K: int = 3,
     mirror_mode: str = "empirical_scalar",
+    normalize_scalar_baseline: bool = True,
+    normalization_mode: str = "auto",
+    allow_diagnostic_correction: bool = False,
 ) -> EvaluationResult:
     """
     Compute c using paper regime with correct mirror term assembly.
@@ -983,10 +986,22 @@ def compute_c_paper_with_mirror(
             - "operator_q_shift": apply Q(1+D) effect in the mirror (-R) branch by
               replacing Q(x) with the lifted polynomial Q(x+1) (binomial-lifted
               coefficients), leaving the +R branch and S34 untouched.
+            - "difference_quotient_v3": TRUE unified bracket approach (Phase 22)
+              Builds bracket at each (u,t), does NOT compute at +R/-R separately.
+              D=0 and B/A=5 emerge from the structure.
         use_factorial_normalization: Apply 1/(ℓ₁!×ℓ₂!) normalization
         mode: "main" (default) - I₅ forbidden per PRZZ
         n_quad_a: Quadrature points for Case C a-integral
         K: Mollifier piece count (for mirror multiplier, default 3)
+        normalize_scalar_baseline: Deprecated, use normalization_mode (default True).
+        normalization_mode: For difference_quotient_v3 mode only. One of:
+            - "none": No normalization (raw unified bracket)
+            - "scalar": Divide by F(R)/2 = (exp(2R)-1)/(4R) [Phase 22]
+            - "diagnostic_corrected": QUARANTINED (Phase 24). Divide by F(R)/2 × correction(R).
+              Requires allow_diagnostic_correction=True. [Phase 23 - empirically fitted]
+            - "auto": Use "scalar" if normalize_scalar_baseline=True, else "none"
+        allow_diagnostic_correction: Must be True to use "diagnostic_corrected" mode.
+            This mode uses empirically-fitted correction and violates "derived > tuned" discipline.
 
     Returns:
         EvaluationResult with c and breakdown
@@ -994,10 +1009,10 @@ def compute_c_paper_with_mirror(
     if mode != "main":
         raise ValueError("compute_c_paper_with_mirror only supports mode='main' (I₅ forbidden per PRZZ)")
 
-    if mirror_mode not in ("empirical_scalar", "operator_q_shift", "operator_q_shift_joint", "difference_quotient", "difference_quotient_v2"):
+    if mirror_mode not in ("empirical_scalar", "operator_q_shift", "operator_q_shift_joint", "difference_quotient", "difference_quotient_v2", "difference_quotient_v3"):
         raise ValueError(
             "mirror_mode must be 'empirical_scalar', 'operator_q_shift', 'operator_q_shift_joint', "
-            f"'difference_quotient', or 'difference_quotient_v2', got '{mirror_mode}'"
+            f"'difference_quotient', 'difference_quotient_v2', or 'difference_quotient_v3', got '{mirror_mode}'"
         )
 
     # Handle difference_quotient mode early - use unified bracket evaluator
@@ -1154,6 +1169,108 @@ def compute_c_paper_with_mirror(
         per_term["_symmetry_holds"] = abs(s12_result.ratio - s12_result.expected_ratio) < 1e-10
         per_term["_assembly"] = (
             f"c = A×(exp(R)+5) + S34 where A=I1_minus (unified: D={s12_result.abd.D:.2e})"
+        )
+
+        return EvaluationResult(
+            total=total,
+            per_term=per_term,
+            n=n,
+            term_results=None
+        )
+
+    # Handle difference_quotient_v3 mode - TRUE integrand-level unified bracket
+    # This builds the unified bracket at each (u,t), does NOT compute at +R/-R separately
+    if mirror_mode == "difference_quotient_v3":
+        from src.unified_s12_evaluator_v3 import compute_S12_unified_v3
+        from src.terms_k3_d1 import make_all_terms_k3
+        import math
+
+        # Compute S12 using the TRUE unified bracket structure
+        # Key insight: The bracket exp(2Rt + Rθ(2t-1)(x+y)) already combines direct+mirror
+        # We do NOT compute at +R and -R separately
+        #
+        # Phase 22: normalize_scalar_baseline divides by F(R) = (exp(2R)-1)/(2R)
+        # to remove the t-integral scalar inflation factor
+        s12_result = compute_S12_unified_v3(
+            R=R,
+            theta=theta,
+            polynomials=polynomials,
+            n_quad_u=n,
+            n_quad_t=n,
+            include_Q=True,
+            benchmark="difference_quotient_v3",
+            normalize_scalar_baseline=normalize_scalar_baseline,
+            normalization_mode=normalization_mode,
+            allow_diagnostic_correction=allow_diagnostic_correction,
+        )
+
+        # For S34, still use empirical approach (I3/I4 don't need mirror)
+        all_terms_plus = make_all_terms_k3(theta, R, kernel_regime="paper")
+
+        factorial_norm = {
+            "11": 1.0 / (math.factorial(1) * math.factorial(1)),
+            "22": 1.0 / (math.factorial(2) * math.factorial(2)),
+            "33": 1.0 / (math.factorial(3) * math.factorial(3)),
+            "12": 1.0 / (math.factorial(1) * math.factorial(2)),
+            "13": 1.0 / (math.factorial(1) * math.factorial(3)),
+            "23": 1.0 / (math.factorial(2) * math.factorial(3)),
+        }
+        symmetry_factor = {
+            "11": 1.0, "22": 1.0, "33": 1.0,
+            "12": 2.0, "13": 2.0, "23": 2.0
+        }
+
+        i3_i4_plus_total = 0.0
+        per_term = {}
+
+        for pair_key in ["11", "22", "33", "12", "13", "23"]:
+            terms_plus = all_terms_plus[pair_key]
+            norm = factorial_norm[pair_key] if use_factorial_normalization else 1.0
+            sym = symmetry_factor[pair_key]
+            full_norm = sym * norm
+
+            # I₃ and I₄ (indices 2, 3) - NO mirror
+            for term_plus in terms_plus[2:4]:  # I₃, I₄
+                result_plus = evaluate_term(
+                    term_plus, polynomials, n, R=R, theta=theta, n_quad_a=n_quad_a
+                )
+                contrib = full_norm * result_plus.value
+                i3_i4_plus_total += contrib
+                per_term[term_plus.name] = result_plus.value
+
+        # In the unified v3 structure:
+        # - S12_total = V = A × (exp(R) + 5) where A is the baseline
+        # - D = 0 emerges from the bracket structure (not forced)
+        # - c = V + I34 = S12_total + S34
+
+        # The unified value already incorporates the mirror assembly
+        total = s12_result.S12_total + i3_i4_plus_total
+
+        # Extract A for diagnostics
+        mirror_mult = math.exp(R) + (2 * K - 1)  # exp(R) + 5 for K=3
+        A = s12_result.S12_total / mirror_mult
+        B = 5 * A
+        D = s12_result.S12_total - A * math.exp(R) - B
+
+        # Store diagnostic breakdown
+        per_term["_S12_unified_total"] = s12_result.S12_total
+        per_term["_S12_unnormalized"] = s12_result.S12_unnormalized
+        per_term["_S34_total"] = i3_i4_plus_total
+        per_term["_I3_I4_plus_total"] = i3_i4_plus_total
+        per_term["_mirror_multiplier"] = mirror_mult
+        per_term["_mirror_mode"] = mirror_mode
+        per_term["_normalize_scalar_baseline"] = normalize_scalar_baseline
+        per_term["_normalization_mode"] = s12_result.normalization_mode
+        per_term["_scalar_baseline_factor"] = s12_result.scalar_baseline_factor
+        per_term["_normalization_factor"] = s12_result.normalization_factor
+        per_term["_abd_A"] = A
+        per_term["_abd_B"] = B
+        per_term["_abd_D"] = D
+        per_term["_abd_B_over_A"] = B / A if A != 0 else float('inf')
+        per_term["_per_pair_contributions"] = s12_result.pair_contributions
+        per_term["_assembly"] = (
+            f"c = S12_unified + S34 (true bracket: D={D:.2e}, B/A={B/A:.4f}, "
+            f"mode={s12_result.normalization_mode}, factor={s12_result.normalization_factor:.4f})"
         )
 
         return EvaluationResult(
