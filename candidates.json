@@ -1,0 +1,93 @@
+{
+  "meta": {
+    "K": 3,
+    "theta": "4/7",
+    "notes": "Phase 47b candidate batch. PRZZ-faithful constraints: P1(0)=0, Q(0)=1, derived correction only, ladder must pass.",
+    "source_baseline": "PRZZ kappa polynomials"
+  },
+  "baseline": {
+    "load": "przz_kappa",
+    "enforce_Q0": false
+  },
+  "constraints": {
+    "hard": {
+      "P1_at_0_equals_0": true,
+      "Q_at_0_equals_1": true,
+      "coefficients_real": true,
+      "no_nan_inf": true,
+      "max_abs_coeff": 100000.0,
+      "microcase_ladder_must_pass": true
+    },
+    "soft": {
+      "max_abs_Q_on_01": 5.0,
+      "max_abs_P_on_01": 10.0,
+      "two_benchmark_noncatastrophic_gap_pct": 10.0
+    }
+  },
+  "candidates": [
+    {
+      "id": "przz_baseline",
+      "description": "PRZZ P's and Q (kappa set) - reference baseline.",
+      "recipe": { "type": "baseline" }
+    },
+    {
+      "id": "Q_const_1",
+      "description": "PRZZ P's, Q(x)=1 (ablation to isolate Q contribution).",
+      "recipe": { "type": "Q_constant", "value": 1.0 }
+    },
+
+    { "id": "Q_blend_0.10", "description": "Q = (1-0.10)*1 + 0.10*Q_przz", "recipe": { "type": "Q_blend_with_constant_1", "lambda": 0.10 } },
+    { "id": "Q_blend_0.25", "description": "Q = (1-0.25)*1 + 0.25*Q_przz", "recipe": { "type": "Q_blend_with_constant_1", "lambda": 0.25 } },
+    { "id": "Q_blend_0.50", "description": "Q = (1-0.50)*1 + 0.50*Q_przz", "recipe": { "type": "Q_blend_with_constant_1", "lambda": 0.50 } },
+    { "id": "Q_blend_0.75", "description": "Q = (1-0.75)*1 + 0.75*Q_przz", "recipe": { "type": "Q_blend_with_constant_1", "lambda": 0.75 } },
+    { "id": "Q_blend_0.90", "description": "Q = (1-0.90)*1 + 0.90*Q_przz", "recipe": { "type": "Q_blend_with_constant_1", "lambda": 0.90 } },
+
+    {
+      "id": "P2_scale_up_2pct",
+      "description": "Scale P2_tilde by +2% (P1, P3, Q unchanged).",
+      "recipe": { "type": "scale_P_tilde", "which": "P2", "scale": 1.02 }
+    },
+    {
+      "id": "P2_scale_down_2pct",
+      "description": "Scale P2_tilde by -2%.",
+      "recipe": { "type": "scale_P_tilde", "which": "P2", "scale": 0.98 }
+    },
+    {
+      "id": "P3_scale_up_2pct",
+      "description": "Scale P3_tilde by +2%.",
+      "recipe": { "type": "scale_P_tilde", "which": "P3", "scale": 1.02 }
+    },
+    {
+      "id": "P3_scale_down_2pct",
+      "description": "Scale P3_tilde by -2%.",
+      "recipe": { "type": "scale_P_tilde", "which": "P3", "scale": 0.98 }
+    },
+
+    {
+      "id": "Q_mono_jitter_1",
+      "description": "Small jitter on Q_mono coefficients (sigma=2%), renormalize Q(0)=1, seed=1.",
+      "recipe": { "type": "jitter_Q_mono", "sigma": 0.02, "seed": 1, "renormalize_Q0": true }
+    },
+    {
+      "id": "Q_mono_jitter_2",
+      "description": "sigma=2%, seed=2.",
+      "recipe": { "type": "jitter_Q_mono", "sigma": 0.02, "seed": 2, "renormalize_Q0": true }
+    },
+    {
+      "id": "Q_mono_jitter_3",
+      "description": "sigma=2%, seed=3.",
+      "recipe": { "type": "jitter_Q_mono", "sigma": 0.02, "seed": 3, "renormalize_Q0": true }
+    },
+
+    {
+      "id": "P23_jitter_small_1",
+      "description": "Small jitter on P2_tilde and P3_tilde (sigma=1.5%), seed=1.",
+      "recipe": { "type": "jitter_P_tilde", "which": ["P2", "P3"], "sigma": 0.015, "seed": 1 }
+    },
+    {
+      "id": "P23_jitter_small_2",
+      "description": "sigma=1.5%, seed=2.",
+      "recipe": { "type": "jitter_P_tilde", "which": ["P2", "P3"], "sigma": 0.015, "seed": 2 }
+    }
+  ]
+}

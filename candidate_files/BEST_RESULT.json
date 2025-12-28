@@ -1,0 +1,40 @@
+{
+  "description": "Best result from 2D search (Phase 47c)",
+  "alpha": 70,
+  "beta": -30,
+  "P1_tilde": [
+    0.261076,
+    -1.071007,
+    -0.23684,
+    0.260233
+  ],
+  "P2_tilde": [
+    1.1825235016106925,
+    -0.2030695524988122,
+    -0.21781895965589626
+  ],
+  "P3_tilde": [
+    -1.0852407847424503,
+    -2.260094537754199,
+    -0.12557532824531475
+  ],
+  "Q_mono": [
+    0.9999989999999999,
+    -0.6378499999999999,
+    -0.6314839999999999,
+    -1.286264,
+    2.56088,
+    -1.024352
+  ],
+  "c_at_R_1p3036": 2.0165371858,
+  "kappa_at_R_1p3036": 0.4619654987,
+  "przz_baseline_kappa": 0.417293962,
+  "improvement_delta_kappa": 0.044672,
+  "improvement_percent": 10.7,
+  "validation": {
+    "quadrature_stable": true,
+    "cross_R_passes": true,
+    "both_benchmarks_improve": true,
+    "polynomial_amplitude_ok": true
+  }
+}
