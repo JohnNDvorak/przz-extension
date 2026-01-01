@@ -15,5 +15,5 @@ pandas>=2.0.0
 # Symbolic mathematics (for derivations)
 sympy>=1.12
 
-# Standard library extensions (usually included but being explicit)
-# typing-extensions>=4.0.0  # Usually bundled with Python 3.9+
+# High-precision arithmetic (optional, for validation)
+mpmath>=1.3.0
