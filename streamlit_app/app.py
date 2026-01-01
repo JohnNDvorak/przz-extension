@@ -68,7 +68,7 @@ def main():
     st.markdown(
         "Based on **Pratt, Robles, Zaharescu & Zeindler**, "
         "*[More Than Five-Twelfths of the Zeros of ζ Are on the Critical Line](https://arxiv.org/abs/1802.10521)* "
-        "(2020) — Interactive exploration of mollifier polynomials for computing "
+        "(2019) — Interactive exploration of mollifier polynomials for computing "
         "$\\kappa$, the proportion of Riemann zeta zeros on the critical line."
     )
 
