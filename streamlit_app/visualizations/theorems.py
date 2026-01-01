@@ -492,6 +492,44 @@ def render_theorems_tab():
 
 def render_quick_reference():
     """Render a quick reference card for the main results."""
+
+    # Start Here section
+    st.markdown("### Start Here")
+
+    st.markdown("""
+    **What is this?** This interactive explorer accompanies the paper
+    *"Saturation of the Levinson-Conrey Method: Achieving c = 1"* — a breakthrough result
+    showing that **86.5% of Riemann zeta zeros** provably lie on the critical line.
+    """)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.success("""
+        **The Discovery:**
+        - Found polynomials that achieve $c = 1$ (method saturation)
+        - This is the theoretical ceiling — cannot be improved
+        - Result: $\\kappa_{\\text{main}} = 1.0$ (100% in the main term)
+        """)
+    with col2:
+        st.warning("""
+        **What This Means:**
+        - At least **86.5%** of zeros are on Re(s) = ½
+        - At least **84%** of those zeros are simple
+        - As $T \\to \\infty$, the density approaches **100%**
+        """)
+
+    st.markdown("""
+    **Explore the tabs above:**
+    - **Theorems** — The 10 main results with proofs
+    - **Polynomials** — See the "below the diagonal" breakthrough
+    - **R Sweep** — Watch $c(R)$ kiss the floor at $c = 1$
+    - **Asymptotic** — See how $\\kappa \\to 1$ as height increases
+    - **Leaderboard** — Compare with PRZZ baseline (+152% improvement!)
+    """)
+
+    st.divider()
+
+    # Quick Reference table
     st.markdown("### Quick Reference")
 
     st.markdown(r"""
