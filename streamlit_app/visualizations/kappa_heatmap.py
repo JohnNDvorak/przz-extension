@@ -256,7 +256,7 @@ def render_sensitivity_heatmap(
             data["x_coeff"], data["y_coeff"],
             data["current_x"], data["current_y"]
         )
-        st.plotly_chart(fig, width='stretch')
+        st.plotly_chart(fig, use_container_width=True)
 
         valid_kappas = data["kappa_grid"][~np.isnan(data["kappa_grid"])]
         if len(valid_kappas) > 0:

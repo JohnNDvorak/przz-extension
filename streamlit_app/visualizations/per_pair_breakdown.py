@@ -258,12 +258,12 @@ def render_per_pair_breakdown(result: Optional[Dict]):
     with col1:
         st.markdown("#### Contribution by Pair")
         fig1 = create_contribution_chart(per_pair)
-        st.plotly_chart(fig1, width='stretch')
+        st.plotly_chart(fig1, use_container_width=True)
 
     with col2:
         st.markdown("#### I2 Matrix (Pair Correlations)")
         fig2 = create_i2_heatmap(per_pair)
-        st.plotly_chart(fig2, width='stretch')
+        st.plotly_chart(fig2, use_container_width=True)
 
     # Destructive interference
     st.markdown("#### Destructive Interference Analysis")
@@ -272,7 +272,7 @@ def render_per_pair_breakdown(result: Optional[Dict]):
     while others contribute destructively (red) to the final c value.
     """)
     fig3 = create_destructive_interference_chart(per_pair, m)
-    st.plotly_chart(fig3, width='stretch')
+    st.plotly_chart(fig3, use_container_width=True)
 
     # Summary statistics
     st.markdown("#### Summary")

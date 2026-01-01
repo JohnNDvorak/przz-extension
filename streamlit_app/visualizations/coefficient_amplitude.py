@@ -192,12 +192,12 @@ def render_coefficient_amplitude(
     """
     # Amplitude chart
     fig_amp = create_amplitude_chart(P1_coeffs, P2_coeffs, P3_coeffs, constraint_mode)
-    st.plotly_chart(fig_amp, width='stretch')
+    st.plotly_chart(fig_amp, use_container_width=True)
 
     # Comparison with PRZZ
     st.markdown("**Comparison with PRZZ Baseline:**")
     fig_compare = create_mode_comparison_chart(P1_coeffs, P2_coeffs, P3_coeffs)
-    st.plotly_chart(fig_compare, width='stretch')
+    st.plotly_chart(fig_compare, use_container_width=True)
 
     # Statistics
     st.markdown("**Coefficient Statistics:**")

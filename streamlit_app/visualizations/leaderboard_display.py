@@ -111,7 +111,7 @@ def render_leaderboard_full():
 
     # Breakthrough summary chart
     fig = render_breakthrough_summary()
-    st.plotly_chart(fig, width='stretch')
+    st.plotly_chart(fig, use_container_width=True)
 
     # Summary metrics
     col1, col2, col3, col4 = st.columns(4)
@@ -180,7 +180,7 @@ def render_kappa_table(entries: List[Dict]):
         })
 
     df = pd.DataFrame(df_data)
-    st.dataframe(df, width='stretch', hide_index=True)
+    st.dataframe(df, use_container_width=True, hide_index=True)
 
     # Expandable details
     for i, entry in enumerate(entries):
@@ -224,7 +224,7 @@ def render_kappa_star_table(entries: List[Dict]):
         })
 
     df = pd.DataFrame(df_data)
-    st.dataframe(df, width='stretch', hide_index=True)
+    st.dataframe(df, use_container_width=True, hide_index=True)
 
     # Expandable details
     for i, entry in enumerate(entries):

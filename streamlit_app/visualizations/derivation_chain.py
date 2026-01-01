@@ -274,7 +274,7 @@ def render_derivation_chain(R: float = 1.14978, theta: float = 4/7, K: int = 3):
 
     # Show flowchart
     fig = create_flowchart()
-    st.plotly_chart(fig, width='stretch')
+    st.plotly_chart(fig, use_container_width=True)
 
     # Legend
     col1, col2, col3 = st.columns(3)

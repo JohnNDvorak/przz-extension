@@ -325,10 +325,10 @@ def render_polynomial_plot(
 
     if view_type == "Breakthrough Comparison":
         fig = create_breakthrough_comparison_plot(P1_coeffs, P2_coeffs, P3_coeffs, mode)
-        st.plotly_chart(fig, width='stretch')
+        st.plotly_chart(fig, use_container_width=True)
     else:
         fig = create_polynomial_plot(P1_coeffs, P2_coeffs, P3_coeffs)
-        st.plotly_chart(fig, width='stretch')
+        st.plotly_chart(fig, use_container_width=True)
 
         # Show key values
         col1, col2, col3 = st.columns(3)

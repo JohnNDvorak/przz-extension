@@ -230,7 +230,7 @@ def render_integrals_table(result: Optional[Dict]):
     with col2:
         st.markdown("### Assembly Visualization")
         fig = create_waterfall_chart(result)
-        st.plotly_chart(fig, width='stretch')
+        st.plotly_chart(fig, use_container_width=True)
 
     st.markdown("---")
 

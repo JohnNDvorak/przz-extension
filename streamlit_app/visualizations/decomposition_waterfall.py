@@ -140,12 +140,12 @@ def render_decomposition(result: Optional[Dict]):
 
     # Waterfall chart
     fig_waterfall = create_decomposition_waterfall(result)
-    st.plotly_chart(fig_waterfall, width='stretch')
+    st.plotly_chart(fig_waterfall, use_container_width=True)
 
     # Integral breakdown
     st.markdown("**Integral Breakdown:**")
     fig_integrals = create_integral_breakdown(result)
-    st.plotly_chart(fig_integrals, width='stretch')
+    st.plotly_chart(fig_integrals, use_container_width=True)
 
     # Formula display
     st.markdown("**Assembly Formula:**")

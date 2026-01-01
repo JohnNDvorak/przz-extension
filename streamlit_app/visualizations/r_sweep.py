@@ -280,7 +280,7 @@ def render_r_sweep_tab(current_coeffs: Optional[Dict] = None):
     # Main plot
     st.markdown("#### c(R) and kappa(R) Curves")
     fig = create_c_R_plot(sweep_data, current_R)
-    st.plotly_chart(fig, width='stretch')
+    st.plotly_chart(fig, use_container_width=True)
 
     st.divider()
 
@@ -292,7 +292,7 @@ def render_r_sweep_tab(current_coeffs: Optional[Dict] = None):
     """)
 
     fig_parabola = create_parabola_visualization()
-    st.plotly_chart(fig_parabola, width='stretch')
+    st.plotly_chart(fig_parabola, use_container_width=True)
 
     # Mathematical explanation
     st.divider()

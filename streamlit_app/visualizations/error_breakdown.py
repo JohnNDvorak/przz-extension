@@ -71,7 +71,7 @@ def render_error_breakdown(result: Optional[Dict]):
     # Display table
     st.markdown("**Error Analysis:**")
     df = create_error_table(error_bounds)
-    st.dataframe(df, width='stretch', hide_index=True)
+    st.dataframe(df, use_container_width=True, hide_index=True)
 
     # Kappa comparison
     st.markdown("**Impact on kappa:**")

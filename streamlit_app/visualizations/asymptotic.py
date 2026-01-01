@@ -188,12 +188,12 @@ def render_asymptotic_tab():
     # Asymptotic plot
     st.markdown("#### Convergence to kappa = 1")
     fig = create_asymptotic_plot(data, current_L)
-    st.plotly_chart(fig, width='stretch')
+    st.plotly_chart(fig, use_container_width=True)
 
     # Error decay plot
     st.markdown("#### Error Decay Rate")
     fig_error = create_error_decay_plot(data)
-    st.plotly_chart(fig_error, width='stretch')
+    st.plotly_chart(fig_error, use_container_width=True)
 
     st.divider()
 
