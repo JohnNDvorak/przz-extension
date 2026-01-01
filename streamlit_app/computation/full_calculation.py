@@ -63,16 +63,24 @@ def run_full_calculation(
     progress_bar.progress(60)
 
     # Actual computation (cached)
-    result = cached_full_kappa(
-        P1_tuple=P1_tuple,
-        P2_tuple=P2_tuple,
-        P3_tuple=P3_tuple,
-        Q_json=Q_json,
-        R=R,
-        theta=theta,
-        K=K,
-        n_quad=n_quad,
-    )
+    try:
+        result = cached_full_kappa(
+            P1_tuple=P1_tuple,
+            P2_tuple=P2_tuple,
+            P3_tuple=P3_tuple,
+            Q_json=Q_json,
+            R=R,
+            theta=theta,
+            K=K,
+            n_quad=n_quad,
+        )
+    except Exception as e:
+        progress_bar.empty()
+        status_text.empty()
+        st.error(f"Computation failed: {str(e)}")
+        import traceback
+        st.code(traceback.format_exc())
+        return None
 
     status_text.text("Computing error bounds...")
     progress_bar.progress(80)
