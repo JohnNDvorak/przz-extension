@@ -3123,3 +3123,220 @@ def make_all_terms_k3_ordered_v2(
 # See TECHNICAL_ANALYSIS.md Section 9.5 for mathematical background on
 # the S(α+β) arithmetic factor and its role in the bracket computation.
 # =============================================================================
+
+
+# =============================================================================
+# K=4 TERM BUILDERS (Phase 48)
+# =============================================================================
+#
+# These use the existing generic builders to create terms for K=4 pairs.
+# K=4 adds 4 new pairs: (1,4), (2,4), (3,4), (4,4)
+#
+# Total K=4 pairs: 10
+# - K=3 pairs: (1,1), (1,2), (1,3), (2,2), (2,3), (3,3)
+# - New pairs: (1,4), (2,4), (3,4), (4,4)
+#
+# =============================================================================
+
+
+def make_all_terms_14_v2(theta: float, R: float, kernel_regime: Optional[KernelRegime] = None) -> List[Term]:
+    """
+    Build terms for pair (1,4).
+
+    (1-u) powers:
+      I₁: (1-1) + (4-1) = 3
+      I₃: 1 - 1 = 0
+      I₄: 4 - 1 = 3
+    """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    return [
+        _make_I1_generic_v2(theta, R, 1, 4, kernel_regime=regime),
+        _make_I2_generic_v2(theta, R, 1, 4, kernel_regime=regime),
+        _make_I3_generic_v2(theta, R, 1, 4, kernel_regime=regime),
+        _make_I4_generic_v2(theta, R, 1, 4, kernel_regime=regime),
+    ]
+
+
+def make_all_terms_41_v2(theta: float, R: float, kernel_regime: Optional[KernelRegime] = None) -> List[Term]:
+    """Build terms for pair (4,1) - role-swapped version of (1,4)."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    return [
+        _make_I1_generic_v2(theta, R, 4, 1, kernel_regime=regime),
+        _make_I2_generic_v2(theta, R, 4, 1, kernel_regime=regime),
+        _make_I3_generic_v2(theta, R, 4, 1, kernel_regime=regime),
+        _make_I4_generic_v2(theta, R, 4, 1, kernel_regime=regime),
+    ]
+
+
+def make_all_terms_24_v2(theta: float, R: float, kernel_regime: Optional[KernelRegime] = None) -> List[Term]:
+    """
+    Build terms for pair (2,4).
+
+    (1-u) powers:
+      I₁: (2-1) + (4-1) = 4
+      I₃: 2 - 1 = 1
+      I₄: 4 - 1 = 3
+    """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    return [
+        _make_I1_generic_v2(theta, R, 2, 4, kernel_regime=regime),
+        _make_I2_generic_v2(theta, R, 2, 4, kernel_regime=regime),
+        _make_I3_generic_v2(theta, R, 2, 4, kernel_regime=regime),
+        _make_I4_generic_v2(theta, R, 2, 4, kernel_regime=regime),
+    ]
+
+
+def make_all_terms_42_v2(theta: float, R: float, kernel_regime: Optional[KernelRegime] = None) -> List[Term]:
+    """Build terms for pair (4,2) - role-swapped version of (2,4)."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    return [
+        _make_I1_generic_v2(theta, R, 4, 2, kernel_regime=regime),
+        _make_I2_generic_v2(theta, R, 4, 2, kernel_regime=regime),
+        _make_I3_generic_v2(theta, R, 4, 2, kernel_regime=regime),
+        _make_I4_generic_v2(theta, R, 4, 2, kernel_regime=regime),
+    ]
+
+
+def make_all_terms_34_v2(theta: float, R: float, kernel_regime: Optional[KernelRegime] = None) -> List[Term]:
+    """
+    Build terms for pair (3,4).
+
+    (1-u) powers:
+      I₁: (3-1) + (4-1) = 5
+      I₃: 3 - 1 = 2
+      I₄: 4 - 1 = 3
+    """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    return [
+        _make_I1_generic_v2(theta, R, 3, 4, kernel_regime=regime),
+        _make_I2_generic_v2(theta, R, 3, 4, kernel_regime=regime),
+        _make_I3_generic_v2(theta, R, 3, 4, kernel_regime=regime),
+        _make_I4_generic_v2(theta, R, 3, 4, kernel_regime=regime),
+    ]
+
+
+def make_all_terms_43_v2(theta: float, R: float, kernel_regime: Optional[KernelRegime] = None) -> List[Term]:
+    """Build terms for pair (4,3) - role-swapped version of (3,4)."""
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    return [
+        _make_I1_generic_v2(theta, R, 4, 3, kernel_regime=regime),
+        _make_I2_generic_v2(theta, R, 4, 3, kernel_regime=regime),
+        _make_I3_generic_v2(theta, R, 4, 3, kernel_regime=regime),
+        _make_I4_generic_v2(theta, R, 4, 3, kernel_regime=regime),
+    ]
+
+
+def make_all_terms_44_v2(theta: float, R: float, kernel_regime: Optional[KernelRegime] = None) -> List[Term]:
+    """
+    Build terms for pair (4,4).
+
+    (1-u) powers:
+      I₁: (4-1) + (4-1) = 6
+      I₃: 4 - 1 = 3
+      I₄: 4 - 1 = 3
+    """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    return [
+        _make_I1_generic_v2(theta, R, 4, 4, kernel_regime=regime),
+        _make_I2_generic_v2(theta, R, 4, 4, kernel_regime=regime),
+        _make_I3_generic_v2(theta, R, 4, 4, kernel_regime=regime),
+        _make_I4_generic_v2(theta, R, 4, 4, kernel_regime=regime),
+    ]
+
+
+def make_all_terms_k4(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Dict[str, List[Term]]:
+    """
+    Build all terms for K=4, d=1.
+
+    Args:
+        theta: θ parameter
+        R: R parameter
+        kernel_regime: "raw" or "paper" for Case B/C selection.
+
+    Returns dict with keys: "11", "22", "33", "44", "12", "13", "14", "23", "24", "34"
+    (10 pairs total)
+    """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    return {
+        # K=3 pairs (reuse existing builders)
+        "11": make_all_terms_11(theta, R, kernel_regime=regime),
+        "22": make_all_terms_22(theta, R, kernel_regime=regime),
+        "33": make_all_terms_33(theta, R, kernel_regime=regime),
+        "12": make_all_terms_12(theta, R, kernel_regime=regime),
+        "13": make_all_terms_13(theta, R, kernel_regime=regime),
+        "23": make_all_terms_23(theta, R, kernel_regime=regime),
+        # K=4 new pairs
+        "44": make_all_terms_44_v2(theta, R, kernel_regime=regime),
+        "14": make_all_terms_14_v2(theta, R, kernel_regime=regime),
+        "24": make_all_terms_24_v2(theta, R, kernel_regime=regime),
+        "34": make_all_terms_34_v2(theta, R, kernel_regime=regime),
+    }
+
+
+def make_all_terms_k4_v2(
+    theta: float,
+    R: float,
+    kernel_regime: Optional[KernelRegime] = None
+) -> Dict[str, List[Term]]:
+    """
+    Build all terms for K=4, d=1 using V2 builders.
+
+    Args:
+        theta: θ parameter
+        R: R parameter
+        kernel_regime: "raw" or "paper" for Case B/C selection.
+
+    Returns dict with keys: "11", "22", "33", "44", "12", "13", "14", "23", "24", "34"
+    (10 pairs total)
+    """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    return {
+        # K=3 pairs (V2 versions)
+        "11": make_all_terms_11_v2(theta, R, kernel_regime=regime),
+        "22": make_all_terms_22_v2(theta, R, kernel_regime=regime),
+        "33": make_all_terms_33_v2(theta, R, kernel_regime=regime),
+        "12": make_all_terms_12_v2(theta, R, kernel_regime=regime),
+        "13": make_all_terms_13_v2(theta, R, kernel_regime=regime),
+        "23": make_all_terms_23_v2(theta, R, kernel_regime=regime),
+        # K=4 new pairs
+        "44": make_all_terms_44_v2(theta, R, kernel_regime=regime),
+        "14": make_all_terms_14_v2(theta, R, kernel_regime=regime),
+        "24": make_all_terms_24_v2(theta, R, kernel_regime=regime),
+        "34": make_all_terms_34_v2(theta, R, kernel_regime=regime),
+    }
+
+
+def make_all_terms_k4_ordered_v2(
+    theta: float, R: float, kernel_regime: Optional[KernelRegime] = None
+) -> Dict[str, List[Term]]:
+    """
+    Build ALL ordered pair terms for K=4, d=1.
+
+    Returns dict with all 16 ordered pairs including role-swapped versions.
+    This is for mirror diagnostics where off-diagonal pairs may need role swapping.
+    """
+    regime = kernel_regime if kernel_regime is not None else DEFAULT_KERNEL_REGIME
+    return {
+        # Diagonal pairs
+        "11": make_all_terms_11_v2(theta, R, kernel_regime=regime),
+        "22": make_all_terms_22_v2(theta, R, kernel_regime=regime),
+        "33": make_all_terms_33_v2(theta, R, kernel_regime=regime),
+        "44": make_all_terms_44_v2(theta, R, kernel_regime=regime),
+        # Off-diagonal pairs (both orderings)
+        "12": make_all_terms_12_v2(theta, R, kernel_regime=regime),
+        "21": make_all_terms_21_v2(theta, R, kernel_regime=regime),
+        "13": make_all_terms_13_v2(theta, R, kernel_regime=regime),
+        "31": make_all_terms_31_v2(theta, R, kernel_regime=regime),
+        "14": make_all_terms_14_v2(theta, R, kernel_regime=regime),
+        "41": make_all_terms_41_v2(theta, R, kernel_regime=regime),
+        "23": make_all_terms_23_v2(theta, R, kernel_regime=regime),
+        "32": make_all_terms_32_v2(theta, R, kernel_regime=regime),
+        "24": make_all_terms_24_v2(theta, R, kernel_regime=regime),
+        "42": make_all_terms_42_v2(theta, R, kernel_regime=regime),
+        "34": make_all_terms_34_v2(theta, R, kernel_regime=regime),
+        "43": make_all_terms_43_v2(theta, R, kernel_regime=regime),
+    }

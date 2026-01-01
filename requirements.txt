@@ -1,0 +1,19 @@
+# PRZZ Mollifier Explorer - Dependencies
+# For Streamlit Cloud deployment
+
+# Core framework
+streamlit>=1.28.0
+
+# Numerical computation
+numpy>=1.24.0
+scipy>=1.10.0
+
+# Visualization
+plotly>=5.17.0
+pandas>=2.0.0
+
+# Symbolic mathematics (for derivations)
+sympy>=1.12
+
+# Standard library extensions (usually included but being explicit)
+# typing-extensions>=4.0.0  # Usually bundled with Python 3.9+

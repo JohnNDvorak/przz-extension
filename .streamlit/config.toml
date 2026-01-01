@@ -1,0 +1,28 @@
+# Streamlit configuration for PRZZ Mollifier Explorer
+# Optimized for Streamlit Cloud deployment
+
+[server]
+# Headless mode for server deployment
+headless = true
+
+# Standard port (Streamlit Cloud will override)
+port = 8501
+
+# File watcher - poll for development (auto = default)
+fileWatcherType = "auto"
+
+[browser]
+# Don't collect usage stats
+gatherUsageStats = false
+
+[theme]
+# Professional theme for number theory application
+primaryColor = "#1f77b4"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f0f2f6"
+textColor = "#262730"
+font = "sans serif"
+
+[runner]
+# Fast rerun mode
+fastReruns = true

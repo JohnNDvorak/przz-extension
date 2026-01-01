@@ -965,12 +965,26 @@ def compute_c_paper_with_mirror(
     - I₁ and I₂ require mirror: I(α,β) + m·I(-β,-α)
     - I₃ and I₄ do NOT require mirror
 
-    Mirror multiplier (shim / regression-only):
+    Mirror multiplier (empirically validated within tested regime):
         m = exp(R) + (2K - 1)
 
     For K=3: m = exp(R) + 5.
 
-    This achieves ~1-3% accuracy on both κ and κ* benchmarks.
+    VALIDATION SCOPE (Phase 58, 2025-12-29):
+    - Tested regime: R ∈ {1.1167, 1.3036}, K=3, PRZZ polynomial class
+    - Baseline: Reproduces PRZZ κ = 0.4173 (m_needed = 8.814)
+    - Transferability: Stable ratio ~1.015 across polynomial sets (0.12% drift)
+    - Falsification: exp(2R) alternative gives κ < 0 (impossible)
+
+    See: scripts/test_m_derivation.py, scripts/test_gfactor_transferability.py
+
+    DERIVATION STATUS:
+    - The formula behaves structurally (no fitted parameters), but the mathematical
+      derivation from PRZZ's T^{-α-β} to this form is not complete.
+    - The exponential weighting is incorporated internally in S12(±R) integrals;
+      applying T^{-α-β} = exp(2R) externally would double-count.
+    - See docs/APPENDIX_D_EXPONENTIAL_TRACE.md for explicit trace of where exp(2Rt)
+      enters the integrand.
 
     Assembly formula:
         c = (I₁+I₂ at +R) + m×(I₁+I₂ at -R) + (I₃+I₄ at +R)

@@ -296,6 +296,7 @@ def build_unified_bracket_series(
     polynomials: Dict,
     var_names: Tuple[str, ...] = ("x", "y"),
     include_Q: bool = True,
+    frozen_q: bool = False,
 ) -> TruncatedSeries:
     """
     Build the unified bracket series with full polynomial factors at (u, t).
@@ -327,9 +328,19 @@ def build_unified_bracket_series(
         × P_ell1(x+u) × P_ell2(y+u)  [P factors]
         × Q(A_α) × Q(A_β)            [Q factors with t-dependent eigenvalues]
 
-    For Q factors, the unified bracket eigenvalues are:
-        A_α = t + θ(t-1)x + θt·y
-        A_β = t + θt·x + θ(t-1)·y
+    For Q factors, there are TWO modes:
+
+    1. AFFINE-DEPENDENT (frozen_q=False, default - LEGACY):
+       The unified bracket eigenvalues are:
+           A_α = t + θ(t-1)x + θt·y
+           A_β = t + θt·x + θ(t-1)·y
+       Q(A_α) × Q(A_β) contributes x,y dependence through Q'(t).
+
+    2. FROZEN SCALAR (frozen_q=True - PRZZ CORRECT):
+       From PRZZ Line 1544:
+           Q(D_α)Q(D_β)[T^{-tα-tβ}] |_{α=β=-R/L} = Q(t)² e^{2Rt}
+       The Q operators act on T^{-tα-tβ} which has NO x,y dependence.
+       Q(t)² is just a scalar multiplier at each quadrature point t.
 
     CRITICAL: This bracket already combines direct and mirror contributions
     via the exp(2Rt + Rθ(2t-1)(x+y)) structure. We do NOT compute at +R and -R
@@ -366,37 +377,48 @@ def build_unified_bracket_series(
         P2_series = P2_series + TruncatedSeries.variable("y", var_names) * P2_deriv
         series = series * P2_series
 
-    # 5. Q factors: Q(A_α) × Q(A_β)
+    # 5. Q factors: Two modes available
     if include_Q:
         Q = polynomials.get("Q")
         if Q is not None:
-            # Unified bracket eigenvalues (t-dependent):
-            # A_α = t + θ(t-1)x + θt·y
-            # A_β = t + θt·x + θ(t-1)·y
-            #
-            # At x=y=0: A_α = A_β = t
-            # Q(A_α) = Q(t) + Q'(t)[θ(t-1)x + θt·y] + ...
+            Q_val = float(Q.eval(np.array([t]))[0])  # Q(t)
 
-            Q_val = float(Q.eval(np.array([t]))[0])       # Q(t)
-            Q_deriv = float(Q.eval_deriv(np.array([t]), 1)[0])  # Q'(t)
+            if frozen_q:
+                # PRZZ CORRECT MODE (Phase 60.1):
+                # From PRZZ Line 1544:
+                #   Q(D_α)Q(D_β)[T^{-tα-tβ}] |_{α=β=-R/L} = Q(t)² e^{2Rt}
+                # The Q operators act on T^{-tα-tβ} which has NO x,y dependence.
+                # Q(t)² is just a scalar multiplier.
+                Q_squared = Q_val * Q_val
+                series = series * Q_squared
+            else:
+                # LEGACY MODE (affine-dependent):
+                # Unified bracket eigenvalues (t-dependent):
+                # A_α = t + θ(t-1)x + θt·y
+                # A_β = t + θt·x + θ(t-1)·y
+                #
+                # At x=y=0: A_α = A_β = t
+                # Q(A_α) = Q(t) + Q'(t)[θ(t-1)x + θt·y] + ...
 
-            # Eigenvalue linear coefficients for A_α
-            eig_alpha_x = theta * (t - 1)  # coefficient of x in A_α
-            eig_alpha_y = theta * t        # coefficient of y in A_α
+                Q_deriv = float(Q.eval_deriv(np.array([t]), 1)[0])  # Q'(t)
 
-            Q_alpha_series = TruncatedSeries.from_scalar(Q_val, var_names)
-            Q_alpha_series = Q_alpha_series + TruncatedSeries.variable("x", var_names) * (Q_deriv * eig_alpha_x)
-            Q_alpha_series = Q_alpha_series + TruncatedSeries.variable("y", var_names) * (Q_deriv * eig_alpha_y)
+                # Eigenvalue linear coefficients for A_α
+                eig_alpha_x = theta * (t - 1)  # coefficient of x in A_α
+                eig_alpha_y = theta * t        # coefficient of y in A_α
 
-            # Eigenvalue linear coefficients for A_β (swapped)
-            eig_beta_x = theta * t
-            eig_beta_y = theta * (t - 1)
+                Q_alpha_series = TruncatedSeries.from_scalar(Q_val, var_names)
+                Q_alpha_series = Q_alpha_series + TruncatedSeries.variable("x", var_names) * (Q_deriv * eig_alpha_x)
+                Q_alpha_series = Q_alpha_series + TruncatedSeries.variable("y", var_names) * (Q_deriv * eig_alpha_y)
 
-            Q_beta_series = TruncatedSeries.from_scalar(Q_val, var_names)
-            Q_beta_series = Q_beta_series + TruncatedSeries.variable("x", var_names) * (Q_deriv * eig_beta_x)
-            Q_beta_series = Q_beta_series + TruncatedSeries.variable("y", var_names) * (Q_deriv * eig_beta_y)
+                # Eigenvalue linear coefficients for A_β (swapped)
+                eig_beta_x = theta * t
+                eig_beta_y = theta * (t - 1)
 
-            series = series * Q_alpha_series * Q_beta_series
+                Q_beta_series = TruncatedSeries.from_scalar(Q_val, var_names)
+                Q_beta_series = Q_beta_series + TruncatedSeries.variable("x", var_names) * (Q_deriv * eig_beta_x)
+                Q_beta_series = Q_beta_series + TruncatedSeries.variable("y", var_names) * (Q_deriv * eig_beta_y)
+
+                series = series * Q_alpha_series * Q_beta_series
 
     return series
 
@@ -415,6 +437,7 @@ def compute_I1_unified_v3(
     n_quad_u: int = 40,
     n_quad_t: int = 40,
     include_Q: bool = True,
+    frozen_q: bool = False,
 ) -> UnifiedI1ResultV3:
     """
     Compute I1 for pair (ell1, ell2) using the unified bracket.
@@ -446,7 +469,7 @@ def compute_I1_unified_v3(
 
         for t, t_w in zip(t_nodes, t_weights):
             series = build_unified_bracket_series(
-                u, t, theta, R, ell1, ell2, polynomials, var_names, include_Q
+                u, t, theta, R, ell1, ell2, polynomials, var_names, include_Q, frozen_q
             )
             xy_coeff = series.coeffs.get(xy_mask, 0.0)
             if isinstance(xy_coeff, np.ndarray):
@@ -492,6 +515,7 @@ def compute_S12_unified_v3(
     n_quad_u: int = 40,
     n_quad_t: int = 40,
     include_Q: bool = True,
+    frozen_q: bool = False,
     use_factorial_normalization: bool = True,
     benchmark: str = "unified_v3",
     normalize_scalar_baseline: bool = False,
@@ -560,6 +584,7 @@ def compute_S12_unified_v3(
             n_quad_u=n_quad_u,
             n_quad_t=n_quad_t,
             include_Q=include_Q,
+            frozen_q=frozen_q,
         )
 
         # Apply normalization
@@ -649,6 +674,7 @@ def run_dual_benchmark_v3(
     n_quad_u: int = 40,
     n_quad_t: int = 40,
     include_Q: bool = True,
+    frozen_q: bool = False,
     normalize_scalar_baseline: bool = False,
     normalization_mode: str = "auto",
     allow_diagnostic_correction: bool = False,
@@ -683,6 +709,7 @@ def run_dual_benchmark_v3(
         n_quad_u=n_quad_u,
         n_quad_t=n_quad_t,
         include_Q=include_Q,
+        frozen_q=frozen_q,
         benchmark="kappa_v3",
         normalize_scalar_baseline=normalize_scalar_baseline,
         normalization_mode=normalization_mode,
@@ -696,6 +723,7 @@ def run_dual_benchmark_v3(
         n_quad_u=n_quad_u,
         n_quad_t=n_quad_t,
         include_Q=include_Q,
+        frozen_q=frozen_q,
         benchmark="kappa_star_v3",
         normalize_scalar_baseline=normalize_scalar_baseline,
         normalization_mode=normalization_mode,

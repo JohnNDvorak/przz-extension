@@ -510,3 +510,166 @@ def load_przz_polynomials_kappa_star(
         Path(__file__).parent.parent / "data" / "przz_parameters_kappa_star.json"
     )
     return load_przz_polynomials(enforce_Q0=enforce_Q0, json_path=json_path)
+
+
+# =============================================================================
+# PRZZ Constraint Verification
+# =============================================================================
+
+@dataclass
+class ConstraintResult:
+    """Result of a single constraint check."""
+    name: str
+    expected: float
+    actual: float
+    passed: bool
+    tolerance: float
+
+    @property
+    def error(self) -> float:
+        return abs(self.actual - self.expected)
+
+    def __str__(self) -> str:
+        status = "PASS" if self.passed else "FAIL"
+        return f"{self.name}: expected={self.expected:.6f}, actual={self.actual:.6f}, error={self.error:.2e} [{status}]"
+
+
+@dataclass
+class VerificationReport:
+    """Complete verification report for a polynomial set."""
+    results: List[ConstraintResult]
+
+    @property
+    def all_passed(self) -> bool:
+        return all(r.passed for r in self.results)
+
+    @property
+    def num_passed(self) -> int:
+        return sum(1 for r in self.results if r.passed)
+
+    @property
+    def num_failed(self) -> int:
+        return sum(1 for r in self.results if not r.passed)
+
+    def __str__(self) -> str:
+        lines = ["PRZZ Constraint Verification Report", "=" * 40]
+        for r in self.results:
+            lines.append(str(r))
+        lines.append("-" * 40)
+        lines.append(f"Passed: {self.num_passed}/{len(self.results)}")
+        status = "ALL CONSTRAINTS SATISFIED" if self.all_passed else "CONSTRAINTS VIOLATED"
+        lines.append(status)
+        return "\n".join(lines)
+
+
+def verify_przz_constraints(
+    P1: P1Polynomial,
+    P2: PellPolynomial,
+    P3: PellPolynomial,
+    Q: QPolynomial,
+    tolerance: float = 1e-6
+) -> VerificationReport:
+    """
+    Verify that polynomials satisfy PRZZ admissibility constraints.
+
+    Constraints (from PRZZ paper):
+    1. P₁(0) = 0 (boundary condition)
+    2. P₁(1) = 1 (normalization)
+    3. P₂(0) = 0 (boundary condition)
+    4. P₃(0) = 0 (boundary condition)
+    5. Q(0) = 1 (normalization)
+
+    Note: Q symmetry (Q(x) = Q(1-x)) is NOT a PRZZ requirement.
+
+    Args:
+        P1: P1 polynomial
+        P2: P2 polynomial
+        P3: P3 polynomial
+        Q: Q polynomial
+        tolerance: Tolerance for floating point comparison (default 1e-6
+                   to allow for printed coefficient rounding)
+
+    Returns:
+        VerificationReport with all constraint check results
+    """
+    results = []
+
+    # Get monomial forms for evaluation
+    p1_mono = P1.to_monomial()
+    p2_mono = P2.to_monomial()
+    p3_mono = P3.to_monomial()
+    q_mono = Q.to_monomial()
+
+    # 1. P₁(0) = 0
+    p1_at_0 = float(p1_mono.eval(np.array([0.0]))[0])
+    results.append(ConstraintResult(
+        name="P₁(0) = 0",
+        expected=0.0,
+        actual=p1_at_0,
+        passed=abs(p1_at_0) < tolerance,
+        tolerance=tolerance
+    ))
+
+    # 2. P₁(1) = 1
+    p1_at_1 = float(p1_mono.eval(np.array([1.0]))[0])
+    results.append(ConstraintResult(
+        name="P₁(1) = 1",
+        expected=1.0,
+        actual=p1_at_1,
+        passed=abs(p1_at_1 - 1.0) < tolerance,
+        tolerance=tolerance
+    ))
+
+    # 3. P₂(0) = 0
+    p2_at_0 = float(p2_mono.eval(np.array([0.0]))[0])
+    results.append(ConstraintResult(
+        name="P₂(0) = 0",
+        expected=0.0,
+        actual=p2_at_0,
+        passed=abs(p2_at_0) < tolerance,
+        tolerance=tolerance
+    ))
+
+    # 4. P₃(0) = 0
+    p3_at_0 = float(p3_mono.eval(np.array([0.0]))[0])
+    results.append(ConstraintResult(
+        name="P₃(0) = 0",
+        expected=0.0,
+        actual=p3_at_0,
+        passed=abs(p3_at_0) < tolerance,
+        tolerance=tolerance
+    ))
+
+    # 5. Q(0) = 1
+    q_at_0 = float(q_mono.eval(np.array([0.0]))[0])
+    results.append(ConstraintResult(
+        name="Q(0) = 1",
+        expected=1.0,
+        actual=q_at_0,
+        passed=abs(q_at_0 - 1.0) < tolerance,
+        tolerance=tolerance
+    ))
+
+    return VerificationReport(results=results)
+
+
+def verify_przz_baseline() -> VerificationReport:
+    """
+    Verify PRZZ baseline (kappa) polynomials satisfy constraints.
+
+    Returns:
+        VerificationReport
+    """
+    P1, P2, P3, Q = load_przz_polynomials(enforce_Q0=False)
+    return verify_przz_constraints(P1, P2, P3, Q)
+
+
+def verify_przz_kappa_star() -> VerificationReport:
+    """
+    Verify PRZZ kappa* polynomials satisfy constraints.
+
+    Returns:
+        VerificationReport
+    """
+    P1, P2, P3, Q = load_przz_polynomials_kappa_star(enforce_Q0=False)
+    return verify_przz_constraints(P1, P2, P3, Q)
