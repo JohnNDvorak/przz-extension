@@ -1,0 +1,195 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{geometry}
+\usepackage{longtable}
+\usepackage{xcolor}
+\geometry{margin=1in}
+
+\definecolor{improvement}{RGB}{0,128,0}
+
+\title{Polynomial Coefficient Reference\\
+\large Complete Numerical Values for All Configurations}
+\author{}
+\date{December 28, 2025}
+
+\begin{document}
+\maketitle
+
+% ============================================================
+\section{New Optimum ($\kappa = 0.5213$, validated)}
+% ============================================================
+
+\textbf{Source:} NOLH fixed-Q optimization, point 17
+
+\textbf{Result:} $\kappa = 0.5213$, $c = 1.8665$ (\textcolor{improvement}{\textbf{+24.9\%}} over PRZZ)
+
+\subsection{Polynomial Coefficients}
+
+\begin{align*}
+P_1: \quad & \text{tilde\_coeffs} = [0.163919, -0.786613, -0.216214, 0.327516] \\
+P_2: \quad & \text{tilde\_coeffs} = [1.006479, -0.229290, -0.193641] \\
+P_3: \quad & \text{tilde\_coeffs} = [-1.333122, -2.409307, -0.150797] \\
+Q: \quad & \text{mono\_coeffs} = [1.0, -0.6378, -0.6315, -1.2863, 2.5609, -1.0244]
+\end{align*}
+
+\subsection{Full Precision Values}
+
+\begin{center}
+\begin{tabular}{lrl}
+\toprule
+Coefficient & Value & Polynomial \\
+\midrule
+$p_1^{(0)}$ & $+0.16391900066850362$ & $P_1$ \\
+$p_1^{(1)}$ & $-0.78661276393183280$ & $P_1$ \\
+$p_1^{(2)}$ & $-0.21621350744316037$ & $P_1$ \\
+$p_1^{(3)}$ & $+0.32751590930601876$ & $P_1$ \\
+\midrule
+$p_2^{(0)}$ & $+1.00647910490950630$ & $P_2$ \\
+$p_2^{(1)}$ & $-0.22929016817987310$ & $P_2$ \\
+$p_2^{(2)}$ & $-0.19364131400971077$ & $P_2$ \\
+\midrule
+$p_3^{(0)}$ & $-1.33312236073364020$ & $P_3$ \\
+$p_3^{(1)}$ & $-2.40930719496394860$ & $P_3$ \\
+$p_3^{(2)}$ & $-0.15079690595988676$ & $P_3$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{$Q$ Polynomial (PRZZ Fixed)}
+
+\begin{center}
+\begin{tabular}{lrl}
+\toprule
+Representation & Coefficients & Notes \\
+\midrule
+Monomial & $[1.0, -0.6378, -0.6315, -1.2863, 2.5609, -1.0244]$ & $\sum q_k x^k$ \\
+$(1-2t)^k$ basis & $\{1: 0.6369, 3: -0.1593, 5: 0.0320\}$ & PRZZ form \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Benchmarks}
+
+\begin{center}
+\begin{tabular}{lrrrr}
+\toprule
+Benchmark & $R$ & $c$ & $\kappa$ & vs PRZZ \\
+\midrule
+$\kappa$ & $1.3036$ & $1.8665$ & $\mathbf{0.5213}$ & $\mathbf{+24.9\%}$ \\
+$\kappa^*$ & $1.1167$ & --- & $\mathbf{0.4738}$ & $\mathbf{+16.3\%}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ============================================================
+\section{$\kappa$ Benchmark ($R = 1.3036$) --- PRZZ Baseline}
+% ============================================================
+
+\subsection{PRZZ Published Values}
+
+\begin{align*}
+P_1: \quad & \text{tilde\_coeffs} = [0.261076, -1.071007, -0.236840, 0.260233] \\
+P_2: \quad & \text{tilde\_coeffs} = [1.048274, 1.319912, -0.940058] \\
+P_3: \quad & \text{tilde\_coeffs} = [0.522811, -0.686510, -0.049923] \\
+Q: \quad & \text{mono\_coeffs} = [0.999999, -0.637850, -0.631484, -1.286264, 2.560880, -1.024352]
+\end{align*}
+
+\textbf{Result:} $\kappa = 0.41729593$, $c = 2.13744891$
+
+% ============================================================
+\section{$\kappa^*$ Benchmark ($R = 1.1167$) --- PRZZ Baseline}
+% ============================================================
+
+\subsection{PRZZ Published Values}
+
+\begin{align*}
+P_1: \quad & \text{tilde\_coeffs} = [0.052703, -0.657999, -0.003193, -0.101832] \\
+P_2: \quad & \text{tilde\_coeffs} = [1.049837, -0.097446] \\
+P_3: \quad & \text{tilde\_coeffs} = [0.035113, -0.156465] \\
+Q: \quad & \text{mono\_coeffs} = [1.000000, -1.032446, 0, 0, 0, 0]
+\end{align*}
+
+\textbf{Result:} $\kappa^* = 0.40750979$, $c = 1.93795602$
+
+% ============================================================
+\section{Polynomial Basis Conventions}
+% ============================================================
+
+\subsection{$P_1$ Polynomial}
+
+$P_1$ uses a constrained form satisfying $P_1(0) = 0$, $P_1(1) = 1$:
+\begin{equation}
+P_1(x) = x + x(1-x) \cdot \tilde{P}_1(1-x)
+\end{equation}
+where $\tilde{P}_1$ is in powers of $(1-x)$:
+\begin{equation}
+\tilde{P}_1(y) = c_0 + c_1 y + c_2 y^2 + c_3 y^3
+\end{equation}
+
+\textbf{Admissibility:} Automatic from parameterization.
+
+\subsection{$P_\ell$ Polynomials ($\ell \geq 2$)}
+
+$P_\ell$ satisfies $P_\ell(0) = 0$:
+\begin{equation}
+P_\ell(x) = x \cdot \tilde{P}_\ell(x)
+\end{equation}
+where $\tilde{P}_\ell$ is in \textbf{monomial} basis:
+\begin{equation}
+\tilde{P}_\ell(x) = c_0 + c_1 x + c_2 x^2 + \cdots
+\end{equation}
+
+\textbf{Important:} Unlike $P_1$, the tilde coefficients for $P_2$ and $P_3$ use the standard monomial basis (powers of $x$), not powers of $(1-x)$.
+
+\textbf{Admissibility:} Automatic from factor of $x$.
+
+\subsection{$Q$ Polynomial}
+
+$Q$ can be stored in two equivalent representations:
+
+\textbf{Monomial basis:}
+\begin{equation}
+Q(x) = q_0 + q_1 x + q_2 x^2 + \cdots + q_5 x^5
+\end{equation}
+
+\textbf{$(1-2x)^k$ basis (PRZZ form):}
+\begin{equation}
+Q(x) = \sum_{k \in \{1,3,5\}} c_k (1-2x)^k
+\end{equation}
+with $Q(0) = 1$ constraint (automatically satisfied for odd $k$ only).
+
+\textbf{Admissibility:} $Q(0) = 1$ enforced by basis choice.
+
+% ============================================================
+\section{Conversion Notes}
+% ============================================================
+
+\subsection{$(1-2t)^k$ Basis to Monomial}
+
+For the Q polynomial, the PRZZ $(1-2t)^k$ basis coefficients convert to monomial form via:
+\begin{align*}
+Q(t) &= c_1(1-2t) + c_3(1-2t)^3 + c_5(1-2t)^5 \\
+     &= [c_1 + c_3 + c_5] + [-2c_1 - 6c_3 - 10c_5]t + \cdots
+\end{align*}
+
+The monomial form is used directly in the production code for efficiency.
+
+\subsection{Polynomial Evaluation Functions}
+
+\textbf{$P_1$ evaluation:}
+\begin{verbatim}
+def eval_P1(x, tilde_coeffs):
+    z = 1 - x
+    p_tilde = sum(c * z**i for i, c in enumerate(tilde_coeffs))
+    return x + x * z * p_tilde
+\end{verbatim}
+
+\textbf{$P_2$, $P_3$ evaluation:}
+\begin{verbatim}
+def eval_Pn(x, tilde_coeffs):
+    p_tilde = sum(c * x**i for i, c in enumerate(tilde_coeffs))
+    return x * p_tilde
+\end{verbatim}
+
+\end{document}

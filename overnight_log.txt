@@ -1,0 +1,78 @@
+======================================================================
+OVERNIGHT POLYNOMIAL EXPLORATION
+Started: 2025-12-28T00:54:47.369905
+======================================================================
+
+[STRATEGY 1] Line search along winning direction
+------------------------------------------------------------
+  alpha=0.0: c=2.137449, Δc=-0.0003%
+  alpha=5.0: c=2.123741, Δc=-0.6416%
+  alpha=10.0: c=2.111202, Δc=-1.2282%
+  alpha=15.0: c=2.099830, Δc=-1.7602%
+  alpha=20.0: c=2.089627, Δc=-2.2376%
+  alpha=25.0: c=2.080591, Δc=-2.6603%
+  Best alpha: 25.0, c=2.080591
+
+[STRATEGY 2] Random jitter on P2/P3
+------------------------------------------------------------
+  sigma=0.5%: 102/200 improved
+  sigma=1.0%: 100/200 improved
+  sigma=1.5%: 99/200 improved
+  sigma=2.0%: 98/200 improved
+  sigma=3.0%: 97/200 improved
+  sigma=5.0%: 91/200 improved
+
+[STRATEGY 3] Best direction + additional jitter
+------------------------------------------------------------
+  alpha=25.0 + sigma=0.5%: 100/100 beat direction alone
+  alpha=25.0 + sigma=1.0%: 100/100 beat direction alone
+  alpha=25.0 + sigma=2.0%: 100/100 beat direction alone
+
+[VERIFICATION] Checking top candidates at n=60,80
+------------------------------------------------------------
+  dir_jitter_a25.0_s0.02_seed30: c=2.070605, Δc=-3.1275%, CONVERGED
+  dir_jitter_a25.0_s0.02_seed10: c=2.072302, Δc=-3.0481%, CONVERGED
+  dir_jitter_a25.0_s0.02_seed59: c=2.072917, Δc=-3.0193%, CONVERGED
+  dir_jitter_a25.0_s0.02_seed11: c=2.073246, Δc=-3.0039%, CONVERGED
+  dir_jitter_a25.0_s0.02_seed89: c=2.073370, Δc=-2.9982%, CONVERGED
+  dir_jitter_a25.0_s0.02_seed25: c=2.073533, Δc=-2.9906%, CONVERGED
+  dir_jitter_a25.0_s0.02_seed84: c=2.074354, Δc=-2.9521%, CONVERGED
+  dir_jitter_a25.0_s0.02_seed34: c=2.074509, Δc=-2.9449%, CONVERGED
+  dir_jitter_a25.0_s0.02_seed3: c=2.074985, Δc=-2.9226%, CONVERGED
+  dir_jitter_a25.0_s0.02_seed32: c=2.075064, Δc=-2.9189%, CONVERGED
+  dir_jitter_a25.0_s0.02_seed70: c=2.075279, Δc=-2.9089%, CONVERGED
+  dir_jitter_a25.0_s0.01_seed30: c=2.075405, Δc=-2.9030%, CONVERGED
+  dir_jitter_a25.0_s0.02_seed5: c=2.075933, Δc=-2.8782%, CONVERGED
+  dir_jitter_a25.0_s0.02_seed16: c=2.075944, Δc=-2.8777%, CONVERGED
+  dir_jitter_a25.0_s0.02_seed26: c=2.076198, Δc=-2.8659%, CONVERGED
+  dir_jitter_a25.0_s0.02_seed43: c=2.076228, Δc=-2.8645%, CONVERGED
+  dir_jitter_a25.0_s0.01_seed10: c=2.076331, Δc=-2.8597%, CONVERGED
+  dir_jitter_a25.0_s0.02_seed35: c=2.076455, Δc=-2.8538%, CONVERGED
+  dir_jitter_a25.0_s0.02_seed19: c=2.076504, Δc=-2.8515%, CONVERGED
+  dir_jitter_a25.0_s0.01_seed89: c=2.076665, Δc=-2.8440%, CONVERGED
+  dir_jitter_a25.0_s0.01_seed59: c=2.076737, Δc=-2.8406%, CONVERGED
+  dir_jitter_a25.0_s0.01_seed25: c=2.076861, Δc=-2.8349%, CONVERGED
+  dir_jitter_a25.0_s0.01_seed11: c=2.076909, Δc=-2.8326%, CONVERGED
+  dir_jitter_a25.0_s0.02_seed99: c=2.076916, Δc=-2.8322%, CONVERGED
+  dir_jitter_a25.0_s0.02_seed80: c=2.077349, Δc=-2.8120%, CONVERGED
+  dir_jitter_a25.0_s0.02_seed31: c=2.077356, Δc=-2.8117%, CONVERGED
+  dir_jitter_a25.0_s0.01_seed34: c=2.077389, Δc=-2.8101%, CONVERGED
+  dir_jitter_a25.0_s0.01_seed84: c=2.077419, Δc=-2.8088%, CONVERGED
+  dir_jitter_a25.0_s0.02_seed15: c=2.077422, Δc=-2.8086%, CONVERGED
+  dir_jitter_a25.0_s0.02_seed73: c=2.077552, Δc=-2.8025%, CONVERGED
+
+======================================================================
+EXPLORATION COMPLETE
+======================================================================
+Total candidates explored: 1551
+Time elapsed: 159.1 minutes
+
+BEST RESULT:
+  ID: dir_jitter_a25.0_s0.02_seed30
+  c = 2.0706051430
+  kappa = 0.4416685301
+  Delta c vs PRZZ: -3.127518%
+  Converged: True
+
+Results saved to overnight_results.json
+======================================================================

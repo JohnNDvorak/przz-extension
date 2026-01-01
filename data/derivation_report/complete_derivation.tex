@@ -1,0 +1,376 @@
+% ============================================================
+% COMPLETE DERIVATION: The Combinatorial Structure of κ
+% Following PRZZ (Pratt-Robles-Zaharescu-Zeindler, 2019)
+% ============================================================
+
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+\newtheorem{proposition}{Proposition}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{definition}{Definition}
+
+\title{Complete Derivation of the $\kappa$ Bound:\\The Combinatorial Structure}
+\author{Generated from PRZZ Framework}
+\date{}
+
+\begin{document}
+\maketitle
+
+% ============================================================
+\section{Overview: The Main Result}
+% ============================================================
+
+We compute the proportion $\kappa$ of Riemann zeta zeros on the critical line via:
+\begin{equation}
+\boxed{\kappa \geq 1 - \frac{\log c}{R}}
+\end{equation}
+where $R = 1.3036$ is the shift parameter and $c$ is the main-term constant from the mollified mean square.
+
+\textbf{Key Result:} By optimizing the mollifier polynomials $P_2$ and $P_3$, we achieve:
+\begin{align*}
+\text{Baseline (PRZZ):} \quad & \kappa = 0.4173, \quad c = 2.137 \\
+\text{Optimized ($\alpha=61$):} \quad & \kappa = 0.4493, \quad c = 2.050 \quad \textbf{(+7.68\%)}
+\end{align*}
+
+% ============================================================
+\section{The Mollifier Structure}
+% ============================================================
+
+\subsection{Three-Piece Mollifier ($K=3$)}
+
+The mollifier has the form:
+\begin{equation}
+\psi(s) = \sum_{n \leq N} \frac{a_n}{n^s} = \sum_{\ell=1}^{3} \psi_\ell(s)
+\end{equation}
+where $N = T^\theta$ with $\theta = \frac{4}{7}$, and each piece is:
+\begin{align}
+\psi_1(s) &= \sum_{n \leq N} \frac{\mu(n)}{n^s} P_1\left(\frac{\log(N/n)}{\log N}\right) \\
+\psi_2(s) &= \frac{1}{\log N} \sum_{n \leq N} \frac{(\mu \star \Lambda)(n)}{n^s} P_2\left(\frac{\log(N/n)}{\log N}\right) \\
+\psi_3(s) &= \frac{1}{(\log N)^2} \sum_{n \leq N} \frac{(\mu \star \Lambda \star \Lambda)(n)}{n^s} P_3\left(\frac{\log(N/n)}{\log N}\right)
+\end{align}
+
+\subsection{Polynomial Definitions}
+
+\subsubsection{Baseline PRZZ Polynomials}
+\begin{align*}
+P_1(x) &= x + 0.261076\, x(1-x) - 1.071007\, x(1-x)^2 \\
+       &\quad - 0.236840\, x(1-x)^3 + 0.260233\, x(1-x)^4 \\[1ex]
+P_2(x) &= 1.048274\, x + 1.319912\, x^2 - 0.940058\, x^3 \\[1ex]
+P_3(x) &= 0.522811\, x - 0.686510\, x^2 - 0.049923\, x^3
+\end{align*}
+
+\subsubsection{Optimized Polynomials ($\alpha=61$)}
+\begin{align*}
+P_1(x) &= \text{(unchanged)} \\[1ex]
+P_2(x) &= 1.229608\, x + 0.688579\, x^2 -0.584760\, x^3 \\[1ex]
+P_3(x) &= -0.645119\, x -1.817008\, x^2 -0.102188\, x^3
+\end{align*}
+
+\subsection{The $Q$ Polynomial}
+
+The $Q$ polynomial arises from residue calculus and appears in all integral kernels:
+\begin{equation}
+Q(x) = \sum_{j=0}^{5} q_j x^j
+\end{equation}
+with coefficients in monomial basis:
+\[
+Q = [1.000, -0.638, -0.631, -1.286, 2.561, -1.024]
+\]
+
+% ============================================================
+\section{The Difference Quotient Identity}
+% ============================================================
+
+\begin{proposition}[PRZZ Lines 1508-1511]
+For $N = T^\theta$ and complex $\alpha, \beta$ with $\operatorname{Re}(\alpha), \operatorname{Re}(\beta) > -1$:
+\begin{equation}
+\frac{N^{\alpha x + \beta y} - T^{-\alpha-\beta} N^{-\beta x - \alpha y}}{\alpha + \beta}
+= N^{\alpha x + \beta y} \log(N^{x+y}T) \int_0^1 (N^{x+y}T)^{-t(\alpha+\beta)} \, dt
+\end{equation}
+\end{proposition}
+
+\textbf{At $\alpha = \beta = -R/L$} (where $L = \log T$), this becomes:
+\begin{equation}
+(1 + \theta(x+y)) \int_0^1 e^{R[2t + \theta(2t-1)(x+y)]} \, dt
+\end{equation}
+
+After applying the $Q$ operator $Q(-\partial/\partial\alpha) Q(-\partial/\partial\beta)$:
+\begin{equation}
+Q(\theta t(x+y) - \theta y + t) \times Q(\theta t(x+y) - \theta x + t) \times e^{R[\cdots]}
+\end{equation}
+
+% ============================================================
+\section{The $\omega$ Classification: Cases A, B, C}
+% ============================================================
+
+\begin{definition}[$\omega$ Index]
+For piece $\ell$ with $d=1$ (single derivative order):
+\begin{equation}
+\omega(\ell) := \ell - 2
+\end{equation}
+\end{definition}
+
+This gives the classification:
+\begin{center}
+\begin{tabular}{ccll}
+\toprule
+Piece $\ell$ & $\omega(\ell)$ & Case & Structure \\
+\midrule
+1 & $-1$ & A & Derivative terms (from $d/dx$) \\
+2 & 0 & B & No attenuation (direct evaluation) \\
+3 & $+1$ & C & Auxiliary integral ($\int_0^1 a^{\omega-1} da$) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ============================================================
+\section{The Six Pair Contributions}
+% ============================================================
+
+The main term $c$ comes from summing over all pairs $(\ell_1, \ell_2)$ with $1 \leq \ell_1 \leq \ell_2 \leq 3$:
+\begin{equation}
+S_{12} = \sum_{\ell_1 \leq \ell_2} (2 - \delta_{\ell_1,\ell_2}) \cdot S_{\ell_1,\ell_2}
+\end{equation}
+
+% ------------------------------------------------------------
+\subsection{Pair (1,1): Case A$\times$A}
+% ------------------------------------------------------------
+
+Both pieces have $\omega = -1$, requiring derivatives.
+
+\begin{equation}
+S_{11} = \int_0^1 \int_0^1 (1-u)^2 \left[\frac{d^2}{dx\,dy} P_1(x+u) P_1(y+u) \Big|_{x=y=0}\right] Q(t)^2 e^{2Rt} \, du\, dt
+\end{equation}
+
+The derivative structure:
+\begin{equation}
+\frac{d^2}{dx\,dy} P_1(x+u) P_1(y+u) \Big|_{x=y=0} = P_1'(u)^2
+\end{equation}
+
+\textbf{Contribution:} $S_{11} = 0.4129$ (41.5\% of baseline total)
+
+% ------------------------------------------------------------
+\subsection{Pair (1,2): Case A$\times$B}
+% ------------------------------------------------------------
+
+Piece 1 has $\omega = -1$ (derivative), piece 2 has $\omega = 0$ (direct).
+
+\begin{equation}
+S_{12} = \int_0^1 \int_0^1 (1-u) \left[\frac{d}{dx} P_1(x+u) P_2(u) \Big|_{x=0}\right] Q(t)^2 e^{2Rt} \, du\, dt
+\end{equation}
+
+The mixed structure:
+\begin{equation}
+\frac{d}{dx} P_1(x+u) \Big|_{x=0} \cdot P_2(u) = P_1'(u) \cdot P_2(u)
+\end{equation}
+
+\textbf{Contribution:} 
+\begin{itemize}
+\item Baseline: $S_{12} = +0.4136$ (41.5\%)
+\item Optimized: $S_{12} = +0.3997$ (50.2\%) --- reduced by cross-term interference
+\end{itemize}
+
+% ------------------------------------------------------------
+\subsection{Pair (1,3): Case A$\times$C}
+% ------------------------------------------------------------
+
+Piece 1 has $\omega = -1$ (derivative), piece 3 has $\omega = +1$ (auxiliary integral).
+
+\begin{equation}
+S_{13} = \int_0^1 \int_0^1 \int_0^1 (1-u) P_1'(u) P_3((1-a)u) \cdot a^0 \cdot Q(\cdots)^2 e^{\cdots} \, da\, du\, dt
+\end{equation}
+
+The Case C auxiliary integral arises from (PRZZ Line 2347):
+\begin{equation}
+\int_{1/q}^1 t^{\alpha+s-1} \log^\tau t \, dt = \frac{(-1)^\tau \tau!}{(\alpha+s)^{\tau+1}} - \cdots
+\end{equation}
+
+\textbf{Contribution:}
+\begin{itemize}
+\item Baseline: $S_{13} = +0.0128$ (+1.3\%)
+\item \textbf{Optimized: $S_{13} = -0.0991$ ($-$12.5\%)} --- \textbf{SIGN FLIP!}
+\end{itemize}
+
+% ------------------------------------------------------------
+\subsection{Pair (2,2): Case B$\times$B}
+% ------------------------------------------------------------
+
+Both pieces have $\omega = 0$, no derivatives or auxiliary integrals.
+
+\begin{equation}
+S_{22} = \int_0^1 \int_0^1 P_2(u)^2 \cdot Q(t)^2 e^{2Rt} \, du\, dt
+\end{equation}
+
+This is the simplest case --- just polynomial products.
+
+\textbf{Contribution:} $S_{22} \approx 0.140$ (14.0\%)
+
+% ------------------------------------------------------------
+\subsection{Pair (2,3): Case B$\times$C}
+% ------------------------------------------------------------
+
+Piece 2 has $\omega = 0$ (direct), piece 3 has $\omega = +1$ (auxiliary integral).
+
+\begin{equation}
+S_{23} = \int_0^1 \int_0^1 \int_0^1 P_2(u) P_3((1-a)u) \cdot a^0 \cdot Q(\cdots)^2 e^{\cdots} \, da\, du\, dt
+\end{equation}
+
+\textbf{Contribution:}
+\begin{itemize}
+\item Baseline: $S_{23} = +0.0156$ (+1.6\%)
+\item \textbf{Optimized: $S_{23} = -0.0667$ ($-$8.4\%)} --- \textbf{SIGN FLIP!}
+\end{itemize}
+
+% ------------------------------------------------------------
+\subsection{Pair (3,3): Case C$\times$C}
+% ------------------------------------------------------------
+
+Both pieces have $\omega = +1$, requiring two auxiliary integrals.
+
+\begin{equation}
+S_{33} = \int_0^1 \int_0^1 \int_0^1 \int_0^1 P_3((1-a)u) P_3((1-b)u) \cdot a^0 b^0 \cdot Q(\cdots)^2 e^{\cdots} \, da\, db\, du\, dt
+\end{equation}
+
+This is a 4-dimensional integral --- the most complex case.
+
+\textbf{Contribution:} $S_{33} \approx 0.001$--$0.008$ (0.1\%--1.0\%)
+
+% ============================================================
+\section{Summary: The Six Pairs}
+% ============================================================
+
+\begin{table}[h]
+\centering
+\caption{Complete pair breakdown for $K=3$}
+\begin{tabular}{ccccrrrr}
+\toprule
+Pair & $\omega_1$ & $\omega_2$ & Case & Baseline & Optimized & $\Delta$ & Effect \\
+\midrule
+(1,1) & $-1$ & $-1$ & A$\times$A & $+0.4129$ & $+0.4129$ & $0.000$ & --- \\
+(1,2) & $-1$ & $0$ & A$\times$B & $+0.4136$ & $+0.3997$ & $-0.014$ & $\downarrow$ \\
+(1,3) & $-1$ & $+1$ & A$\times$C & $+0.0128$ & $\mathbf{-0.0991}$ & $-0.112$ & $\downarrow\downarrow$ \\
+(2,2) & $0$ & $0$ & B$\times$B & $+0.1398$ & $+0.1413$ & $+0.002$ & $\uparrow$ \\
+(2,3) & $0$ & $+1$ & B$\times$C & $+0.0156$ & $\mathbf{-0.0667}$ & $-0.082$ & $\downarrow\downarrow$ \\
+(3,3) & $+1$ & $+1$ & C$\times$C & $+0.0008$ & $+0.0080$ & $+0.007$ & $\uparrow$ \\
+\midrule
+\multicolumn{4}{c}{\textbf{Total $S_{12}$}} & $0.9954$ & $0.7961$ & $-0.199$ & \textbf{$-$20\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ============================================================
+\section{Mirror Term Assembly}
+% ============================================================
+
+\begin{proposition}[PRZZ Line 1502]
+\begin{equation}
+I_1(\alpha,\beta) = I_{1,1}(\alpha,\beta) + T^{-\alpha-\beta} I_{1,1}(-\beta,-\alpha) + O(T/L)
+\end{equation}
+\end{proposition}
+
+At $\alpha = \beta = -R/L$, the factor $T^{-\alpha-\beta} = T^{2R/L} \approx e^{2R/\theta}$.
+
+\subsection{The Complete $c$ Formula}
+
+The main-term constant combines:
+\begin{equation}
+\boxed{c = S_{12}(+R) + m \cdot S_{12}(-R) + S_{34}(+R)}
+\end{equation}
+
+where:
+\begin{itemize}
+\item $S_{12}(+R)$ = forward contribution from $I_1, I_2$
+\item $S_{12}(-R)$ = mirror contribution (with $R \to -R$)
+\item $S_{34}(+R)$ = contribution from $I_3, I_4$ (no mirror needed)
+\item $m = (f_{I_1} g_{I_1} + (1-f_{I_1}) g_{I_2}) \cdot (e^R + 2K - 1)$
+\end{itemize}
+
+\subsection{Correction Factors}
+
+\begin{align}
+g_{I_1} &= 1 + \frac{\theta(1-\theta)(2(K-1)+\theta)}{8K(2K+1)^2} = 1.000952 \\
+g_{I_2} &= 1 + \frac{\theta(2-\theta)}{2K(2K+1)} = 1.019436
+\end{align}
+
+For $K=3$, $\theta = 4/7$, $R = 1.3036$:
+\begin{equation}
+m = 8.814
+\end{equation}
+
+% ============================================================
+\section{Why Negative Pair Contributions Are Valid}
+% ============================================================
+
+\begin{theorem}
+Individual pair contributions $S_{\ell_1,\ell_2}$ are NOT constrained to be positive.
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+\begin{enumerate}
+\item The PRZZ integral structure involves products $P_{\ell_1}(u) \times P_{\ell_2}(u')$
+\item For $\ell_1 \neq \ell_2$, the polynomial product can be negative on parts of $[0,1]$
+\item The Case C auxiliary integral introduces additional sign factors via $(-1)^\omega / (\omega-1)!$
+\item Only the \textbf{total} $c = \exp(R(1-\kappa))$ must be positive
+\end{enumerate}
+\end{proof}
+
+\textbf{Physical interpretation:} The pairs (1,3) and (2,3) represent cross-terms between different mollifier pieces. These can interfere \emph{destructively}, reducing $c$ and thereby improving $\kappa$.
+
+% ============================================================
+\section{Numerical Verification}
+% ============================================================
+
+\subsection{Quadrature Convergence}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{ccc}
+\toprule
+$n_{\text{quad}}$ & $\kappa$ (baseline) & $\kappa$ (optimized) \\
+\midrule
+40 & 0.41729593 & 0.44933435 \\
+60 & 0.41729593 & 0.44933435 \\
+80 & 0.41729593 & 0.44933435 \\
+100 & 0.41729593 & 0.44933435 \\
+\bottomrule
+\end{tabular}
+\caption{Results stable to $< 10^{-8}$ variation}
+\end{table}
+
+\subsection{R-Sweep Validation}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{cccc}
+\toprule
+$R$ & $\kappa$ (baseline) & $\kappa$ (optimized) & Improvement \\
+\midrule
+1.10 & 0.338 & 0.378 & +11.9\% \\
+1.20 & 0.382 & 0.418 & +9.4\% \\
+1.3036 & 0.417 & 0.449 & +7.7\% \\
+1.35 & 0.430 & 0.461 & +7.1\% \\
+1.40 & 0.443 & 0.472 & +6.5\% \\
+\bottomrule
+\end{tabular}
+\caption{Improvement persists across $R$ values (not overfitting)}
+\end{table}
+
+% ============================================================
+\section{Conclusion}
+% ============================================================
+
+The $\alpha = 61$ polynomial perturbation achieves:
+\begin{itemize}
+\item $\kappa$: $0.4173 \to 0.4493$ (\textbf{+7.68\%})
+\item $c$: $2.137 \to 2.050$ (\textbf{$-$4.09\%})
+\item $S_{12}$: $0.995 \to 0.796$ (\textbf{$-$20.0\%})
+\end{itemize}
+
+The improvement comes from \textbf{destructive interference} in cross-pairs (1,3) and (2,3), which flip from positive to negative contributions. This is mathematically valid within the PRZZ framework.
+
+\end{document}

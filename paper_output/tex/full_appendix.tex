@@ -1,0 +1,151 @@
+% ============================================================
+% APPENDIX: Polynomial Configuration Derivations
+% Generated automatically by derivation_generator.py
+% ============================================================
+
+\section{Polynomial Configuration Comparison}
+
+\subsection{Comparison: PRZZ baseline (κ) vs optimized (α=61)}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lccc}
+\hline
+Quantity & Baseline & Optimized & Change \\
+\hline
+$\kappa$ & 0.417296 & 0.449334 & +7.6776\% \\
+$c$ & 2.137449 & 2.050016 & -4.0905\% \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{Per-pair contribution changes}
+\begin{tabular}{lcccc}
+\hline
+Pair & Baseline & Optimized & $\Delta$ & Effect \\
+\hline
+(11) & 0.412888 & 0.412888 & +0.000000 & $\uparrow$ worse \\
+(12) & 0.413563 & 0.399676 & -0.013887 & $\downarrow$ better \\
+(13) & 0.012760 & -0.099123 & -0.111883 & $\downarrow$ better \\
+(22) & 0.139776 & 0.141335 & +0.001558 & $\uparrow$ worse \\
+(23) & 0.015625 & -0.066712 & -0.082337 & $\downarrow$ better \\
+(33) & 0.000785 & 0.008008 & +0.007223 & $\uparrow$ worse \\
+\hline
+\end{tabular}
+\end{table}
+
+\newpage
+\subsection{Configuration: PRZZ baseline (κ) (K=3)}
+
+Number of pairs: 6
+
+\subsubsection{Polynomial Definitions}
+\begin{align*}
+P_1(x) &= x + 0.261076 x(1-x)^{1} - 1.071007 x(1-x)^{2} - 0.236840 x(1-x)^{3} + 0.260233 x(1-x)^{4} \\
+P_2(x) &= 1.048274 x + 1.319912 x^{2} - 0.940058 x^{3} \\
+P_3(x) &= 0.522811 x - 0.686510 x^{2} - 0.049923 x^{3}
+\end{align*}
+
+\subsubsection{Per-Pair Contributions}
+\begin{table}[h]
+\centering
+\caption{Per-pair contributions for PRZZ baseline (κ) (K=3)}
+\begin{tabular}{cccccc}
+\hline
+Pair $(\ell_1,\ell_2)$ & $\omega(\ell_1)$ & $\omega(\ell_2)$ & Case & Value & \% \\
+\hline
+(1,1) & -1 & -1 & A×A & 0.412888 & 41.5\% \\
+(1,2) & -1 & 0 & A×B & 0.413563 & 41.5\% \\
+(1,3) & -1 & 1 & A×C & 0.012760 & 1.3\% \\
+(2,2) & 0 & 0 & B×B & 0.139776 & 14.0\% \\
+(2,3) & 0 & 1 & B×C & 0.015625 & 1.6\% \\
+(3,3) & 1 & 1 & C×C & 0.000785 & 0.1\% \\
+\hline
+Total & & & & 0.995398 & 100\% \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsubsection{Quadrature Convergence}
+\begin{table}[h]
+\centering
+\caption{Quadrature convergence for PRZZ baseline (κ)}
+\begin{tabular}{ccc}
+\hline
+$n_{\text{quad}}$ & $\kappa$ & $c$ \\
+\hline
+40 & 0.41729593 & 2.13744891 \\
+60 & 0.41729593 & 2.13744891 \\
+80 & 0.41729593 & 2.13744891 \\
+100 & 0.41729593 & 2.13744891 \\
+\hline
+\end{tabular}
+\\Max variation: 0.000000\% (\checkmark PASSED)
+\end{table}
+
+\subsubsection{Results}
+\begin{align*}
+R &= 1.3036 \\
+\theta &= 4/7 \\
+c &= 2.1374489141 \\
+\kappa &= 0.4172959330
+\end{align*}
+
+\newpage
+\subsection{Configuration: optimized (α=61) (K=3)}
+
+Number of pairs: 6
+
+\subsubsection{Polynomial Definitions}
+\begin{align*}
+P_1(x) &= x + 0.261076 x(1-x)^{1} - 1.071007 x(1-x)^{2} - 0.236840 x(1-x)^{3} + 0.260233 x(1-x)^{4} \\
+P_2(x) &= 1.229608 x + 0.688579 x^{2} - 0.584760 x^{3} \\
+P_3(x) &= -0.645119 x - 1.817008 x^{2} - 0.102188 x^{3}
+\end{align*}
+
+\subsubsection{Per-Pair Contributions}
+\begin{table}[h]
+\centering
+\caption{Per-pair contributions for optimized (α=61) (K=3)}
+\begin{tabular}{cccccc}
+\hline
+Pair $(\ell_1,\ell_2)$ & $\omega(\ell_1)$ & $\omega(\ell_2)$ & Case & Value & \% \\
+\hline
+(1,1) & -1 & -1 & A×A & 0.412888 & 51.9\% \\
+(1,2) & -1 & 0 & A×B & 0.399676 & 50.2\% \\
+(1,3) & -1 & 1 & A×C & -0.099123 & -12.5\% \\
+(2,2) & 0 & 0 & B×B & 0.141335 & 17.8\% \\
+(2,3) & 0 & 1 & B×C & -0.066712 & -8.4\% \\
+(3,3) & 1 & 1 & C×C & 0.008008 & 1.0\% \\
+\hline
+Total & & & & 0.796072 & 100\% \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsubsection{Quadrature Convergence}
+\begin{table}[h]
+\centering
+\caption{Quadrature convergence for optimized (α=61)}
+\begin{tabular}{ccc}
+\hline
+$n_{\text{quad}}$ & $\kappa$ & $c$ \\
+\hline
+40 & 0.44933435 & 2.05001630 \\
+60 & 0.44933435 & 2.05001630 \\
+80 & 0.44933435 & 2.05001630 \\
+100 & 0.44933435 & 2.05001630 \\
+\hline
+\end{tabular}
+\\Max variation: 0.000000\% (\checkmark PASSED)
+\end{table}
+
+\subsubsection{Results}
+\begin{align*}
+R &= 1.3036 \\
+\theta &= 4/7 \\
+c &= 2.0500162997 \\
+\kappa &= 0.4493343478
+\end{align*}

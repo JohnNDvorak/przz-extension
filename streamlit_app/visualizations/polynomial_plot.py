@@ -68,7 +68,7 @@ def create_breakthrough_comparison_plot(
         przz_p1, przz_p2, przz_p3, n_points
     )
 
-    # Create 2x3 subplot grid
+    # Create 2x3 subplot grid (removed table - use annotations instead)
     fig = make_subplots(
         rows=2, cols=3,
         subplot_titles=(
@@ -81,7 +81,7 @@ def create_breakthrough_comparison_plot(
         ),
         specs=[
             [{"type": "scatter"}, {"type": "scatter"}, {"type": "scatter"}],
-            [{"type": "scatter"}, {"type": "bar"}, {"type": "table"}]
+            [{"type": "scatter"}, {"type": "bar"}, {"type": "scatter"}]
         ],
         vertical_spacing=0.12,
         horizontal_spacing=0.08,
@@ -157,28 +157,35 @@ def create_breakthrough_comparison_plot(
         marker_color='blue', opacity=0.8,
     ), row=2, col=2)
 
-    # Row 2, Col 3: Summary table
+    # Row 2, Col 3: Summary as text annotations (Table doesn't work well in subplots)
     if mode == "kappa_star":
-        header_vals = ['Metric', 'PRZZ', 'Optimized', 'Improvement']
-        cell_vals = [
-            ['κ*_main', 'κ*_rigorous', 'R'],
-            ['0.4075', '0.34', '1.1167'],
-            ['0.9960', '0.8383', '1.1167'],
-            ['+144.4%', '+146.6%', '-'],
-        ]
+        summary_text = (
+            "<b>κ* Results</b><br><br>"
+            "PRZZ: κ*_main=0.41, κ*_rig=0.34<br>"
+            "Optimized: κ*_main=1.00, κ*_rig=0.84<br><br>"
+            "<b>Improvement: +147%</b><br>"
+            "R = 1.07966 (ceiling)"
+        )
     else:
-        header_vals = ['Metric', 'PRZZ', 'Optimized', 'Improvement']
-        cell_vals = [
-            ['κ_main', 'κ_rigorous', 'R'],
-            ['0.4173', '0.3430', '1.3036'],
-            ['0.9999', '0.8650', '1.15'],
-            ['+139.6%', '+152.2%', '-'],
-        ]
+        summary_text = (
+            "<b>κ Results</b><br><br>"
+            "PRZZ: κ_main=0.42, κ_rig=0.34<br>"
+            "Optimized: κ_main=1.00, κ_rig=0.87<br><br>"
+            "<b>Improvement: +152%</b><br>"
+            "R = 1.14978 (ceiling)"
+        )
 
-    fig.add_trace(go.Table(
-        header=dict(values=header_vals, fill_color='lightblue', align='center'),
-        cells=dict(values=cell_vals, fill_color='white', align='center'),
+    # Add invisible scatter to create subplot, then add annotation
+    fig.add_trace(go.Scatter(
+        x=[0.5], y=[0.5], mode='text',
+        text=[summary_text],
+        textposition='middle center',
+        textfont=dict(size=11),
+        showlegend=False,
+        hoverinfo='skip',
     ), row=2, col=3)
+    fig.update_xaxes(visible=False, row=2, col=3)
+    fig.update_yaxes(visible=False, row=2, col=3)
 
     # Update layout
     fig.update_layout(

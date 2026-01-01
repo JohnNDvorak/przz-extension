@@ -1,0 +1,197 @@
+{
+  "version": "v15",
+  "date": "2025-12-29",
+  "title": "PRZZ-extension architecture map (Phase 52 status: g-corrections LOCKED, m EMPIRICAL)",
+  "summary": {
+    "g_I1_g_I2": "Conjectured+Validated (<0.0003%)",
+    "mirror_scalar_m": "EMPIRICAL (no PRZZ derivation, B/A ≠ 5 non-circularly)",
+    "overall_accuracy": "<0.0003% on both benchmarks",
+    "theorem_faithful": false,
+    "reason": "Mirror scalar m = exp(R) + (2K-1) is empirically calibrated, not derived from PRZZ"
+  },
+
+  "nodes": [
+    {"id": "tex", "label": "RMS_PRZZ.tex\n(source paper)", "type": "spec", "status": "reference"},
+    {"id": "truth_spec", "label": "docs/TRUTH_SPEC.md\n(TeX line refs)", "type": "doc", "status": "authoritative"},
+    {"id": "status_truth_table", "label": "docs/STATUS_TRUTH_TABLE.md\n(derivation status)", "type": "doc", "status": "authoritative"},
+    {"id": "params_kappa", "label": "data/przz_parameters.json\n(κ: R=1.3036)", "type": "data", "status": "locked"},
+    {"id": "params_kappa_star", "label": "data/przz_parameters_kappa_star.json\n(κ*: R=1.1167)", "type": "data", "status": "locked"},
+
+    {"id": "kappa_engine", "label": "src/kappa_engine.py\n(PRODUCTION - LOCKED)\nMain κ computation", "type": "production", "status": "locked"},
+    {"id": "canonical_eval", "label": "src/canonical_evaluator.py\n(CANONICAL ENTRYPOINT)", "type": "production", "status": "locked"},
+    {"id": "m1_policy", "label": "src/m1_policy.py\n(SAFETY LOCK for K>3)", "type": "production", "status": "locked"},
+
+    {"id": "g_corrections", "label": "g_I1/g_I2 Corrections\n(Conjectured+Validated)\n<0.0003% accuracy", "type": "correction", "status": "locked"},
+    {"id": "m_base", "label": "m = exp(R) + (2K-1)\n(EMPIRICAL - Phase 52)\nB/A ≠ 5 non-circularly", "type": "correction", "status": "empirical"},
+
+    {"id": "polynomials", "label": "src/polynomials.py\n(LOCKED)", "type": "core", "status": "locked"},
+    {"id": "quadrature", "label": "src/quadrature.py\n(LOCKED)", "type": "core", "status": "locked"},
+    {"id": "series", "label": "src/series.py +\nseries_bivariate.py\n(LOCKED)", "type": "core", "status": "locked"},
+    {"id": "term_dsl", "label": "src/term_dsl.py\n(V2 DSL - LOCKED)", "type": "core", "status": "locked"},
+
+    {"id": "unified_i1", "label": "src/unified_i1_paper.py\n(I1 with Case C kernel)", "type": "integral", "status": "active"},
+    {"id": "unified_i2", "label": "src/unified_i2_paper.py\n(I2 with Case C kernel)", "type": "integral", "status": "active"},
+    {"id": "terms_k3", "label": "src/terms_k3_d1.py\n(All terms K=3, d=1)", "type": "integral", "status": "active"},
+    {"id": "evaluate", "label": "src/evaluate.py\n(mirror assembly)", "type": "integral", "status": "active"},
+
+    {"id": "unified_bracket", "label": "src/unified_bracket_evaluator.py\n(DQ identity)", "type": "bracket", "status": "active"},
+    {"id": "unified_s12_v3", "label": "src/unified_s12_evaluator_v3.py\n(Phase 22 bracket)", "type": "bracket", "status": "active"},
+
+    {"id": "mirror_transform", "label": "src/mirror_transform.py\n(Q(1+D) shift)", "type": "mirror", "status": "active"},
+    {"id": "case_c_kernel", "label": "src/case_c_kernel.py +\ncase_c_exact.py", "type": "kernel", "status": "active"},
+
+    {"id": "gate_no_anchoring", "label": "tests/test_no_target_anchoring_in_derived_modes.py\n(Gate 1: No calibration)", "type": "gate", "status": "active"},
+    {"id": "gate_formula_validation", "label": "tests/test_closed_form_matches_integral_definition.py\n(Gate 2: Formula validation)", "type": "gate", "status": "active"},
+    {"id": "gate_canonical", "label": "tests/test_canonical_hypothesis.py\n(Phase 51: Canonical disproved)", "type": "gate", "status": "active"},
+    {"id": "gate_two_bench", "label": "tests/test_two_benchmark_gate.py\n(TRUTH gate: κ and κ*)", "type": "gate", "status": "active"},
+
+    {"id": "derive_mirror_limit", "label": "scripts/derive_mirror_limit.py\n(Track 1: L'Hôpital analysis)", "type": "investigation", "status": "phase52"},
+    {"id": "compute_ba_noncircular", "label": "scripts/compute_ba_ratio_noncircular.py\n(Track 2: B/A ≠ 5)", "type": "investigation", "status": "phase52"},
+
+    {"id": "archive", "label": "archive/\n(141 files: superseded,\ndisproven, diagnostics)", "type": "archive", "status": "deprecated"}
+  ],
+
+  "edges": [
+    {"from": "tex", "to": "truth_spec", "label": "extract formulas\n(line refs)"},
+    {"from": "truth_spec", "to": "status_truth_table", "label": "derivation status"},
+    {"from": "status_truth_table", "to": "kappa_engine", "label": "production policy"},
+
+    {"from": "params_kappa", "to": "polynomials", "label": "load P,Q"},
+    {"from": "params_kappa_star", "to": "polynomials", "label": "load P,Q"},
+
+    {"from": "kappa_engine", "to": "g_corrections", "label": "compute g_I1, g_I2"},
+    {"from": "kappa_engine", "to": "m_base", "label": "compute m = g×base"},
+    {"from": "g_corrections", "to": "m1_policy", "label": "apply correction"},
+    {"from": "m_base", "to": "m1_policy", "label": "base formula"},
+
+    {"from": "kappa_engine", "to": "canonical_eval", "label": "delegates to"},
+    {"from": "canonical_eval", "to": "evaluate", "label": "compute_c_paper_ordered"},
+    {"from": "m1_policy", "to": "evaluate", "label": "m1 value"},
+
+    {"from": "polynomials", "to": "terms_k3", "label": "P1,P2,P3,Q"},
+    {"from": "term_dsl", "to": "terms_k3", "label": "Term DSL"},
+    {"from": "quadrature", "to": "evaluate", "label": "integration"},
+    {"from": "series", "to": "evaluate", "label": "series algebra"},
+
+    {"from": "terms_k3", "to": "evaluate", "label": "all 6 pairs"},
+    {"from": "unified_i1", "to": "evaluate", "label": "I1 integrals"},
+    {"from": "unified_i2", "to": "evaluate", "label": "I2 integrals"},
+
+    {"from": "case_c_kernel", "to": "unified_i1", "label": "Case C (ω>0)"},
+    {"from": "case_c_kernel", "to": "unified_i2", "label": "Case C (ω>0)"},
+
+    {"from": "unified_bracket", "to": "evaluate", "label": "DQ identity"},
+    {"from": "unified_s12_v3", "to": "unified_bracket", "label": "integrand-level"},
+    {"from": "mirror_transform", "to": "unified_bracket", "label": "Q(1+D) shift"},
+
+    {"from": "evaluate", "to": "gate_two_bench", "label": "c, κ output"},
+    {"from": "kappa_engine", "to": "gate_no_anchoring", "label": "verify no calibration"},
+    {"from": "g_corrections", "to": "gate_formula_validation", "label": "verify formulas"},
+    {"from": "canonical_eval", "to": "gate_canonical", "label": "verify structure"},
+
+    {"from": "derive_mirror_limit", "to": "status_truth_table", "label": "Track 1 result:\nno derivation"},
+    {"from": "compute_ba_noncircular", "to": "status_truth_table", "label": "Track 2 result:\nB/A ≈ 6.0"},
+
+    {"from": "truth_spec", "to": "archive", "label": "superseded files", "style": "dashed"}
+  ],
+
+  "przz_tex_references": {
+    "kappa_definition": {"lines": "286-289", "formula": "κ ≥ 1 - (1/R) log(c)"},
+    "mirror_identity": {"lines": "1502-1511", "formula": "[N^{αx+βy} - T^{-α-β}N^{-βx-αy}]/(α+β)"},
+    "i5_error_term": {"lines": "1621-1628", "statement": "I₅ ≪ T/L (error term)"},
+    "i3_prefactor": {"lines": "1551-1564", "formula": "-1/θ × d/dx[...]"},
+    "i4_prefactor": {"lines": "1566-1570", "formula": "-1/θ × d/dy[...]"},
+    "omega_case_split": {"lines": "2301-2310", "formula": "ω = ℓ - 1 for d=1"},
+    "case_c_auxiliary": {"lines": "2369-2384", "formula": "∫₀¹ (1-a)^i a^{ω-1} (N/n)^{-αa} da"}
+  },
+
+  "phase52_findings": {
+    "track1_lhopital": {
+      "result": "No mathematical derivation found for exp(R) vs exp(2R)",
+      "gap_r_1.3036": "1.80×",
+      "gap_r_1.1167": "2.16×",
+      "conclusion": "Gap is R-dependent, not resolved"
+    },
+    "track2_ba_ratio": {
+      "result": "B/A is NOT 5 when computed non-circularly",
+      "ba_kappa": 6.028,
+      "ba_kappa_star": 5.899,
+      "target": 5.0,
+      "circularity": "ABD code DEFINES B = D + 5*A (line 169)",
+      "conclusion": "The '+5' was circular, not derived"
+    },
+    "m_status": {
+      "formula": "m = exp(R) + (2K-1)",
+      "status": "EMPIRICAL",
+      "error_vs_m_needed": "~1.5% too small",
+      "compensation": "g_I1/g_I2 corrections absorb the ~1.5% gap",
+      "combined_accuracy": "<0.0003%"
+    }
+  },
+
+  "g_correction_formulas": {
+    "g_I1": {
+      "formula": "1 + θ(1-θ)(2(K-1)+θ) / (8K(2K+1)²)",
+      "value_K3_theta_4_7": 1.00095198,
+      "status": "Conjectured+Validated"
+    },
+    "g_I2": {
+      "formula": "1 + θ(2-θ) / (2K(2K+1))",
+      "value_K3_theta_4_7": 1.01943635,
+      "status": "Conjectured+Validated"
+    },
+    "validation": {
+      "kappa_gap": "-0.00026%",
+      "kappa_star_gap": "+0.00019%",
+      "gate_tests_passed": 17
+    }
+  },
+
+  "mirror_assembly": {
+    "formula": "c = S12(+R) + m × S12(-R) + S34(+R)",
+    "S12": "I₁ + I₂ (require mirror per PRZZ Section 10)",
+    "S34": "I₃ + I₄ (NO mirror)",
+    "m": "g_total × [exp(R) + (2K-1)]",
+    "g_total": "f_I1 × g_I1 + (1 - f_I1) × g_I2"
+  },
+
+  "key_benchmarks": {
+    "kappa": {
+      "R": 1.3036,
+      "theta": "4/7",
+      "c_target": 2.13745440613217263636,
+      "kappa_target": 0.417293962
+    },
+    "kappa_star": {
+      "R": 1.1167,
+      "theta": "4/7",
+      "c_target": 1.93795244661078,
+      "kappa_target": 0.327833316
+    }
+  },
+
+  "deprecated_from_v14": [
+    "geneval (src/przz_generalized_iterm_evaluator.py) → use kappa_engine",
+    "section7 (src/section7_evaluator.py) → archived",
+    "hybrid (src/hybrid_evaluator.py) → archived",
+    "series_backed (src/series_backed_evaluator.py) → archived",
+    "multi-variable DSL structure → V2 single-variable",
+    "kernel_registry.py → superseded by case_c_kernel.py",
+    "mollifier_profiles.py → integrated into unified_i*.py"
+  ],
+
+  "claims": {
+    "can_claim": [
+      "κ = 1 - log(c)/R is the PRZZ κ formula (PROVEN)",
+      "Mirror structure (I1/I2 with mirror, I3/I4 without) from PRZZ Section 10 (PROVEN)",
+      "g_I1/g_I2 formulas achieve <0.0003% accuracy (Conjectured+Validated)",
+      "κ ≥ 0.5213 is achieved (+24.9% over PRZZ baseline)"
+    ],
+    "cannot_claim": [
+      "g_I1/g_I2 are analytically derived from PRZZ (they were found numerically)",
+      "m = exp(R) + (2K-1) follows from PRZZ (derivation has gaps, B/A ≠ 5)",
+      "κ = 0.5213 is PRZZ-theorem-faithful (mirror scalar is empirical)"
+    ],
+    "paper_language": "We achieve κ ≥ 0.5213 using numerically validated correction formulas within an empirically calibrated mirror assembly framework."
+  }
+}

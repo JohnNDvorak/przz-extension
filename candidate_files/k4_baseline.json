@@ -1,0 +1,16 @@
+{
+  "description": "K=4 baseline polynomials. P1-P3 from PRZZ kappa benchmark, P4 initialized small for optimization.",
+  "K": 4,
+  "R": 1.3036,
+  "theta": 0.5714285714285714,
+  "P1_tilde": [0.261076, -1.071007, -0.23684, 0.260233],
+  "P2_tilde": [1.048274, 1.319912, -0.940058],
+  "P3_tilde": [0.522811, -0.68651, -0.049923],
+  "P4_tilde": [0.1, -0.05, 0.0],
+  "Q_mono": [0.999999, -0.63785, -0.631484, -1.286264, 2.56088, -1.024352],
+  "notes": {
+    "P1-P3": "From PRZZ Table 1 kappa benchmark (R=1.3036)",
+    "P4": "Small initial values for optimization exploration",
+    "Q": "Degree-5 polynomial from PRZZ"
+  }
+}

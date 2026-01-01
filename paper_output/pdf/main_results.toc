@@ -1,0 +1,20 @@
+\contentsline {section}{\numberline {1}Introduction}{2}{section.1}%
+\contentsline {section}{\numberline {2}The $\kappa $ Bound Framework}{2}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Main Formula}{2}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Mollifier Structure}{2}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Main Term Assembly}{2}{subsection.2.3}%
+\contentsline {section}{\numberline {3}The $\omega $ Classification}{3}{section.3}%
+\contentsline {section}{\numberline {4}$\kappa $ Optimization Results}{3}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Optimized Polynomials}{3}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Per-Pair Breakdown}{3}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Result}{3}{subsection.4.3}%
+\contentsline {section}{\numberline {5}$\kappa ^*$ Optimization Results}{4}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Optimized Polynomials}{4}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Per-Pair Breakdown}{4}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}Result}{4}{subsection.5.3}%
+\contentsline {section}{\numberline {6}Mathematical Validity of Negative Contributions}{4}{section.6}%
+\contentsline {section}{\numberline {7}Validation}{5}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Quadrature Invariance}{5}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}Cross-$R$ Robustness}{5}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}Polynomial Amplitude Constraints}{5}{subsection.7.3}%
+\contentsline {section}{\numberline {8}Conclusion}{5}{section.8}%

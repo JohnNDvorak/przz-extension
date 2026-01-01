@@ -1,13 +1,31 @@
 # Phase 46 Status: Derive g from Integrals (No Target Anchoring)
 
-**Date:** 2025-12-27
-**Status:** ✓✓ COMPLETE - Full first-principles formula achieves **< 0.0003%** accuracy!
+**Date:** 2025-12-27 (Updated 2025-12-28)
+**Status:** ✓✓ COMPLETE - Formulas achieve **< 0.0003%** accuracy!
+
+---
+
+## IMPORTANT CLASSIFICATION (Dec 28 Update)
+
+These formulas are **CONJECTURED+VALIDATED**, not "analytically derived from PRZZ":
+- **Found via:** Binary search + candidate testing (numerical exploration)
+- **Expressed as:** Closed-form analytic formulas
+- **Validated against:** Two independent PRZZ benchmarks (κ and κ*)
+- **Accuracy:** < 0.0003% on both
+
+**For papers, use language like:**
+> "We conjecture the formulas g_I1 = ... and g_I2 = ..., which we validate against
+> two independent PRZZ benchmarks achieving < 0.0003% accuracy in both cases."
+
+**Do NOT claim:** "We derive g_I1/g_I2 from PRZZ first principles."
+
+**See:** [`STATUS_TRUTH_TABLE.md`](STATUS_TRUTH_TABLE.md) for authoritative claim guidance.
 
 ---
 
 ## FINAL BREAKTHROUGH
 
-The complete first-principles formula (no calibrated parameters):
+The complete formulas (no calibrated parameters):
 
 **Unified Form (General for any K, θ):**
 ```

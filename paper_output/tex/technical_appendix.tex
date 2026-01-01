@@ -1,0 +1,161 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{geometry}
+\usepackage{xcolor}
+\geometry{margin=1in}
+
+\newtheorem{proposition}{Proposition}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{definition}{Definition}
+
+\title{Technical Appendix: The Combinatorial Structure\\
+\large Explicit Formulas for All Six Pair Types}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+% ============================================================
+\section{The Difference Quotient Identity}
+% ============================================================
+
+\begin{proposition}[PRZZ Lines 1508-1511]
+For $N = T^\theta$ and complex $\alpha, \beta$ with $\operatorname{Re}(\alpha), \operatorname{Re}(\beta) > -1$:
+\begin{equation}
+\frac{N^{\alpha x + \beta y} - T^{-\alpha-\beta} N^{-\beta x - \alpha y}}{\alpha + \beta}
+= N^{\alpha x + \beta y} \log(N^{x+y}T) \int_0^1 (N^{x+y}T)^{-t(\alpha+\beta)} \, dt
+\end{equation}
+\end{proposition}
+
+At $\alpha = \beta = -R/L$ (where $L = \log T$):
+\begin{equation}
+(1 + \theta(x+y)) \int_0^1 e^{R[2t + \theta(2t-1)(x+y)]} \, dt
+\end{equation}
+
+After applying $Q(-\partial/\partial\alpha) Q(-\partial/\partial\beta)$:
+\begin{equation}
+Q(\theta t(x+y) - \theta y + t) \times Q(\theta t(x+y) - \theta x + t) \times e^{R[\cdots]}
+\end{equation}
+
+% ============================================================
+\section{Explicit Pair Formulas}
+% ============================================================
+
+\subsection{Pair (1,1): Case A$\times$A}
+
+Both pieces have $\omega = -1$, requiring second derivatives.
+
+\begin{equation}
+S_{11} = \int_0^1 \int_0^1 (1-u)^2 \left[\frac{\partial^2}{\partial x \partial y} P_1(x+u) P_1(y+u) \Big|_{x=y=0}\right] Q(t)^2 e^{2Rt} \, du\, dt
+\end{equation}
+
+Simplifies to:
+\begin{equation}
+S_{11} = \int_0^1 \int_0^1 (1-u)^2 [P_1'(u)]^2 \cdot Q(t)^2 e^{2Rt} \, du\, dt
+\end{equation}
+
+\subsection{Pair (1,2): Case A$\times$B}
+
+Piece 1 has $\omega = -1$ (derivative), piece 2 has $\omega = 0$ (direct).
+
+\begin{equation}
+S_{12} = \int_0^1 \int_0^1 (1-u) \left[\frac{\partial}{\partial x} P_1(x+u) \Big|_{x=0}\right] P_2(u) \cdot Q(t)^2 e^{2Rt} \, du\, dt
+\end{equation}
+
+Simplifies to:
+\begin{equation}
+S_{12} = \int_0^1 \int_0^1 (1-u) P_1'(u) P_2(u) \cdot Q(t)^2 e^{2Rt} \, du\, dt
+\end{equation}
+
+\subsection{Pair (1,3): Case A$\times$C}
+
+Piece 1 has $\omega = -1$ (derivative), piece 3 has $\omega = +1$ (auxiliary integral).
+
+\begin{equation}
+S_{13} = \int_0^1 \int_0^1 \int_0^1 (1-u) P_1'(u) P_3((1-a)u) \cdot a^{\omega_3-1} \cdot Q(\cdots)^2 e^{\cdots} \, da\, du\, dt
+\end{equation}
+
+For $\omega_3 = 1$: $a^{\omega_3-1} = a^0 = 1$.
+
+The auxiliary integral arises from:
+\begin{equation}
+\int_{1/q}^1 t^{\alpha+s-1} \log^\tau t \, dt = \frac{(-1)^\tau \tau!}{(\alpha+s)^{\tau+1}} - \cdots
+\end{equation}
+
+\subsection{Pair (2,2): Case B$\times$B}
+
+Both pieces have $\omega = 0$, no derivatives or auxiliary integrals.
+
+\begin{equation}
+S_{22} = \int_0^1 \int_0^1 P_2(u)^2 \cdot Q(t)^2 e^{2Rt} \, du\, dt
+\end{equation}
+
+This is the simplest case.
+
+\subsection{Pair (2,3): Case B$\times$C}
+
+Piece 2 has $\omega = 0$ (direct), piece 3 has $\omega = +1$ (auxiliary integral).
+
+\begin{equation}
+S_{23} = \int_0^1 \int_0^1 \int_0^1 P_2(u) P_3((1-a)u) \cdot Q(\cdots)^2 e^{\cdots} \, da\, du\, dt
+\end{equation}
+
+\subsection{Pair (3,3): Case C$\times$C}
+
+Both pieces have $\omega = +1$, requiring two auxiliary integrals.
+
+\begin{equation}
+S_{33} = \int_0^1 \int_0^1 \int_0^1 \int_0^1 P_3((1-a)u) P_3((1-b)u) \cdot Q(\cdots)^2 e^{\cdots} \, da\, db\, du\, dt
+\end{equation}
+
+This is a 4-dimensional integral.
+
+% ============================================================
+\section{Mirror Term Assembly}
+% ============================================================
+
+\begin{proposition}[PRZZ Line 1502]
+\begin{equation}
+I_1(\alpha,\beta) = I_{1,1}(\alpha,\beta) + T^{-\alpha-\beta} I_{1,1}(-\beta,-\alpha) + O(T/L)
+\end{equation}
+\end{proposition}
+
+The complete $c$ formula:
+\begin{equation}
+c = S_{12}(+R) + m \cdot S_{12}(-R) + S_{34}(+R)
+\end{equation}
+
+where:
+\begin{equation}
+m = (f_{I_1} g_{I_1} + (1-f_{I_1}) g_{I_2}) \cdot (e^R + 2K - 1)
+\end{equation}
+
+Correction factors:
+\begin{align}
+g_{I_1} &= 1 + \frac{\theta(1-\theta)(2(K-1)+\theta)}{8K(2K+1)^2} \\
+g_{I_2} &= 1 + \frac{\theta(2-\theta)}{2K(2K+1)}
+\end{align}
+
+For $K=3$, $\theta = 4/7$:
+\begin{align}
+g_{I_1} &= 1.000952 \\
+g_{I_2} &= 1.019436 \\
+m &\approx 8.814
+\end{align}
+
+% ============================================================
+\section{Extension to $K=4$}
+% ============================================================
+
+For $K=4$, piece 4 has $\omega(4) = 4 - 2 = 2$, introducing Case D.
+
+Number of pairs: $K(K+1)/2 = 10$
+
+New case types: A$\times$D, B$\times$D, C$\times$D, D$\times$D
+
+Case D involves two auxiliary integrals with $a^{\omega-1} = a^1 = a$ weight.
+
+\end{document}

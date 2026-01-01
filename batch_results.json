@@ -1,0 +1,12 @@
+{
+  "n_quad": 30,
+  "baseline_c": 2.1374544061321727,
+  "baseline_kappa": 0.417293962,
+  "results": [
+    {
+      "id": "P23_jitter_small_1",
+      "c": 2.134675445175416,
+      "kappa": 0.41829194629207056,
+      "delta_c_pct": -0.13001264255200207,
+      "ladder_pass": true,
+      "gate_pass": 

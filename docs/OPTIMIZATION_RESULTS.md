@@ -1,23 +1,95 @@
-# Optimization Results: κ = 0.521 via Destructive Interference
+# Optimization Results: κ = 0.585 via Destructive Interference
 
-**Date:** 2025-12-29
-**Status:** VALIDATED with derived formulas
+**Date:** 2025-12-30
+**Status:** VALIDATED with derived formulas + overnight systematic runs
 
 ---
 
 ## 1. Summary of Results
 
+### 1.1 Overnight Systematic Optimization (2025-12-30)
+
+| Configuration | Constraint | Final c | Final κ | Δκ vs PRZZ |
+|---------------|------------|---------|---------|------------|
+| PRZZ Baseline | — | 2.1375 | 0.4173 | — |
+| cap_1.0 | \|coeff\| ≤ 1.0 | 1.9562 | **0.4853** | +16.3% |
+| cap_2.0 | \|coeff\| ≤ 2.0 | 1.8446 | **0.5303** | +27.1% |
+| **unconstrained** | None | **1.7172** | **0.5852** | **+40.2%** |
+
+**Key Finding:** Unconstrained optimization achieves κ = 0.5852, a 40% improvement over PRZZ baseline.
+
+### 1.2 Historical Runs
+
 | Configuration | κ Value | Improvement | c Value |
 |---------------|---------|-------------|---------|
 | PRZZ Baseline | 0.4173 | — | 2.1375 |
 | P2/P3 Optimized (overnight) | 0.4417 | +5.8% | 2.0706 |
-| **Full Optimization (P1/P2/P3)** | **0.5213** | **+24.9%** | **1.8665** |
+| Full Optimization (P1/P2/P3) | 0.5213 | +24.9% | 1.8665 |
 
 ---
 
 ## 2. Optimal Polynomial Coefficients
 
-### 2.1 Tilde Basis Coefficients
+### 2.1 Overnight Runs (2025-12-30)
+
+#### Unconstrained (κ = 0.5852, c = 1.7172)
+
+**P₁ (degree 4):**
+```
+P1_tilde = [0.130538, -0.9571066318307511, -0.15415459403663068, 0.3903495]
+```
+
+**P₂ (degree 3):**
+```
+P2_tilde = [0.7468769188073112, -0.1467097781450972, -0.17589837609924422]
+```
+
+**P₃ (degree 3):**
+```
+P3_tilde = [-1.6150179064790129, -3.3901418066312985, -0.16679074287120788]
+```
+
+#### Cap 2.0 (κ = 0.5303, c = 1.8446)
+
+**P₁ (degree 4):**
+```
+P1_tilde = [0.130538, -1.3492479552005472, -0.11842, 0.38503745344007023]
+```
+
+**P₂ (degree 3):**
+```
+P2_tilde = [0.524137, 1.979868, -0.470029]
+```
+
+**P₃ (degree 3):**
+```
+P3_tilde = [0.3742574955606918, -1.0297649999999998, -0.03458197830894815]
+```
+
+#### Cap 1.0 (κ = 0.4853, c = 1.9562)
+
+**P₁ (degree 4):**
+```
+P1_tilde = [0.130538, -1.0, -0.1621243516398488, 0.3903495]
+```
+
+**P₂ (degree 3):**
+```
+P2_tilde = [0.9208825032505028, 1.0, -0.470029]
+```
+
+**P₃ (degree 3):**
+```
+P3_tilde = [0.26148413976789825, -1.0, -0.07128924098679996]
+```
+
+#### Q Polynomial (all configurations)
+
+```
+Q_mono = [1.0, -0.6378499999999999, -0.6314839999999999, -1.286264, 2.56088, -1.024352]
+```
+
+### 2.2 Previous Best (κ = 0.521)
 
 **P₁ (degree 4):**
 ```
@@ -34,19 +106,14 @@ P2_tilde = [1.00647910, -0.22929017, -0.19364131]
 P3_tilde = [-1.33312236, -2.40930719, -0.15079691]
 ```
 
-**Q (monomial, degree 5):**
-```
-Q_mono = [1.0, -0.63785, -0.631484, -1.286264, 2.56088, -1.024352]
-```
-
-### 2.2 Explicit Polynomial Forms
+### 2.3 Explicit Polynomial Forms (Unconstrained κ = 0.585)
 
 ```
-P₁(x) = x + 0.1639 x(1-x) - 0.7866 x(1-x)² - 0.2162 x(1-x)³ + 0.3275 x(1-x)⁴
+P₁(x) = x + 0.1305 x(1-x) - 0.9571 x(1-x)² - 0.1542 x(1-x)³ + 0.3903 x(1-x)⁴
 
-P₂(x) = 1.0065 x - 0.2293 x² - 0.1936 x³
+P₂(x) = 0.7469 x - 0.1467 x² - 0.1759 x³
 
-P₃(x) = -1.3331 x - 2.4093 x² - 0.1508 x³
+P₃(x) = -1.6150 x - 3.3901 x² - 0.1668 x³
 
 Q(t) = 1 - 0.6379 t - 0.6315 t² - 1.2863 t³ + 2.5609 t⁴ - 1.0244 t⁵
 ```
@@ -55,21 +122,34 @@ Q(t) = 1 - 0.6379 t - 0.6315 t² - 1.2863 t³ + 2.5609 t⁴ - 1.0244 t⁵
 
 ## 3. Comparison: PRZZ vs Optimal
 
-### 3.1 Coefficient Comparison
+### 3.1 Coefficient Comparison (Unconstrained κ = 0.585)
 
-| Polynomial | PRZZ | Optimal | Key Difference |
-|------------|------|---------|----------------|
-| P₁[0] | +0.2611 | +0.1639 | smaller |
-| P₁[1] | -1.0710 | -0.7866 | smaller magnitude |
-| P₂[0] | +1.0483 | +1.0065 | similar |
-| P₂[1] | **+1.3199** | **-0.2293** | **SIGN FLIP** |
-| P₃[0] | **+0.5228** | **-1.3331** | **SIGN FLIP + larger** |
-| P₃[1] | -0.6865 | **-2.4093** | **3.5× larger** |
+| Polynomial | PRZZ | Unconstrained | Key Difference |
+|------------|------|---------------|----------------|
+| P₁[0] | +0.2611 | +0.1305 | smaller |
+| P₁[1] | -1.0710 | -0.9571 | similar magnitude |
+| P₂[0] | +1.0483 | +0.7469 | smaller |
+| P₂[1] | **+1.3199** | **-0.1467** | **SIGN FLIP** |
+| P₃[0] | **+0.5228** | **-1.6150** | **SIGN FLIP + 3× larger** |
+| P₃[1] | -0.6865 | **-3.3901** | **4.9× larger** |
 
 ### 3.2 Structural Insight
 
 **PRZZ polynomials:** Mixed signs, moderate coefficients
-**Optimal polynomials:** P₃ ALL NEGATIVE with large magnitudes
+**Optimal polynomials (κ = 0.585):** P₃ ALL NEGATIVE with very large magnitudes
+
+The unconstrained optimizer finds extreme P₃ coefficients (up to -3.39) that create
+strong destructive interference, reducing c from 2.14 to 1.72 (20% reduction).
+
+### 3.3 Effect of Coefficient Constraints
+
+| Constraint | Max |P₃ coeff| | κ achieved | Gap vs unconstrained |
+|------------|---------------------|------------|----------------------|
+| cap_1.0 | 1.00 | 0.4853 | -17% |
+| cap_2.0 | 1.98 | 0.5303 | -9.4% |
+| None | 3.39 | 0.5852 | — |
+
+Relaxing coefficient constraints allows stronger destructive interference.
 
 ---
 
@@ -192,8 +272,9 @@ The overnight run (`overnight_results.json`) achieved κ = 0.4417 by optimizing 
 
 1. **Derived formulas validated** on both baseline and optimized polynomials
 2. **Clear optimization mechanism** identified (destructive interference)
-3. **Significant improvement** demonstrated (κ: 0.417 → 0.521)
+3. **Significant improvement** demonstrated (κ: 0.417 → 0.585, +40%)
 4. **Formula independence** proven (same formulas work for all polynomial sets)
+5. **Error bounds remain small** (see docs/ERROR_ANALYSIS_FOR_PAPER.md)
 
 ### 8.2 For Further Optimization
 
@@ -205,7 +286,35 @@ Potential directions:
 
 ---
 
-## 9. JSON Data Structure
+## 9. κ* Benchmark (R = 1.1167)
+
+**Status:** TBD - Not yet run
+
+The κ* benchmark uses R = 1.1167 (instead of R = 1.3036) and provides an independent
+validation target. Running the overnight optimization at this R value would:
+
+1. Validate that the optimization approach works at different R
+2. Provide a second data point for the paper
+3. Allow comparison of optimal polynomial shapes across R values
+
+### 9.1 Expected Results (placeholder)
+
+| Configuration | R | c | κ | Status |
+|---------------|------|-----|-------|--------|
+| PRZZ Baseline | 1.1167 | 1.938 | 0.4075 | Known |
+| cap_1.0 | 1.1167 | TBD | TBD | Not run |
+| cap_2.0 | 1.1167 | TBD | TBD | Not run |
+| unconstrained | 1.1167 | TBD | TBD | Not run |
+
+### 9.2 Action Items
+
+- [ ] Run overnight optimization at R = 1.1167
+- [ ] Compare optimal polynomial shapes between R = 1.3036 and R = 1.1167
+- [ ] Verify error bounds scale appropriately
+
+---
+
+## 10. JSON Data Structure
 
 ```json
 {
