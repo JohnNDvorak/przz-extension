@@ -66,9 +66,9 @@ def main():
     # Header
     st.title("Zeta Mollifier Explorer")
     st.markdown(
-        "Based on **Pratt, Robles, Zaharescu & Zeindler** "
-        "([PRZZ, 2020](https://doi.org/10.1093/imrn/rny244)) — "
-        "Interactive exploration of mollifier polynomials for computing "
+        "Based on **Pratt, Robles, Zaharescu & Zeindler**, "
+        "*[More Than Five-Twelfths of the Zeros of ζ Are on the Critical Line](https://arxiv.org/abs/1802.10521)* "
+        "(2020) — Interactive exploration of mollifier polynomials for computing "
         "$\\kappa$, the proportion of Riemann zeta zeros on the critical line."
     )
 
