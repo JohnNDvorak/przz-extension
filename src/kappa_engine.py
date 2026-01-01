@@ -7,20 +7,28 @@ This is the LOCKED production implementation of the PRZZ framework.
 FORMULAS (100% derived from first principles):
 ==============================================
 
-m = exp(R) + (2K-1)                        # EXACT algebraic identity
-enhancement = 1 + 1/[K(K+1)(2K+1) + 2Kθ]   # DERIVED from I₃/I₄ structure
-g_I1 ≈ 1.0                                 # DERIVED: log factor self-correction
-g_I2 = 1 + (2-θ)θ/(2K(2K+1))              # EXACT: variance structure
-c = S₁₂(+R) + m × g_total × S₁₂(-R) + S₃₄(+R)
-κ = 1 - log(c) / R
+MIRROR MULTIPLIER COMPONENTS:
+  M_0 = exp(R) + (2K-1)                    # Structural base (EXACT algebraic identity)
+  g_I1 approx 1.0                          # DERIVED: log factor self-correction (0.09% residual)
+  g_I2 = 1 + (2-theta)*theta/(2K(2K+1))   # EXACT: variance structure
+  G  = f_I1 * g_I1 + (1-f_I1) * g_I2       # Correction factor (DERIVED)
+  M  = G * M_0                             # Full mirror multiplier
 
-DERIVATION STATUS: 100% DERIVED ✅ (Phase 62, 2025-12-29)
-=========================================================
-- Total κ error: 0.003% with ZERO calibration
-- m = exp(R) + (2K-1) is an EXACT algebraic identity from 3/2 × 2/3 cancellation
-- g_I1 ≈ 1.0 because log factor (1/θ + x + y) generates self-correcting cross-terms
-- g_I2 = 1 + (2-θ)θ/(2K(2K+1)) because I₂ lacks log factor, needs full correction
-- enhancement = 1 + 7/612 from I₃/I₄ derivative structure (for K=3, θ=4/7)
+ASSEMBLY:
+  c = S_12(+R) + M * S_12(-R) + S_34(+R)
+  kappa = 1 - log(c) / R
+
+CODE VARIABLE MAPPING:
+  base    -> M_0 (structural base)
+  g_total -> G   (correction factor)
+  m       -> M   (full mirror multiplier)
+
+DERIVATION STATUS: 100% DERIVED (Phase 62, 2025-12-29)
+======================================================
+- Total kappa error: 0.003% with ZERO calibration
+- M_0 = exp(R) + (2K-1) is EXACT from 3/2 x 2/3 cancellation
+- G approx 1.014 is DERIVED from weighted g-factors
+- M = G * M_0 is the full mirror multiplier used in assembly
 
 See docs/DERIVATION_STATUS.md for complete derivation chain.
 
@@ -70,9 +78,13 @@ class IntegralComponents:
     """Components of the I1, I2, I3, I4 integrals.
 
     Note: PRZZ assembly uses SUMS (I1+I2), not products.
-    - S12 = I1 + I2 (sum over all pairs)
-    - S34 = I3 + I4 (sum over all pairs)
-    - c = S12(+R) + m × S12(-R) + S34(+R)
+      S_12 = I1 + I2 (sum over all pairs)
+      S_34 = I3 + I4 (sum over all pairs)
+
+    Assembly formula:
+      c = S_12(+R) + M * S_12(-R) + S_34(+R)
+
+    where M = G * M_0 is the full mirror multiplier (code variable 'm').
     """
     I1_plus: float   # I1 total at +R (sum over all pairs)
     I1_minus: float  # I1 total at -R (sum over all pairs)
@@ -107,12 +119,19 @@ class IntegralComponents:
 
 @dataclass
 class CorrectionFactors:
-    """First-principles derived correction factors (100% derived, 0.003% error).
+    """Mirror multiplier components (0.003% total error).
 
-    All factors are derived from PRZZ structure:
-    - g_I1 ≈ 1.0: log factor self-correction (0.09% residual)
-    - g_I2 = 1 + (2-θ)θ/(2K(2K+1)): EXACT variance structure
-    - base = exp(R) + (2K-1): EXACT algebraic identity
+    Notation mapping (paper <-> code):
+      M_0 <-> base     : Structural base, EXACT algebraic identity
+      G   <-> g_total  : Correction factor, DERIVED (~1.014)
+      M   <-> m        : Full mirror multiplier = G * M_0
+
+    Component status:
+      - M_0 = exp(R) + (2K-1): EXACT (0% error)
+      - g_I1 ~ 1.00095: DERIVED (0.09% residual from higher-order Q terms)
+      - g_I2 = 1.01944: EXACT for given theta, K
+      - G = weighted average: DERIVED
+      - M = G * M_0: 0.09% residual (inherited from g_I1)
     """
     g_I1: float      # Correction for I1 (≈1.0, log factor self-correction)
     g_I2: float      # Correction for I2 (EXACT: variance structure)
@@ -164,11 +183,11 @@ KappaResult:
     base    = {self.corrections.base:.10f}
     m       = {self.corrections.m:.10f}
 
-  Assembly:
-    c = S12(+R) + m × S12(-R) + S34(+R)
-      = {self.integrals.S12_plus:.6f} + {self.corrections.m:.6f} × {self.integrals.S12_minus:.6f} + {self.integrals.S34_plus:.6f}
+  Assembly (M = G * M_0):
+    c = S12(+R) + M * S12(-R) + S34(+R)
+      = {self.integrals.S12_plus:.6f} + {self.corrections.m:.6f} * {self.integrals.S12_minus:.6f} + {self.integrals.S34_plus:.6f}
       = {self.c:.10f}
-    κ = 1 - log(c)/R = {self.kappa:.10f}
+    kappa = 1 - log(c)/R = {self.kappa:.10f}
 """
 
 
@@ -237,35 +256,41 @@ def compute_g_I2(theta: float, K: int) -> float:
 
 def compute_base(R: float, K: int) -> float:
     """
-    Compute the mirror multiplier base.
+    Compute the structural mirror multiplier base M_0.
 
-    Formula: m = exp(R) + (2K-1)  — EXACT ALGEBRAIC IDENTITY
+    Formula: M_0(R) = exp(R) + (2K-1)  -- EXACT ALGEBRAIC IDENTITY
+
+    Note: This returns the BASE only (M_0). The full mirror multiplier is:
+      M = G * M_0
+    where G = g_total is computed by compute_mirror_multiplier().
+
+    The code variable 'm' in compute_mirror_multiplier() equals M (not M_0).
 
     DERIVATION (Phase 61):
-    The mirror multiplier arises from:
-        m = exp(2R) × shift_ratio × (1+ρ)
+    The structural base arises from:
+        M_0 = exp(2R) * shift_ratio * (1+rho)
 
     where:
-    - exp(2R) is the PRZZ T^{-(α+β)} prefactor at α=β=-R/L
+    - exp(2R) is the PRZZ T^{-(alpha+beta)} prefactor at alpha=beta=-R/L
     - shift_ratio = 3/2 from Q polynomial operator identity
-    - (1+ρ) = (2/3) × [exp(-R) + (2K-1)×exp(-2R)] from S₃₄/S₁₂ structure
+    - (1+rho) = (2/3) * [exp(-R) + (2K-1)*exp(-2R)] from S_34/S_12 structure
 
     ALGEBRAIC PROOF:
-        m = exp(2R) × (3/2) × (2/3) × [exp(-R) + (2K-1)×exp(-2R)]
-          = exp(2R) × [exp(-R) + (2K-1)×exp(-2R)]
-          = exp(R) + (2K-1)
+        M_0 = exp(2R) * (3/2) * (2/3) * [exp(-R) + (2K-1)*exp(-2R)]
+            = exp(2R) * [exp(-R) + (2K-1)*exp(-2R)]
+            = exp(R) + (2K-1)
 
     The 3/2 and 2/3 CANCEL EXACTLY! This is a pure algebraic identity.
-    Numerical verification: difference < 10⁻¹⁵ for all R values tested.
+    Numerical verification: difference < 1e-15 for all R values tested.
 
-    For K=3: m = exp(R) + 5
+    For K=3: M_0 = exp(R) + 5
 
     Args:
         R: Shift parameter
         K: Number of mollifier pieces
 
     Returns:
-        Mirror multiplier base (EXACT algebraic identity)
+        Structural mirror base M_0 (EXACT algebraic identity)
     """
     return math.exp(R) + (2*K - 1)
 
@@ -279,7 +304,12 @@ def compute_mirror_multiplier(
     """
     Compute the complete mirror multiplier using first-principles formulas.
 
-    Formula: m = [f_I1 × g_I1 + (1-f_I1) × g_I2] × base
+    Formula: M = G * M_0
+
+    where:
+      M_0 = exp(R) + (2K-1)                   [structural base - EXACT]
+      G   = f_I1 * g_I1 + (1-f_I1) * g_I2     [correction factor - DERIVED]
+      M   = G * M_0                           [full multiplier returned as 'm']
 
     Args:
         theta: Mollifier exponent
@@ -288,7 +318,10 @@ def compute_mirror_multiplier(
         f_I1: I1 fraction at -R
 
     Returns:
-        CorrectionFactors with all intermediate values
+        CorrectionFactors with:
+          - base: M_0 (the exact structural base)
+          - g_total: G (the derived correction)
+          - m: M = G * M_0 (the full multiplier used in assembly)
     """
     g_I1 = compute_g_I1(theta, K)
     g_I2 = compute_g_I2(theta, K)
@@ -313,11 +346,16 @@ def compute_c_from_integrals(
     """
     Compute c using the mirror assembly formula.
 
-    Formula: c = I₁I₂(+R) + m × I₁I₂(-R) + I₃I₄(+R)
+    Formula: c = S_12(+R) + M * S_12(-R) + S_34(+R)
+
+    where:
+      S_12 = I1 + I2  (sum, NOT product)
+      S_34 = I3 + I4  (sum, NOT product)
+      M = G * M_0     (full mirror multiplier, code variable 'm')
 
     Args:
         integrals: Computed integral components
-        m: Mirror multiplier
+        m: Full mirror multiplier M (= G * M_0)
 
     Returns:
         Main-term constant c
@@ -729,67 +767,66 @@ def validate_przz_benchmarks(
 
 FORMULA_DOC = """
 ================================================================================
-PRZZ κ COMPUTATION - 100% DERIVED FROM FIRST PRINCIPLES
+PRZZ KAPPA COMPUTATION - DERIVED FROM FIRST PRINCIPLES
 ================================================================================
 
-DERIVATION STATUS: COMPLETE ✅ (Phase 62, 2025-12-29)
-Total error: 0.003% with ZERO calibration
+DERIVATION STATUS: 100% DERIVED (Phase 62, 2025-12-29)
+Total error: 0.003% (0.09% residual in g_I1 from higher-order Q terms)
 
-INPUT PARAMETERS:
-  θ (theta) = Mollifier exponent (typically 4/7)
-  K = Number of mollifier pieces (typically 3)
-  R = Shift parameter (typically 1.3036)
+NOTATION (Paper <-> Code):
+================================================================================
+
+  Paper Symbol    Code Variable    Description
+  ------------    -------------    -----------
+  M_0(R)          base             Structural mirror base (EXACT)
+  G               g_total          Correction factor (DERIVED, ~1.014)
+  M(R)            m                Full mirror multiplier = G * M_0
 
 DERIVED FORMULAS:
 ================================================================================
 
-1. MIRROR MULTIPLIER: m = exp(R) + (2K-1)  — EXACT ALGEBRAIC IDENTITY
+1. STRUCTURAL MIRROR BASE: M_0 = exp(R) + (2K-1)  -- EXACT ALGEBRAIC IDENTITY
 
    Derivation:
-     m = exp(2R) × (3/2) × (2/3) × [exp(-R) + (2K-1)×exp(-2R)]
-       = exp(R) + (2K-1)
+     M_0 = exp(2R) * (3/2) * (2/3) * [exp(-R) + (2K-1)*exp(-2R)]
+         = exp(R) + (2K-1)
 
-   The 3/2 and 2/3 cancel EXACTLY!
-   Error: < 10⁻¹⁵ (machine precision)
+   The 3/2 and 2/3 cancel EXACTLY.
+   Error: < 1e-15 (machine precision)
 
-2. ENHANCEMENT FACTOR: 1 + 1/[K(K+1)(2K+1) + 2Kθ]  — DERIVED
+2. CORRECTION FACTOR: G = f_I1 * g_I1 + (1-f_I1) * g_I2  -- DERIVED
 
-   For K=3, θ=4/7:
-     = 1 + 1/[84 + 24/7] = 1 + 7/612 ≈ 1.01144
-   Error: 0.002%
+   Components:
+     g_I1 ~ 1.00095  (log factor self-correction, 0.09% residual)
+     g_I2 = 1.01944  (variance structure, EXACT for given theta,K)
+     f_I1 = I1(-R) / [I1(-R) + I2(-R)]  (computed from integrals)
 
-3. G-FACTOR SPLIT:
+   For typical f_I1 values: G ~ 1.014
 
-   g_I1 ≈ 1.0  — DERIVED (log factor self-correction)
-     I₁ has prefactor (1/θ + x + y), product rule generates cross-terms
-     that integrate to Beta moment θ/(2K(2K+1)), providing internal correction
-     Residual: 0.09%
+3. FULL MIRROR MULTIPLIER: M = G * M_0  -- DERIVED
 
-   g_I2 = 1 + (2-θ)θ/(2K(2K+1))  — EXACT (variance structure)
-     I₂ lacks log factor, needs full external Beta moment correction
-     (2-θ) factor from variance enhancement
-     Error: 0%
+   This is what multiplies S_12(-R) in the assembly.
 
 ASSEMBLY FORMULA:
 ================================================================================
 
-  f_I1 = I1(-R) / (I1(-R) + I2(-R))    [computed from integrals]
-  g_total = f_I1 × g_I1 + (1-f_I1) × g_I2
-  m = g_total × base
-  c = S₁₂(+R) + m × S₁₂(-R) + S₃₄(+R)
-  κ = 1 - log(c) / R
+  c = S_12(+R) + M * S_12(-R) + S_34(+R)
+  kappa = 1 - log(c) / R
 
-FOR K=3, θ=4/7:
+  where:
+    S_12 = I1 + I2  (summed over all pairs)
+    S_34 = I3 + I4  (summed over all pairs)
+    M = G * M_0     (full mirror multiplier)
+
+FOR K=3, theta=4/7:
 ================================================================================
 
-  m_base      = exp(R) + 5 = 8.6825 (at R=1.3036)
-  enhancement = 1 + 7/612 = 1.01144
-  g_I1        ≈ 1.0 (with 0.09% residual)
-  g_I2        = 1.01944
+  M_0 = exp(R) + 5
+  G   ~ 1.014
+  M   = 1.014 * (exp(R) + 5)
 
-TOTAL ERROR: 0.003% — No calibration, pure structural formulas.
+IMPORTANT: The code variable 'm' equals M (the full multiplier), NOT M_0.
 
-See docs/DERIVATION_STATUS.md for complete derivation chain.
 ================================================================================
 """
 

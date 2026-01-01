@@ -11,35 +11,42 @@
 
 **Total error: 0.003%** — No calibration, no fitting, pure structural formulas.
 
-| Component | Formula | Error |
-|-----------|---------|-------|
-| m = exp(R) + (2K-1) | Exact algebraic identity | **0%** |
-| enhancement | 1 + 1/[K(K+1)(2K+1) + 2Kθ] = 1 + 7/612 | 0.002% |
-| g_I1 | ≈ 1.0 (log factor self-correction) | 0.09% |
-| g_I2 | 1 + (2-θ)θ/(2K(2K+1)) | **0%** |
-| **Total κ** | | **0.003%** |
+| Component | Formula | Status | Error |
+|-----------|---------|--------|-------|
+| M_0 = exp(R) + (2K-1) | Structural base | **EXACT** | 0% |
+| G = g_total | Correction factor | DERIVED | 0.09% |
+| M = G × M_0 | Full mirror multiplier | DERIVED | 0.09% |
+| enhancement | 1 + 1/[K(K+1)(2K+1) + 2Kθ] = 1 + 7/612 | DERIVED | 0.002% |
+| g_I1 | ≈ 1.0 (log factor self-correction) | DERIVED | 0.09% |
+| g_I2 | 1 + (2-θ)θ/(2K(2K+1)) | EXACT | 0% |
+| **Total κ** | | | **0.003%** |
+
+**Notation (Paper ↔ Code):**
+- M_0 ↔ `base` (structural mirror base)
+- G ↔ `g_total` (correction factor)
+- M ↔ `m` (full mirror multiplier)
 
 ---
 
 ## Complete Derivation Summary
 
-### 1. Mirror Multiplier: m = exp(R) + (2K-1) — EXACT
+### 1. Structural Mirror Base: M_0 = exp(R) + (2K-1) — EXACT
 
 | Step | Formula | Source |
 |------|---------|--------|
-| 1 | m = exp(2R) × shift_ratio × (1+ρ) | PRZZ assembly structure |
+| 1 | M_0 = exp(2R) × shift_ratio × (1+ρ) | PRZZ assembly structure |
 | 2 | shift_ratio = 3/2 | Q polynomial operator identity |
 | 3 | (1+ρ) = (2/3) × [exp(-R) + (2K-1)×exp(-2R)] | S₃₄/S₁₂ structure |
-| 4 | **m = exp(R) + (2K-1)** | **Exact cancellation!** |
+| 4 | **M_0 = exp(R) + (2K-1)** | **Exact cancellation!** |
 
 **Algebraic Proof:**
 ```
-m = exp(2R) × (3/2) × (2/3) × [exp(-R) + (2K-1)×exp(-2R)]
-  = exp(2R) × [exp(-R) + (2K-1)×exp(-2R)]
-  = exp(R) + (2K-1)
+M_0 = exp(2R) × (3/2) × (2/3) × [exp(-R) + (2K-1)×exp(-2R)]
+    = exp(2R) × [exp(-R) + (2K-1)×exp(-2R)]
+    = exp(R) + (2K-1)
 ```
 
-**The 3/2 and 2/3 cancel EXACTLY!** For K=3: **m = exp(R) + 5**
+**The 3/2 and 2/3 cancel EXACTLY!** For K=3: **M_0 = exp(R) + 5**
 
 ### 2. G-Factor Split: g_I1 ≈ 1.0, g_I2 = 1 + (2-θ)θ/(2K(2K+1)) — DERIVED
 
@@ -83,20 +90,26 @@ For K=3, θ=4/7: (2-θ) = 10/7 ≈ 1.4286
 ## The Complete Formula
 
 ```
-c = S₁₂(+R) + m × g_total × S₁₂(-R) + S₃₄(+R)
+c = S₁₂(+R) + M × S₁₂(-R) + S₃₄(+R)
 
 where:
-  m = exp(R) + (2K-1)                           [EXACT - algebraic identity]
-  g_total = f_I1 × g_I1 + (1 - f_I1) × g_I2     [DERIVED - log factor structure]
+  M₀ = exp(R) + (2K-1)                          [EXACT - structural base]
+  G  = f_I1 × g_I1 + (1 - f_I1) × g_I2          [DERIVED - correction factor]
+  M  = G × M₀                                    [Full mirror multiplier]
+
   g_I1 ≈ 1.0                                     [DERIVED - self-correction]
   g_I2 = 1 + (2-θ)θ/(2K(2K+1))                  [EXACT - variance structure]
   κ = 1 - log(c)/R
+
+Code mapping: base = M₀, g_total = G, m = M
 ```
 
 For K=3, θ=4/7:
-- **m = exp(R) + 5**
-- **g_I1 ≈ 1.0**
-- **g_I2 = 1.01944**
+- **M₀ = exp(R) + 5** (EXACT)
+- **g_I1 ≈ 1.0** (0.09% residual)
+- **g_I2 = 1.01944** (EXACT)
+- **G ≈ 1.014** (DERIVED)
+- **M = G × M₀** (Full multiplier)
 
 ---
 
@@ -104,11 +117,13 @@ For K=3, θ=4/7:
 
 | Component | Status | Formula | Residual |
 |-----------|--------|---------|----------|
-| **m = exp(R) + (2K-1)** | **EXACT** | Algebraic identity from 3/2 × 2/3 cancellation | **0%** |
+| **M₀ = exp(R) + (2K-1)** | **EXACT** | Algebraic identity from 3/2 × 2/3 cancellation | **0%** |
+| **G = g_total** | **DERIVED** | f_I1 × g_I1 + (1-f_I1) × g_I2 | **0.09%** |
+| **M = G × M₀** | **DERIVED** | Full mirror multiplier | **0.09%** |
 | **exp(2R) prefactor** | **DERIVED** | PRZZ T^{-(α+β)} at α=β=-R/L | 0% |
 | **shift_ratio = 3/2** | **DERIVED** | Q polynomial operator identity | 0% |
 | **(1+ρ) exact formula** | **DERIVED** | (2/3)[e⁻ᴿ + (2K-1)e⁻²ᴿ] from S₃₄ structure | 0% |
-| **Mirror structure** | **DERIVED** | PRZZ Section 10: c = S₁₂(+R) + m×S₁₂(-R) + S₃₄ | 0% |
+| **Mirror structure** | **DERIVED** | PRZZ Section 10: c = S₁₂(+R) + M×S₁₂(-R) + S₃₄ | 0% |
 | **g_I1 ≈ 1.0** | **DERIVED** | Log factor self-correction via product rule | **0.09%** |
 | **g_I2 = 1 + (2-θ)θ/(2K(2K+1))** | **EXACT** | I₂ variance structure, no log factor | **0%** |
 | **g_baseline = 1 + θ/(2K(2K+1))** | **DERIVED** | Beta moment from log factor (PRZZ 1530, 2391-2409) | 0% |
@@ -125,17 +140,17 @@ For K=3, θ=4/7:
 ├──────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  ┌────────────────────────────────────────────────────────────┐ │
-│  │  MIRROR MULTIPLIER: EXACT ✅                               │ │
+│  │  STRUCTURAL BASE M₀: EXACT ✅                              │ │
 │  │                                                            │ │
-│  │  m = exp(2R) × (3/2) × (2/3) × [e⁻ᴿ + (2K-1)e⁻²ᴿ]        │ │
-│  │    = exp(R) + (2K-1)                                      │ │
+│  │  M₀ = exp(2R) × (3/2) × (2/3) × [e⁻ᴿ + (2K-1)e⁻²ᴿ]       │ │
+│  │     = exp(R) + (2K-1)                                     │ │
 │  │                                                            │ │
 │  │  The 3/2 and 2/3 cancel EXACTLY!                          │ │
 │  │  Error: < 10⁻¹⁵ (machine precision)                       │ │
 │  └────────────────────────────────────────────────────────────┘ │
 │                                                                  │
 │  ┌────────────────────────────────────────────────────────────┐ │
-│  │  G-FACTOR SPLIT: DERIVED ✅                                │ │
+│  │  CORRECTION FACTOR G: DERIVED ✅                           │ │
 │  │                                                            │ │
 │  │  g_I1 ≈ 1.0     (log factor self-correction)              │ │
 │  │                  I₁ has (1/θ + x + y) prefactor           │ │
@@ -147,6 +162,12 @@ For K=3, θ=4/7:
 │  │                  Needs full external correction           │ │
 │  │                  (2-θ) factor from variance enhancement   │ │
 │  │                  Residual: 0%                             │ │
+│  │                                                            │ │
+│  │  G = f_I1 × g_I1 + (1-f_I1) × g_I2                        │ │
+│  └────────────────────────────────────────────────────────────┘ │
+│                                                                  │
+│  ┌────────────────────────────────────────────────────────────┐ │
+│  │  FULL MIRROR MULTIPLIER: M = G × M₀                        │ │
 │  └────────────────────────────────────────────────────────────┘ │
 │                                                                  │
 │  TOTAL CALIBRATION: 0.09% (higher-order Q terms in g_I1)        │
@@ -165,14 +186,16 @@ For K=3, θ=4/7:
 | Formula | Value at R=1.3036 | Source |
 |---------|-------------------|--------|
 | PRZZ prefactor | exp(2R) = **13.6** | T^{-(α+β)} at α=β=-R/L |
-| Production m | exp(R) + 5 = **8.68** | **EXACTLY DERIVED** |
+| Production M₀ | exp(R) + 5 = **8.68** | **EXACTLY DERIVED** |
 | Ratio | 13.6 / 8.68 = **1.57** | From 3/2 × (2/3) × [e⁻ᴿ + 5e⁻²ᴿ] |
 
 **All components derived:**
 - ✅ exp(2R) prefactor from PRZZ assembly
 - ✅ shift_ratio = 3/2 from Q operator identity
 - ✅ (1+ρ) = (2/3)[e⁻ᴿ + 5e⁻²ᴿ] from S₃₄ structure
-- ✅ Algebraic cancellation giving exp(R) + 5
+- ✅ Algebraic cancellation giving M₀ = exp(R) + 5
+- ✅ G = weighted g-factors (DERIVED)
+- ✅ M = G × M₀ (Full multiplier)
 - ✅ g_I1 ≈ 1.0 from log factor self-correction
 - ✅ g_I2 = 1 + (2-θ)θ/(2K(2K+1)) from variance structure
 
@@ -226,10 +249,10 @@ This matches the production formula **exactly**.
 
 ## Numerical Verification
 
-### Mirror Multiplier (EXACT)
+### Structural Base M₀ (EXACT)
 
-| R | m_derived | m = exp(R)+5 | Difference |
-|---|-----------|--------------|------------|
+| R | M₀_derived | M₀ = exp(R)+5 | Difference |
+|---|------------|---------------|------------|
 | 0.5000 | 6.64872 | 6.64872 | < 10⁻¹⁵ |
 | 1.0000 | 7.71828 | 7.71828 | < 10⁻¹⁵ |
 | 1.3036 | 8.68253 | 8.68253 | < 10⁻¹⁵ |
@@ -258,15 +281,17 @@ This matches the production formula **exactly**.
 
 > The complete PRZZ κ formula is derived from first principles with only 0.09% residual calibration:
 >
-> 1. **m = exp(R) + (2K-1)** is an exact algebraic identity from the cancellation of shift_ratio = 3/2 and (1+ρ) = (2/3)[e⁻ᴿ + (2K-1)e⁻²ᴿ].
+> 1. **M₀ = exp(R) + (2K-1)** is an exact algebraic identity from the cancellation of shift_ratio = 3/2 and (1+ρ) = (2/3)[e⁻ᴿ + (2K-1)e⁻²ᴿ].
 >
 > 2. **g_I1 ≈ 1.0** because I₁'s log factor prefactor generates cross-terms under d²/dxdy that integrate to the Beta moment θ/(2K(2K+1)), providing internal self-correction.
 >
 > 3. **g_I2 = 1 + (2-θ)θ/(2K(2K+1))** because I₂ lacks the log factor and requires full external Beta moment correction with (2-θ) variance enhancement.
+>
+> 4. **M = G × M₀** where G = weighted g-factor average (~1.014) is the full mirror multiplier.
 
 ### Conservative Claim
 
-> The mirror multiplier m = exp(R) + (2K-1) is exactly derived. The g-factor structure is derived from the differential log factor presence in I₁ vs I₂, with 0.09% residual from higher-order Q terms.
+> The structural base M₀ = exp(R) + (2K-1) is exactly derived. The correction factor G is derived from the differential log factor presence in I₁ vs I₂, with 0.09% residual from higher-order Q terms. The full mirror multiplier is M = G × M₀.
 
 ---
 
@@ -292,9 +317,9 @@ This matches the production formula **exactly**.
 ## Historical Note
 
 The derivation progressed through several phases:
-- **Phase 36:** Discovered m = exp(R) + 5 works, but "+5" was empirical
+- **Phase 36:** Discovered M₀ = exp(R) + 5 works, but "+5" was empirical
 - **Phase 45:** Found I₁/I₂ split with calibrated g-factors
-- **Phase 61:** Derived m exactly via 3/2 × 2/3 cancellation
+- **Phase 61:** Derived M₀ exactly via 3/2 × 2/3 cancellation
 - **Phase 62:** Derived g_I1/g_I2 split via log factor self-correction
 
 **Final status: 100% derived with 0.09% residual.**
