@@ -16,8 +16,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Page configuration - must be first Streamlit command
 st.set_page_config(
-    page_title="PRZZ Mollifier Explorer",
-    page_icon="",
+    page_title="Zeta Mollifier Explorer",
+    page_icon="ζ",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -64,8 +64,10 @@ def main():
     initialize_state()
 
     # Header
-    st.title("PRZZ Mollifier Explorer")
+    st.title("Zeta Mollifier Explorer")
     st.markdown(
+        "Based on **Pratt, Robles, Zaharescu & Zeindler** "
+        "([PRZZ, 2020](https://doi.org/10.1093/imrn/rny244)) — "
         "Interactive exploration of mollifier polynomials for computing "
         "$\\kappa$, the proportion of Riemann zeta zeros on the critical line."
     )
