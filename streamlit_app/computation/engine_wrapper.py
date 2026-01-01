@@ -12,7 +12,17 @@ import math
 # Add parent path to allow importing from src
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+# Find the root directory (contains 'src' folder)
+_current_file = Path(__file__).resolve()
+_root_dir = _current_file.parent.parent.parent
+if not (_root_dir / "src").exists():
+    # Try alternative path (for Streamlit Cloud)
+    _root_dir = Path.cwd()
+    if not (_root_dir / "src").exists():
+        raise ImportError(f"Cannot find 'src' directory. Tried: {_current_file.parent.parent.parent} and {Path.cwd()}")
+
+sys.path.insert(0, str(_root_dir))
 
 
 @dataclass
