@@ -88,28 +88,22 @@ def render_r_parameter():
 
     if mode == "kappa_star":
         # κ* mode presets
-        c1, c2, c3 = st.columns(3)
+        c1, c2 = st.columns(2)
         with c1:
             if st.button("1.08 (Best)", key="r_best_ks", type="primary"):
                 _set_r_and_rerun(R_OPTIMIZED_KAPPA_STAR)
         with c2:
             if st.button("1.1167 (PRZZ)", key="r_przz_ks"):
                 _set_r_and_rerun(R_PRZZ_KAPPA_STAR)
-        with c3:
-            if st.button("0.85", key="r_085"):
-                _set_r_and_rerun(0.85)
     else:
         # κ mode presets
-        c1, c2, c3 = st.columns(3)
+        c1, c2 = st.columns(2)
         with c1:
             if st.button("1.15 (Best)", key="r_best_k", type="primary"):
                 _set_r_and_rerun(R_OPTIMIZED_KAPPA)
         with c2:
             if st.button("1.3036 (PRZZ)", key="r_przz_k"):
                 _set_r_and_rerun(R_PRZZ_KAPPA)
-        with c3:
-            if st.button("0.85", key="r_085_k"):
-                _set_r_and_rerun(0.85)
 
     return st.session_state.R_value
 
