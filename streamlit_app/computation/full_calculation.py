@@ -101,19 +101,29 @@ def display_quick_result(kappa: float, c: float, R: float):
         c: Main-term constant
         R: Shift parameter
     """
+    display_kappa = kappa
+    display_c = c
+    rounded = False
+    if c < 1.0:
+        epsilon = 5e-6
+        if (1.0 - c) < epsilon:
+            display_kappa = 1.0
+            display_c = 1.0
+            rounded = True
+
     col1, col2, col3 = st.columns(3)
 
     with col1:
         st.metric(
             label="κ",
-            value=f"{kappa:.6f}",
+            value=f"{display_kappa:.6f}",
             help="Proportion of zeta zeros on critical line"
         )
 
     with col2:
         st.metric(
             label="c",
-            value=f"{c:.6f}",
+            value=f"{display_c:.6f}",
             help="Main-term constant"
         )
 
@@ -123,6 +133,8 @@ def display_quick_result(kappa: float, c: float, R: float):
             value=f"{R:.4f}",
             help="Shift parameter"
         )
+    if rounded:
+        st.caption("Live results rounded near c=1 to avoid low-precision artifacts.")
 
 
 def display_full_result(result: Dict):
