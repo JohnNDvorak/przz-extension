@@ -24,7 +24,7 @@ st.set_page_config(
 
 # Now import other modules
 from streamlit_app.utils.state_management import (
-    initialize_state, get_coefficients, get_R, reset_to_przz
+    initialize_state, get_coefficients, get_R, sync_widget_state_from_values
 )
 from streamlit_app.utils.constants import (
     PRZZ_Q_COEFFS, PRZZ_KAPPA_STAR_Q_COEFFS,
@@ -85,26 +85,10 @@ def main():
             key="computation_mode",
             horizontal=False,
         )
-        def _clear_all_widget_caches():
-            """Clear all input widget caches so they use new values."""
-            # R widgets
-            r_keys = ["r_slider_widget", "r_text_input_widget"]
-            # Coefficient sliders: P1_a0..a3, P2_b0..b2, P3_c0..c2
-            p1_keys = [f"P1_a{i}" for i in range(4)]
-            p2_keys = [f"P2_b{i}" for i in range(3)]
-            p3_keys = [f"P3_c{i}" for i in range(3)]
-            # Coefficient text inputs
-            text_keys = ["P1_text", "P2_text", "P3_text"]
-
-            all_keys = r_keys + p1_keys + p2_keys + p3_keys + text_keys
-            for key in all_keys:
-                if key in st.session_state:
-                    del st.session_state[key]
-
-        # Clear stale result and widget caches when mode changes
+        # Clear stale result and resync widget state when mode changes
         if st.session_state.get("mode") != mode:
             st.session_state.last_result = None
-            _clear_all_widget_caches()
+            sync_widget_state_from_values()
         st.session_state.mode = mode
 
         # Quick preset buttons
@@ -118,7 +102,7 @@ def main():
                 st.session_state.P3_tilde = defaults["P3_tilde"]
                 st.session_state.Q_coeffs = defaults["Q_coeffs"]
                 st.session_state.R_value = defaults["R"]
-                _clear_all_widget_caches()
+                sync_widget_state_from_values()
                 st.session_state.last_result = None
                 st.rerun()
         with col2:
@@ -129,7 +113,7 @@ def main():
                 st.session_state.P3_tilde = defaults["P3_tilde"]
                 st.session_state.Q_coeffs = defaults["Q_coeffs"]
                 st.session_state.R_value = defaults["R"]
-                _clear_all_widget_caches()
+                sync_widget_state_from_values()
                 st.session_state.last_result = None
                 st.rerun()
 

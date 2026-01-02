@@ -11,6 +11,7 @@ from typing import Dict, List, Optional
 from datetime import datetime
 import json
 from pathlib import Path
+from ..utils.state_management import sync_widget_state_from_values
 
 
 def load_leaderboard_data() -> Dict:
@@ -296,7 +297,7 @@ def render_universal_p1(data: Dict):
     if st.button("Apply Universal P₁ Configuration", type="primary"):
         st.session_state.P1_tilde = [-2.0, 0.9375, 1.0, -0.6]
         st.session_state.R_value = 1.14978  # Saturation point
-        st.session_state.r_text_input = "1.14978"  # Sync text input
+        sync_widget_state_from_values()
         st.rerun()
 
 
@@ -312,8 +313,8 @@ def apply_config(entry: Dict, mode: str = "kappa"):
 
     R_val = entry.get("R", 1.3036)
     st.session_state.R_value = R_val
-    st.session_state.r_text_input = str(R_val)  # Sync text input
     st.session_state.mode = mode
+    sync_widget_state_from_values()
     st.rerun()
 
 

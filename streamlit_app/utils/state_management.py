@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 from .constants import (
     PRZZ_P1_TILDE, PRZZ_P2_TILDE, PRZZ_P3_TILDE, PRZZ_Q_COEFFS,
     OPTIMIZED_P1_TILDE, OPTIMIZED_P2_TILDE, OPTIMIZED_P3_TILDE,
-    R_OPTIMIZED_KAPPA, THETA, K
+    R_OPTIMIZED_KAPPA, R_MIN, R_MAX, THETA, K
 )
 
 
@@ -83,6 +83,27 @@ def set_coefficients(P1_tilde: List[float], P2_tilde: List[float],
         st.session_state.Q_coeffs = dict(Q_coeffs)
 
 
+def sync_widget_state_from_values() -> None:
+    """Sync widget keys to current coefficients/R to avoid stale widget overrides."""
+    min_val, max_val = get_constraint_bounds()
+
+    def _clamp(value: float) -> float:
+        return max(min(value, max_val), min_val)
+
+    def _sync_poly(poly_name: str, values: List[float], label_prefix: str) -> None:
+        for i, val in enumerate(values):
+            st.session_state[f"{poly_name}_{label_prefix}{i}"] = float(_clamp(val))
+        st.session_state[f"{poly_name}_text"] = ", ".join(f"{v:.6f}" for v in values)
+
+    _sync_poly("P1", list(st.session_state.P1_tilde), "a")
+    _sync_poly("P2", list(st.session_state.P2_tilde), "b")
+    _sync_poly("P3", list(st.session_state.P3_tilde), "c")
+
+    current_r = float(st.session_state.get("R_value", R_OPTIMIZED_KAPPA))
+    st.session_state["r_text_input_widget"] = str(current_r)
+    st.session_state["r_slider_widget"] = float(max(min(current_r, R_MAX), R_MIN))
+
+
 def reset_to_przz():
     """Reset all coefficients to PRZZ defaults (mode-aware)."""
     from .constants import (
@@ -99,18 +120,17 @@ def reset_to_przz():
         st.session_state.P3_tilde = PRZZ_KAPPA_STAR_P3_TILDE.copy()
         st.session_state.Q_coeffs = PRZZ_KAPPA_STAR_Q_COEFFS.copy()
         st.session_state.R_value = R_PRZZ_KAPPA_STAR
-        st.session_state.r_text_input = str(R_PRZZ_KAPPA_STAR)
     else:
         st.session_state.P1_tilde = PRZZ_P1_TILDE.copy()
         st.session_state.P2_tilde = PRZZ_P2_TILDE.copy()
         st.session_state.P3_tilde = PRZZ_P3_TILDE.copy()
         st.session_state.Q_coeffs = PRZZ_Q_COEFFS.copy()
         st.session_state.R_value = R_PRZZ_KAPPA
-        st.session_state.r_text_input = str(R_PRZZ_KAPPA)
 
     st.session_state.last_result = None
     st.session_state.quick_kappa = None
     st.session_state.quick_c = None
+    sync_widget_state_from_values()
 
 
 def get_R() -> float:
