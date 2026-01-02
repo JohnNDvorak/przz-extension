@@ -100,6 +100,9 @@ def main():
                 st.session_state.P3_tilde = defaults["P3_tilde"]
                 st.session_state.Q_coeffs = defaults["Q_coeffs"]
                 st.session_state.R_value = defaults["R"]
+                # Clear slider widget cache so it uses new R value
+                if "r_slider_widget" in st.session_state:
+                    del st.session_state["r_slider_widget"]
                 st.session_state.last_result = None  # Clear stale result
                 st.rerun()
         with col2:
@@ -110,6 +113,9 @@ def main():
                 st.session_state.P3_tilde = defaults["P3_tilde"]
                 st.session_state.Q_coeffs = defaults["Q_coeffs"]
                 st.session_state.R_value = defaults["R"]
+                # Clear slider widget cache so it uses new R value
+                if "r_slider_widget" in st.session_state:
+                    del st.session_state["r_slider_widget"]
                 st.session_state.last_result = None  # Clear stale result
                 st.rerun()
 

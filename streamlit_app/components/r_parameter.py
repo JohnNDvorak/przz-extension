@@ -46,6 +46,9 @@ def render_r_parameter():
             if abs(new_R - current_R) > 0.0001:
                 st.session_state.R_value = new_R
                 st.session_state.last_result = None  # Clear stale result
+                # Clear slider widget cache so it uses new R value
+                if "r_slider_widget" in st.session_state:
+                    del st.session_state["r_slider_widget"]
         else:
             st.warning(f"R must be between {R_MIN} and {R_MAX}")
     except ValueError:
@@ -71,42 +74,39 @@ def render_r_parameter():
     mode = st.session_state.get("mode", "kappa")
     st.caption("Presets:")
 
+    def _set_r_and_rerun(new_r: float):
+        """Helper to update R and clear widget cache."""
+        st.session_state.R_value = new_r
+        st.session_state.last_result = None
+        # Clear slider widget cache so it uses new R value
+        if "r_slider_widget" in st.session_state:
+            del st.session_state["r_slider_widget"]
+        st.rerun()
+
     if mode == "kappa_star":
         # κ* mode presets
         c1, c2, c3 = st.columns(3)
         with c1:
             if st.button("1.08 (Best)", key="r_best_ks", type="primary"):
-                st.session_state.R_value = R_OPTIMIZED_KAPPA_STAR
-                st.session_state.last_result = None
-                st.rerun()
+                _set_r_and_rerun(R_OPTIMIZED_KAPPA_STAR)
         with c2:
             if st.button("1.1167 (PRZZ)", key="r_przz_ks"):
-                st.session_state.R_value = R_PRZZ_KAPPA_STAR
-                st.session_state.last_result = None
-                st.rerun()
+                _set_r_and_rerun(R_PRZZ_KAPPA_STAR)
         with c3:
             if st.button("0.85", key="r_085"):
-                st.session_state.R_value = 0.85
-                st.session_state.last_result = None
-                st.rerun()
+                _set_r_and_rerun(0.85)
     else:
         # κ mode presets
         c1, c2, c3 = st.columns(3)
         with c1:
             if st.button("1.15 (Best)", key="r_best_k", type="primary"):
-                st.session_state.R_value = R_OPTIMIZED_KAPPA
-                st.session_state.last_result = None
-                st.rerun()
+                _set_r_and_rerun(R_OPTIMIZED_KAPPA)
         with c2:
             if st.button("1.3036 (PRZZ)", key="r_przz_k"):
-                st.session_state.R_value = R_PRZZ_KAPPA
-                st.session_state.last_result = None
-                st.rerun()
+                _set_r_and_rerun(R_PRZZ_KAPPA)
         with c3:
             if st.button("0.85", key="r_085_k"):
-                st.session_state.R_value = 0.85
-                st.session_state.last_result = None
-                st.rerun()
+                _set_r_and_rerun(0.85)
 
     return st.session_state.R_value
 
