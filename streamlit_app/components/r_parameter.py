@@ -27,14 +27,20 @@ def render_r_parameter():
     current_R = st.session_state.R_value
 
     # Text input for exact value (always visible)
-    # Use value= parameter instead of session state key to avoid conflicts
+    # Prefer session_state when present to avoid widget/default conflicts.
     col1, col2 = st.columns([2, 1])
     with col1:
-        new_R_str = st.text_input(
-            "R (exact)",
-            value=str(current_R),
-            key="r_text_input_widget",
-        )
+        if "r_text_input_widget" in st.session_state:
+            new_R_str = st.text_input(
+                "R (exact)",
+                key="r_text_input_widget",
+            )
+        else:
+            new_R_str = st.text_input(
+                "R (exact)",
+                value=str(current_R),
+                key="r_text_input_widget",
+            )
     with col2:
         st.caption("")  # Spacer
         st.caption(f"Range: {R_MIN}-{R_MAX}")
@@ -59,15 +65,21 @@ def render_r_parameter():
         st.error("Invalid number")
 
     # Slider for quick adjustment
-    slider_R = st.slider(
-        "R (slider)",
+    slider_kwargs = dict(
         min_value=R_MIN,
         max_value=R_MAX,
-        value=float(st.session_state.R_value),
         step=0.01,
         key="r_slider_widget",
         format="%.2f",
     )
+    if "r_slider_widget" in st.session_state:
+        slider_R = st.slider("R (slider)", **slider_kwargs)
+    else:
+        slider_R = st.slider(
+            "R (slider)",
+            value=float(st.session_state.R_value),
+            **slider_kwargs,
+        )
     # Update from slider if it changed
     if abs(slider_R - st.session_state.R_value) > 0.001:
         st.session_state.R_value = slider_R
