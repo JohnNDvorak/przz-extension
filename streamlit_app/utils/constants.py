@@ -21,8 +21,8 @@ R_PRZZ_KAPPA_STAR = 1.1167  # For κ* (simple zeros)
 R_PRZZ = R_PRZZ_KAPPA       # Default
 
 # Optimized R values (saturation points where c=1)
-R_OPTIMIZED_KAPPA = 1.14978      # For κ - exact saturation point
-R_OPTIMIZED_KAPPA_STAR = 1.07966  # For κ* - exact saturation point
+R_OPTIMIZED_KAPPA = 1.14976      # Rounded saturation point for κ (paper: R* = 1.149760...)
+R_OPTIMIZED_KAPPA_STAR = 1.07966  # Rounded saturation point for κ* (paper: R* = 1.079655...)
 R_OPTIMIZED = R_OPTIMIZED_KAPPA   # Default
 R_MIN = 0.8
 R_MAX = 2.0
@@ -156,7 +156,7 @@ def get_optimized_defaults(mode: str = "kappa") -> Dict:
             "P2_tilde": PRZZ_KAPPA_STAR_P2_TILDE.copy(),  # Use PRZZ P2/P3 for κ*
             "P3_tilde": PRZZ_KAPPA_STAR_P3_TILDE.copy(),
             "Q_coeffs": PRZZ_KAPPA_STAR_Q_COEFFS.copy(),
-            "R": R_OPTIMIZED_KAPPA_STAR,  # 1.07966 - saturation point for κ*
+            "R": R_OPTIMIZED_KAPPA_STAR,  # Rounded saturation point for κ* (paper: R* = 1.079655...)
             "theta": THETA,
             "K": K,
         }
@@ -166,7 +166,7 @@ def get_optimized_defaults(mode: str = "kappa") -> Dict:
             "P2_tilde": OPTIMIZED_P2_TILDE.copy(),
             "P3_tilde": OPTIMIZED_P3_TILDE.copy(),
             "Q_coeffs": PRZZ_Q_COEFFS.copy(),
-            "R": R_OPTIMIZED_KAPPA,  # 1.14978 - saturation point for κ
+            "R": R_OPTIMIZED_KAPPA,  # Rounded saturation point for κ (paper: R* = 1.149760...)
             "theta": THETA,
             "K": K,
         }

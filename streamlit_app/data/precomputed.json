@@ -50,7 +50,7 @@
   },
 
   "theoretical_limit_kappa": {
-    "R": 1.14978,
+    "R": 1.149760,
     "theta": 0.5714285714285714,
     "K": 3,
     "P1_tilde": [-2.0, 0.9375, 1.0, -0.6],
@@ -61,7 +61,7 @@
       "kappa_main": 1.0000,
       "kappa_rigorous": 0.8650,
       "c": 1.0000,
-      "interpretation": "At R=1.14978, c=1 exactly, so kappa_main=1-log(1)/R=1"
+      "interpretation": "inf_R c(R)=1 attained at R*=1.149760..., so kappa_main=sup_R(1-log c(R)/R)=1"
     }
   },
 
@@ -96,7 +96,7 @@
   },
 
   "theoretical_limit_kappa_star": {
-    "R": 1.07966,
+    "R": 1.079655,
     "theta": 0.5714285714285714,
     "K": 3,
     "P1_tilde": [-2.0, 0.9375, 1.0, -0.6],
@@ -107,7 +107,7 @@
       "kappa_star_main": 1.0000,
       "kappa_star_rigorous": 0.84,
       "c": 1.0000,
-      "interpretation": "At R=1.07966, c=1 exactly, so kappa_star_main=1"
+      "interpretation": "inf_R c(R)=1 attained at R*=1.079655..., so kappa_star_main=1"
     }
   },
 
@@ -121,7 +121,7 @@
       {"R": 1.00, "c": 1.028, "kappa_main": 0.9724, "kappa_rigorous": 0.80},
       {"R": 1.05, "c": 1.014, "kappa_main": 0.9868, "kappa_rigorous": 0.83},
       {"R": 1.10, "c": 1.004, "kappa_main": 0.9964, "kappa_rigorous": 0.85},
-      {"R": 1.14978, "c": 1.0000, "kappa_main": 1.0000, "kappa_rigorous": 0.865},
+      {"R": 1.14976, "c": 1.0000, "kappa_main": 1.0000, "kappa_rigorous": 0.865},
       {"R": 1.15, "c": 1.000026, "kappa_main": 0.999977, "kappa_rigorous": 0.865},
       {"R": 1.20, "c": 1.012, "kappa_main": 0.9900, "kappa_rigorous": 0.855},
       {"R": 1.25, "c": 1.038, "kappa_main": 0.9702, "kappa_rigorous": 0.835},
@@ -136,20 +136,16 @@
   "asymptotic_data": {
     "description": "Error decay showing kappa_rigorous -> 1 as L -> infinity",
     "data": [
-      {"L": 40, "T_approx": "2.4e17", "error_percent": 13.5, "kappa_rigorous": 0.865},
-      {"L": 60, "T_approx": "1.1e26", "error_percent": 9.0, "kappa_rigorous": 0.910},
-      {"L": 80, "T_approx": "5.5e34", "error_percent": 6.8, "kappa_rigorous": 0.932},
-      {"L": 100, "T_approx": "2.7e43", "error_percent": 5.4, "kappa_rigorous": 0.946},
-      {"L": 150, "T_approx": "1.4e65", "error_percent": 3.6, "kappa_rigorous": 0.964},
-      {"L": 200, "T_approx": "7.2e86", "error_percent": 2.7, "kappa_rigorous": 0.973},
-      {"L": 400, "T_approx": "5.2e173", "error_percent": 1.35, "kappa_rigorous": 0.9865},
-      {"L": 1000, "T_approx": "1e434", "error_percent": 0.54, "kappa_rigorous": 0.9946},
+      {"L": 40, "T_approx": "10^17", "error_percent": 13.5, "kappa_rigorous": 0.865},
+      {"L": 100, "T_approx": "10^43", "error_percent": 5.4, "kappa_rigorous": 0.946},
+      {"L": 400, "T_approx": "10^174", "error_percent": 1.35, "kappa_rigorous": 0.9865},
+      {"L": 1000, "T_approx": "10^434", "error_percent": 0.54, "kappa_rigorous": 0.9946},
       {"L": "infinity", "T_approx": "infinity", "error_percent": 0.0, "kappa_rigorous": 1.0}
     ]
   },
 
   "pair_contributions": {
-    "description": "Per-pair breakdown at optimized R=1.14978",
+    "description": "Per-pair breakdown at optimized R=1.14976",
     "pairs": [
       {"pair": "(1,1)", "I1": 0.0412, "I2": 0.1956, "I3": -0.0587, "I4": -0.0543, "total": 0.1238, "type": "constructive"},
       {"pair": "(1,2)", "I1": 0.0298, "I2": 0.1124, "I3": -0.0312, "I4": -0.0264, "total": 0.0846, "type": "constructive"},

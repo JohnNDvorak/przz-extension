@@ -41,7 +41,7 @@ def initialize_state():
         # Configuration
         "constraint_mode": "cap2",  # Default to cap=2
         "input_mode": "sliders",    # "sliders" or "text"
-        "R_value": R_OPTIMIZED_KAPPA,  # Default to optimized R = 1.14978 (saturation point)
+        "R_value": R_OPTIMIZED_KAPPA,  # Default to rounded R (paper: R* = 1.149760...)
         "theta": THETA,
         "K": K,
 

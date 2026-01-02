@@ -12,6 +12,7 @@ from datetime import datetime
 import json
 from pathlib import Path
 from ..utils.state_management import sync_widget_state_from_values
+from ..utils.constants import R_OPTIMIZED_KAPPA
 
 
 def load_leaderboard_data() -> Dict:
@@ -139,10 +140,10 @@ def render_leaderboard_full():
         )
     with col4:
         st.metric(
-            "Optimal R",
-            "1.14978 / 1.07966",
+            "Optimal R*",
+            "1.149760 / 1.079655",
             "κ / κ*",
-            help="R values where c=1 (method saturation)"
+            help="R* values where inf_R c(R)=1 (method saturation)"
         )
 
     st.divider()
@@ -271,11 +272,11 @@ def render_universal_p1(data: Dict):
     with col2:
         st.markdown("**Results with Universal P₁:**")
 
-        st.markdown("**κ (full zeros) at R=1.14978:**")
+        st.markdown("**κ (full zeros) at R*=1.149760:**")
         st.markdown("- κ_main = **1.0000** (c = 1, method saturated)")
         st.markdown("- κ_rigorous = **0.8650** (+152% vs PRZZ)")
 
-        st.markdown("**κ* (simple zeros) at R=1.07966:**")
+        st.markdown("**κ* (simple zeros) at R*=1.079655:**")
         st.markdown("- κ*_main = **1.0000** (c = 1, method saturated)")
         st.markdown("- κ*_rigorous = **0.84** (+147% vs PRZZ)")
 
@@ -296,7 +297,7 @@ def render_universal_p1(data: Dict):
     # Apply universal P1 button
     if st.button("Apply Universal P₁ Configuration", type="primary"):
         st.session_state.P1_tilde = [-2.0, 0.9375, 1.0, -0.6]
-        st.session_state.R_value = 1.14978  # Saturation point
+        st.session_state.R_value = R_OPTIMIZED_KAPPA
         sync_widget_state_from_values()
         st.rerun()
 

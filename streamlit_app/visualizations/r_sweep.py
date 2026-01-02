@@ -24,7 +24,7 @@ def get_precomputed_sweep_data() -> List[Dict]:
             {"R": 0.85, "c": 1.0019, "kappa_main": 0.9977, "kappa_rigorous": 0.8281},
             {"R": 1.00, "c": 1.0066, "kappa_main": 0.9934, "kappa_rigorous": 0.8449},
             {"R": 1.10, "c": 1.0020, "kappa_main": 0.9982, "kappa_rigorous": 0.8600},
-            {"R": 1.14978, "c": 1.0000, "kappa_main": 1.0000, "kappa_rigorous": 0.8650},  # THE CEILING
+            {"R": 1.14976, "c": 1.0000, "kappa_main": 1.0000, "kappa_rigorous": 0.8650},  # THE CEILING
             {"R": 1.15, "c": 1.0001, "kappa_main": 0.9999, "kappa_rigorous": 0.8650},
             {"R": 1.20, "c": 1.0265, "kappa_main": 0.9782, "kappa_rigorous": 0.8501},
             {"R": 1.3036, "c": 1.0433, "kappa_main": 0.9675, "kappa_rigorous": 0.8477},  # PRZZ baseline point
@@ -64,7 +64,7 @@ def create_c_R_plot(data: List[Dict], current_R: Optional[float] = None) -> go.F
     # Mark theoretical minimum
     fig.add_trace(
         go.Scatter(
-            x=[1.14978], y=[1.0],
+            x=[1.14976], y=[1.0],
             mode='markers',
             name='Theoretical minimum',
             marker=dict(size=15, color='gold', symbol='star', line=dict(width=2, color='black')),
@@ -130,7 +130,7 @@ def create_c_R_plot(data: List[Dict], current_R: Optional[float] = None) -> go.F
     # Mark theoretical maximum
     fig.add_trace(
         go.Scatter(
-            x=[1.14978], y=[1.0],
+            x=[1.14976], y=[1.0],
             mode='markers',
             name='Maximum kappa',
             marker=dict(size=15, color='gold', symbol='star', line=dict(width=2, color='black')),
@@ -159,8 +159,8 @@ def create_parabola_visualization() -> go.Figure:
     R_vals = np.linspace(0.8, 1.5, 100)
 
     # Approximate c(R) as a parabola around the minimum
-    # c(R) ~ 1 + a*(R - R_min)^2 where R_min = 1.14978
-    R_min = 1.14978
+    # c(R) ~ 1 + a*(R - R_min)^2 where R_min = 1.14976
+    R_min = 1.14976
     a = 0.8  # Curvature parameter
 
     c_vals = 1 + a * (R_vals - R_min)**2
@@ -194,7 +194,7 @@ def create_parabola_visualization() -> go.Figure:
     # Annotation
     fig.add_annotation(
         x=R_min, y=1.0,
-        text=f"R = {R_min}<br>c = 1.0000",
+        text=f"R* = {R_min}<br>c = 1.0000",
         showarrow=True,
         arrowhead=2,
         ax=50, ay=-50,
@@ -221,8 +221,12 @@ def render_r_sweep_tab(current_coeffs: Optional[Dict] = None):
     st.markdown("### R Sweep Dashboard")
     st.markdown("""
     The shift parameter $R$ determines where the Levinson method evaluates its bound.
-    The key discovery is that **c(R) achieves its minimum at R = 1.14978**, where $c = 1$.
+    The key discovery is that **inf$_R$ c(R) = 1**, attained at **R* = 1.14976**, where $c = 1$.
     """)
+    st.caption(
+        "Paper values use adaptive quadrature (n=100, stable to n=200). "
+        "This module uses fixed quadrature (live n=40, full n=60) and rounded R values for interactivity."
+    )
 
     # Get precomputed data
     sweep_data = get_precomputed_sweep_data()
@@ -233,7 +237,7 @@ def render_r_sweep_tab(current_coeffs: Optional[Dict] = None):
         "Select R value",
         min_value=0.85,
         max_value=1.50,
-        value=1.14978,
+        value=1.14976,
         step=0.001,
         format="%.4f",
         key="r_sweep_slider"
@@ -259,8 +263,8 @@ def render_r_sweep_tab(current_coeffs: Optional[Dict] = None):
     # Key R values
     st.markdown("#### Key R Values")
     key_R_data = [
-        {"R": 1.14978, "name": "Kappa ceiling", "c": 1.0000, "kappa_main": 1.0000, "kappa_rig": 0.8650},
-        {"R": 1.07966, "name": "Kappa* ceiling", "c": 1.0000, "kappa_main": 1.0000, "kappa_rig": 0.84},
+        {"R": 1.14976, "name": "Kappa ceiling (R*)", "c": 1.0000, "kappa_main": 1.0000, "kappa_rig": 0.8650},
+        {"R": 1.079655, "name": "Kappa* ceiling (R*)", "c": 1.0000, "kappa_main": 1.0000, "kappa_rig": 0.84},
         {"R": 1.3036, "name": "PRZZ kappa", "c": 2.137, "kappa_main": 0.417, "kappa_rig": 0.343},
         {"R": 1.1167, "name": "PRZZ kappa*", "c": 1.938, "kappa_main": 0.408, "kappa_rig": 0.34},
     ]
@@ -308,7 +312,7 @@ def render_r_sweep_tab(current_coeffs: Optional[Dict] = None):
     - The constraint **c >= 1** is enforced by the positive-definiteness of the mollified mean square
 
     **Key insight:** The optimized polynomials create destructive interference that pushes c
-    as close to 1 as possible. At R = 1.14978, they achieve exact saturation.
+    as close to 1 as possible. At R* = 1.14976, they achieve exact saturation.
     """)
 
     # Live computation

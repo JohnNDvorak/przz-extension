@@ -261,7 +261,7 @@ def render_derivation_node(node_id: str, values: Dict):
         st.caption(f"Depends on: {', '.join(fr['depends_on'])}")
 
 
-def render_derivation_chain(R: float = 1.14978, theta: float = 4/7, K: int = 3):
+def render_derivation_chain(R: float = 1.14976, theta: float = 4/7, K: int = 3):
     """Render the full derivation chain tab."""
     st.markdown("### Derivation Chain")
     st.markdown("""
