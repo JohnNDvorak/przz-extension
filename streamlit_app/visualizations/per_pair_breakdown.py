@@ -11,6 +11,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 from typing import Dict, Optional
 import numpy as np
+import json
+
+from ..computation.caching import cached_per_pair_breakdown
 
 
 def create_per_pair_table(per_pair: Dict) -> pd.DataFrame:
@@ -212,12 +215,22 @@ def create_i2_heatmap(per_pair: Dict) -> go.Figure:
     return fig
 
 
-def render_per_pair_breakdown(result: Optional[Dict]):
+def render_per_pair_breakdown(
+    result: Optional[Dict],
+    coeffs: Optional[Dict] = None,
+    R: Optional[float] = None,
+    theta: Optional[float] = None,
+    n_quad: int = 60,
+):
     """
     Render the complete per-pair breakdown visualization.
 
     Args:
         result: Dict from full computation with per_pair key
+        coeffs: Current coefficient dict (P1/P2/P3/Q)
+        R: Shift parameter
+        theta: Mollifier exponent
+        n_quad: Quadrature points for per-pair computation
     """
     if result is None:
         st.info("Click 'Compute Full Result' to see per-pair breakdown")
@@ -225,8 +238,28 @@ def render_per_pair_breakdown(result: Optional[Dict]):
 
     per_pair = result.get("per_pair")
     if per_pair is None or (isinstance(per_pair, dict) and len(per_pair) == 0):
-        st.warning("Per-pair breakdown not available")
-        return
+        if coeffs is None:
+            st.warning("Per-pair breakdown not available")
+            return
+        if R is None:
+            R = result.get("R")
+        if R is None:
+            st.warning("Per-pair breakdown requires a valid R value")
+            return
+        if theta is None:
+            theta = st.session_state.get("theta", 4 / 7)
+
+        Q_json = json.dumps({str(k): v for k, v in coeffs["Q_coeffs"].items()})
+        with st.spinner("Computing per-pair breakdown..."):
+            per_pair = cached_per_pair_breakdown(
+                P1_tuple=tuple(coeffs["P1_tilde"]),
+                P2_tuple=tuple(coeffs["P2_tilde"]),
+                P3_tuple=tuple(coeffs["P3_tilde"]),
+                Q_json=Q_json,
+                R=R,
+                theta=theta,
+                n_quad=n_quad,
+            )
 
     if "error" in per_pair:
         st.error(f"Error computing per-pair breakdown: {per_pair['error']}")

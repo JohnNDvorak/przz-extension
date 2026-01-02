@@ -8,6 +8,8 @@ import streamlit as st
 import pandas as pd
 from typing import Dict, Optional
 
+from ..computation.caching import cached_error_bounds
+
 
 def create_error_table(error_bounds: Dict) -> pd.DataFrame:
     """
@@ -48,12 +50,20 @@ def create_error_table(error_bounds: Dict) -> pd.DataFrame:
     return pd.DataFrame(data)
 
 
-def render_error_breakdown(result: Optional[Dict]):
+def render_error_breakdown(
+    result: Optional[Dict],
+    coeffs: Optional[Dict] = None,
+    R: Optional[float] = None,
+    theta: Optional[float] = None,
+):
     """
     Render error breakdown table in Streamlit.
 
     Args:
         result: Dict from full computation with error_bounds key
+        coeffs: Current coefficient dict (P1/P2/P3)
+        R: Shift parameter
+        theta: Mollifier exponent
     """
     if result is None:
         st.info("Click 'Compute Full Result' to see error analysis")
@@ -61,8 +71,32 @@ def render_error_breakdown(result: Optional[Dict]):
 
     error_bounds = result.get("error_bounds")
     if error_bounds is None:
-        st.warning("Error bounds not available")
-        return
+        if coeffs is None:
+            st.warning("Error bounds not available")
+            return
+        if R is None:
+            R = result.get("R")
+        if R is None:
+            st.warning("Error bounds require a valid R value")
+            return
+        if theta is None:
+            theta = st.session_state.get("theta", 4 / 7)
+        c = result.get("c")
+        if c is None:
+            st.warning("Error bounds require a valid c value")
+            return
+        with st.spinner("Computing error bounds..."):
+            error_bounds = cached_error_bounds(
+                P1_tuple=tuple(coeffs["P1_tilde"]),
+                P2_tuple=tuple(coeffs["P2_tilde"]),
+                P3_tuple=tuple(coeffs["P3_tilde"]),
+                R=R,
+                theta=theta,
+                c=c,
+            )
+        if error_bounds is None:
+            st.warning("Error bounds not available")
+            return
 
     if "error" in error_bounds:
         st.error(f"Error computing bounds: {error_bounds['error']}")
@@ -79,6 +113,8 @@ def render_error_breakdown(result: Optional[Dict]):
 
     kappa_main = result.get("kappa", 0)
     kappa_rigorous = result.get("kappa_rigorous")
+    if kappa_rigorous is None and "practical_estimate" in error_bounds:
+        kappa_rigorous = kappa_main - error_bounds.get("practical_estimate", 0)
 
     with col1:
         st.metric("kappa (main)", f"{kappa_main:.6f}")

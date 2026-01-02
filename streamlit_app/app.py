@@ -285,7 +285,12 @@ def main():
     # Tab 6: Per-Pair
     with tabs[6]:
         try:
-            render_per_pair_breakdown(result)
+            render_per_pair_breakdown(
+                result,
+                coeffs=coeffs,
+                R=R,
+                theta=st.session_state.theta,
+            )
         except Exception as e:
             st.error(f"Per-Pair tab error: {e}")
             import traceback
@@ -295,7 +300,12 @@ def main():
     with tabs[7]:
         try:
             st.markdown("### Error Analysis")
-            render_error_breakdown(result)
+            render_error_breakdown(
+                result,
+                coeffs=coeffs,
+                R=R,
+                theta=st.session_state.theta,
+            )
         except Exception as e:
             st.error(f"Error Bounds tab error: {e}")
             import traceback

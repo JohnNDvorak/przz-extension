@@ -936,4 +936,25 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
 
 def render_derivations_tab(result: Optional[Dict] = None, coeffs: Optional[Dict] = None, R: float = 1.3036):
     """Entry point for the derivations tab."""
-    render_derivations(result, coeffs, R)
+    result_to_use = result
+    if result is not None and coeffs is not None and result.get("error_bounds") is None:
+        c_value = result.get("c")
+        theta = result.get("theta") or st.session_state.get("theta", 4 / 7)
+        if c_value is not None:
+            from ..computation.caching import cached_error_bounds
+
+            with st.spinner("Computing error bounds..."):
+                error_bounds = cached_error_bounds(
+                    P1_tuple=tuple(coeffs["P1_tilde"]),
+                    P2_tuple=tuple(coeffs["P2_tilde"]),
+                    P3_tuple=tuple(coeffs["P3_tilde"]),
+                    R=R,
+                    theta=theta,
+                    c=c_value,
+                )
+            result_to_use = dict(result)
+            result_to_use["error_bounds"] = error_bounds
+            if "practical_estimate" in error_bounds and result_to_use.get("kappa") is not None:
+                result_to_use["kappa_rigorous"] = result_to_use["kappa"] - error_bounds.get("practical_estimate", 0)
+
+    render_derivations(result_to_use, coeffs, R)

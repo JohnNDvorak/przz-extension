@@ -135,8 +135,8 @@ def cached_full_kappa(
         theta=theta,
         K=K,
         n_quad=n_quad,
-        compute_errors=True,
-        compute_per_pair=True,
+        compute_errors=False,
+        compute_per_pair=False,
     )
 
     # Convert to dict for caching
@@ -164,6 +164,98 @@ def cached_full_kappa(
         "kappa_rigorous": result.kappa_rigorous,
         "per_pair": result.per_pair,
     }
+
+
+@st.cache_data(ttl=3600)
+def cached_per_pair_breakdown(
+    P1_tuple: Tuple[float, ...],
+    P2_tuple: Tuple[float, ...],
+    P3_tuple: Tuple[float, ...],
+    Q_json: str,
+    R: float,
+    theta: float,
+    n_quad: int,
+) -> Dict:
+    """
+    Cached per-pair integral breakdown.
+
+    Args:
+        P1_tuple: P1 tilde coefficients as tuple
+        P2_tuple: P2 tilde coefficients as tuple
+        P3_tuple: P3 tilde coefficients as tuple
+        Q_json: Q coefficients as JSON string
+        R: Shift parameter
+        theta: Mollifier exponent
+        n_quad: Quadrature points
+
+    Returns:
+        Dict keyed by pair name with I1, I2, I3, I4 values
+    """
+    from .engine_wrapper import compute_per_pair_breakdown
+    import json
+
+    Q_coeffs = {int(k): v for k, v in json.loads(Q_json).items()}
+
+    try:
+        return compute_per_pair_breakdown(
+            P1_coeffs=list(P1_tuple),
+            P2_coeffs=list(P2_tuple),
+            P3_coeffs=list(P3_tuple),
+            Q_coeffs=Q_coeffs,
+            R=R,
+            theta=theta,
+            n_quad=n_quad,
+        )
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@st.cache_data(ttl=3600)
+def cached_error_bounds(
+    P1_tuple: Tuple[float, ...],
+    P2_tuple: Tuple[float, ...],
+    P3_tuple: Tuple[float, ...],
+    R: float,
+    theta: float,
+    c: float,
+) -> Dict:
+    """
+    Cached error bound estimation.
+
+    Args:
+        P1_tuple: P1 tilde coefficients as tuple
+        P2_tuple: P2 tilde coefficients as tuple
+        P3_tuple: P3 tilde coefficients as tuple
+        R: Shift parameter
+        theta: Mollifier exponent
+        c: Main-term constant
+
+    Returns:
+        Dict with error bounds and practical estimate
+    """
+    try:
+        from src.error_bound_estimator import ErrorBoundEstimator
+
+        estimator = ErrorBoundEstimator(theta=theta, R=R)
+        error_result = estimator.estimate_error(
+            P1_coeffs=list(P1_tuple),
+            P2_coeffs=list(P2_tuple),
+            P3_coeffs=list(P3_tuple),
+            c=c,
+        )
+
+        L_reference = 40
+        practical_epsilon = error_result.epsilon / L_reference
+
+        return {
+            "norm_P1": error_result.norm_P1,
+            "norm_P2": error_result.norm_P2,
+            "norm_P3": error_result.norm_P3,
+            "theoretical_bound": error_result.epsilon,
+            "practical_estimate": practical_epsilon,
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 
 def invalidate_cache():

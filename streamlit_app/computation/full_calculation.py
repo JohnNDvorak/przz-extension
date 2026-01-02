@@ -82,9 +82,6 @@ def run_full_calculation(
         st.code(traceback.format_exc())
         return None
 
-    status_text.text("Computing error bounds...")
-    progress_bar.progress(80)
-
     status_text.text("Finalizing results...")
     progress_bar.progress(100)
 
