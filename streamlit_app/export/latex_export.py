@@ -74,6 +74,14 @@ def generate_decomposition_table(result: Dict) -> str:
     Returns:
         LaTeX table string
     """
+    # Safe access with defaults
+    S12_plus = result.get('S12_plus', 0)
+    S12_minus = result.get('S12_minus', 0)
+    S34 = result.get('S34', 0)
+    m = result.get('m', 0)
+    c = result.get('c', 0)
+    kappa = result.get('kappa', 0)
+
     lines = [
         r"\begin{table}[htbp]",
         r"\centering",
@@ -82,13 +90,13 @@ def generate_decomposition_table(result: Dict) -> str:
         r"\toprule",
         r"Component & Value \\",
         r"\midrule",
-        f"$S_{{12}}(+R)$ & {result['S12_plus']:.6f} \\\\",
-        f"$S_{{12}}(-R)$ & {result['S12_minus']:.6f} \\\\",
-        f"$S_{{34}}(+R)$ & {result['S34']:.6f} \\\\",
-        f"$m$ & {result['m']:.4f} \\\\",
+        f"$S_{{12}}(+R)$ & {S12_plus:.6f} \\\\",
+        f"$S_{{12}}(-R)$ & {S12_minus:.6f} \\\\",
+        f"$S_{{34}}(+R)$ & {S34:.6f} \\\\",
+        f"$m$ & {m:.4f} \\\\",
         r"\midrule",
-        f"$c$ & {result['c']:.6f} \\\\",
-        f"$\\kappa$ & {result['kappa']:.6f} \\\\",
+        f"$c$ & {c:.6f} \\\\",
+        f"$\\kappa$ & {kappa:.6f} \\\\",
         r"\bottomrule",
         r"\end{tabular}",
         r"\label{tab:decomposition}",
@@ -159,6 +167,11 @@ def generate_full_report(
     """
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+    # Safe access to configuration values
+    R = result.get('R', 0)
+    theta = result.get('theta', 0)
+    K = result.get('K', 3)
+
     lines = [
         r"% PRZZ Mollifier Explorer - Computation Report",
         f"% Generated: {timestamp}",
@@ -172,7 +185,7 @@ def generate_full_report(
         "",
         r"\section*{Mollifier Computation Report}",
         "",
-        f"Configuration: $R = {result['R']:.4f}$, $\\theta = {result['theta']:.6f}$, $K = {result['K']}$",
+        f"Configuration: $R = {R:.4f}$, $\\theta = {theta:.6f}$, $K = {K}$",
         "",
         generate_coefficients_table(P1_coeffs, P2_coeffs, P3_coeffs, Q_coeffs),
         "",

@@ -26,20 +26,14 @@ def render_r_parameter():
 
     current_R = st.session_state.R_value
 
-    # Sync the text input widget with R_value
-    # This ensures button-set values appear in the text input
-    if "r_text_input" not in st.session_state:
-        st.session_state.r_text_input = str(current_R)
-    elif abs(float(st.session_state.r_text_input or "0") - current_R) > 0.0001:
-        # R_value was changed externally (by button), update text input
-        st.session_state.r_text_input = str(current_R)
-
     # Text input for exact value (always visible)
+    # Use value= parameter instead of session state key to avoid conflicts
     col1, col2 = st.columns([2, 1])
     with col1:
         new_R_str = st.text_input(
             "R (exact)",
-            key="r_text_input",
+            value=str(current_R),
+            key="r_text_input_widget",
         )
     with col2:
         st.caption("")  # Spacer
@@ -63,13 +57,12 @@ def render_r_parameter():
         max_value=R_MAX,
         value=float(st.session_state.R_value),
         step=0.01,
-        key="r_slider",
+        key="r_slider_widget",
         format="%.2f",
     )
     # Update from slider if it changed
     if abs(slider_R - st.session_state.R_value) > 0.001:
         st.session_state.R_value = slider_R
-        st.session_state.r_text_input = str(slider_R)
         st.rerun()
 
     # Mode-aware quick preset buttons
@@ -82,17 +75,14 @@ def render_r_parameter():
         with c1:
             if st.button("1.08 (Best)", key="r_best_ks", type="primary"):
                 st.session_state.R_value = R_OPTIMIZED_KAPPA_STAR
-                st.session_state.r_text_input = str(R_OPTIMIZED_KAPPA_STAR)
                 st.rerun()
         with c2:
             if st.button("1.1167 (PRZZ)", key="r_przz_ks"):
                 st.session_state.R_value = R_PRZZ_KAPPA_STAR
-                st.session_state.r_text_input = str(R_PRZZ_KAPPA_STAR)
                 st.rerun()
         with c3:
             if st.button("0.85", key="r_085"):
                 st.session_state.R_value = 0.85
-                st.session_state.r_text_input = "0.85"
                 st.rerun()
     else:
         # κ mode presets
@@ -100,17 +90,14 @@ def render_r_parameter():
         with c1:
             if st.button("1.15 (Best)", key="r_best_k", type="primary"):
                 st.session_state.R_value = R_OPTIMIZED_KAPPA
-                st.session_state.r_text_input = str(R_OPTIMIZED_KAPPA)
                 st.rerun()
         with c2:
             if st.button("1.3036 (PRZZ)", key="r_przz_k"):
                 st.session_state.R_value = R_PRZZ_KAPPA
-                st.session_state.r_text_input = str(R_PRZZ_KAPPA)
                 st.rerun()
         with c3:
             if st.button("0.85", key="r_085_k"):
                 st.session_state.R_value = 0.85
-                st.session_state.r_text_input = "0.85"
                 st.rerun()
 
     return st.session_state.R_value

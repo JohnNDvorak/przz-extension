@@ -10,7 +10,7 @@ from typing import Dict, Optional
 import math
 
 
-def create_decomposition_waterfall(result: Dict) -> go.Figure:
+def create_decomposition_waterfall(result: Dict) -> Optional[go.Figure]:
     """
     Create a waterfall chart showing c assembly.
 
@@ -18,14 +18,19 @@ def create_decomposition_waterfall(result: Dict) -> go.Figure:
         result: Dict with S12_plus, S12_minus, S34, m, c, kappa
 
     Returns:
-        Plotly Figure object
+        Plotly Figure object or None if required keys missing
     """
-    S12_plus = result["S12_plus"]
-    S12_minus = result["S12_minus"]
-    S34 = result["S34"]
-    m = result["m"]
-    c = result["c"]
-    kappa = result["kappa"]
+    # Use safe .get() access to prevent KeyError
+    S12_plus = result.get("S12_plus")
+    S12_minus = result.get("S12_minus")
+    S34 = result.get("S34")
+    m = result.get("m")
+    c = result.get("c")
+    kappa = result.get("kappa")
+
+    # Check for required keys
+    if any(v is None for v in [S12_plus, S12_minus, S34, m, c, kappa]):
+        return None
 
     # Mirror contribution
     mirror_contrib = m * S12_minus
@@ -86,7 +91,7 @@ def create_decomposition_waterfall(result: Dict) -> go.Figure:
     return fig
 
 
-def create_integral_breakdown(result: Dict) -> go.Figure:
+def create_integral_breakdown(result: Dict) -> Optional[go.Figure]:
     """
     Create bar chart showing integral components.
 
@@ -94,17 +99,22 @@ def create_integral_breakdown(result: Dict) -> go.Figure:
         result: Dict with I1_plus, I2_plus, etc.
 
     Returns:
-        Plotly Figure object
+        Plotly Figure object or None if required keys missing
     """
+    # Use safe .get() access to prevent KeyError
+    I1_plus = result.get("I1_plus")
+    I1_minus = result.get("I1_minus")
+    I2_plus = result.get("I2_plus")
+    I2_minus = result.get("I2_minus")
+    I3_plus = result.get("I3_plus")
+    I4_plus = result.get("I4_plus")
+
+    # Check for required keys
+    if any(v is None for v in [I1_plus, I1_minus, I2_plus, I2_minus, I3_plus, I4_plus]):
+        return None
+
     labels = ["I1(+R)", "I1(-R)", "I2(+R)", "I2(-R)", "I3(+R)", "I4(+R)"]
-    values = [
-        result["I1_plus"],
-        result["I1_minus"],
-        result["I2_plus"],
-        result["I2_minus"],
-        result["I3_plus"],
-        result["I4_plus"],
-    ]
+    values = [I1_plus, I1_minus, I2_plus, I2_minus, I3_plus, I4_plus]
 
     colors = ["#1f77b4", "#aec7e8", "#2ca02c", "#98df8a", "#d62728", "#ff9896"]
 
@@ -140,26 +150,38 @@ def render_decomposition(result: Optional[Dict]):
 
     # Waterfall chart
     fig_waterfall = create_decomposition_waterfall(result)
-    st.plotly_chart(fig_waterfall, use_container_width=True)
+    if fig_waterfall is not None:
+        st.plotly_chart(fig_waterfall, use_container_width=True)
+    else:
+        st.warning("Missing decomposition data (S12, S34, m)")
 
     # Integral breakdown
     st.markdown("**Integral Breakdown:**")
     fig_integrals = create_integral_breakdown(result)
-    st.plotly_chart(fig_integrals, use_container_width=True)
+    if fig_integrals is not None:
+        st.plotly_chart(fig_integrals, use_container_width=True)
+    else:
+        st.warning("Missing integral data (I1, I2, I3, I4)")
 
     # Formula display
     st.markdown("**Assembly Formula:**")
     st.latex(r"c = S_{12}(+R) + m \times S_{12}(-R) + S_{34}(+R)")
     st.latex(r"\kappa = 1 - \frac{\log c}{R}")
 
-    # Correction factors
-    st.markdown("**Correction Factors:**")
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("g_I1", f"{result['g_I1']:.6f}")
-    with col2:
-        st.metric("g_I2", f"{result['g_I2']:.6f}")
-    with col3:
-        st.metric("g_total", f"{result['g_total']:.6f}")
-    with col4:
-        st.metric("base", f"{result['base']:.4f}")
+    # Correction factors (safe access)
+    g_I1 = result.get("g_I1")
+    g_I2 = result.get("g_I2")
+    g_total = result.get("g_total")
+    base = result.get("base")
+
+    if all(v is not None for v in [g_I1, g_I2, g_total, base]):
+        st.markdown("**Correction Factors:**")
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("g_I1", f"{g_I1:.6f}")
+        with col2:
+            st.metric("g_I2", f"{g_I2:.6f}")
+        with col3:
+            st.metric("g_total", f"{g_total:.6f}")
+        with col4:
+            st.metric("base", f"{base:.4f}")

@@ -670,8 +670,8 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
             "L=40 PRZZ": ["0.0875", "0.0004", "0.0008", "0.0001", "**0.0888**"],
         }
 
-        if result and "error_bounds" in result:
-            eb = result["error_bounds"]
+        eb = result.get("error_bounds") if result else None
+        if eb and isinstance(eb, dict) and "error" not in eb:
             error_data["L=40 Current"] = [
                 f"{eb.get('C_contour', 0):.4f}",
                 f"{eb.get('C_Taylor', 0):.4f}",
@@ -733,8 +733,9 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
         $$\kappa_{\text{rigorous}} = \kappa_{\text{main}} - \frac{\epsilon_{\text{total}}}{R}$$
         """)
 
-        if current["kappa"] is not None and result and "error_bounds" in result:
-            eps = result["error_bounds"].get("total", 0)
+        eb = result.get("error_bounds") if result else None
+        if current["kappa"] is not None and eb and isinstance(eb, dict) and "error" not in eb:
+            eps = eb.get("total", 0)
             kappa_rig = current["kappa"] - eps / R
             st.markdown(f"**Current rigorous κ (L=40):** {current['kappa']:.6f} - {eps:.4f}/{R:.4f} = **{kappa_rig:.6f}**")
 

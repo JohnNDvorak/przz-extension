@@ -186,7 +186,13 @@ def main():
 
     # Full computation button
     st.divider()
-    result = render_compute_button()
+    try:
+        result = render_compute_button()
+    except Exception as e:
+        st.error(f"Full computation error: {e}")
+        import traceback
+        st.code(traceback.format_exc())
+        result = None
 
     # Visualization tabs
     st.divider()
@@ -228,101 +234,156 @@ def main():
 
     # Tab 2: Polynomials
     with tabs[2]:
-        st.markdown("### Polynomial Shapes")
-        render_polynomial_plot(
-            coeffs["P1_tilde"],
-            coeffs["P2_tilde"],
-            coeffs["P3_tilde"],
-            mode=st.session_state.get("mode", "kappa")
-        )
+        try:
+            st.markdown("### Polynomial Shapes")
+            render_polynomial_plot(
+                coeffs["P1_tilde"],
+                coeffs["P2_tilde"],
+                coeffs["P3_tilde"],
+                mode=st.session_state.get("mode", "kappa")
+            )
+        except Exception as e:
+            st.error(f"Polynomials tab error: {e}")
+            import traceback
+            st.code(traceback.format_exc())
 
     # Tab 3: R Sweep
     with tabs[3]:
-        render_r_sweep_tab()
+        try:
+            render_r_sweep_tab()
+        except Exception as e:
+            st.error(f"R Sweep tab error: {e}")
+            import traceback
+            st.code(traceback.format_exc())
 
     # Tab 4: Decomposition
     with tabs[4]:
-        st.markdown("### c Decomposition")
-        render_decomposition(result)
+        try:
+            st.markdown("### c Decomposition")
+            render_decomposition(result)
+        except Exception as e:
+            st.error(f"Decomposition tab error: {e}")
+            import traceback
+            st.code(traceback.format_exc())
 
     # Tab 5: Integrals
     with tabs[5]:
-        render_integrals_table(result)
+        try:
+            render_integrals_table(result)
+        except Exception as e:
+            st.error(f"Integrals tab error: {e}")
+            import traceback
+            st.code(traceback.format_exc())
 
     # Tab 6: Per-Pair
     with tabs[6]:
-        render_per_pair_breakdown(result)
+        try:
+            render_per_pair_breakdown(result)
+        except Exception as e:
+            st.error(f"Per-Pair tab error: {e}")
+            import traceback
+            st.code(traceback.format_exc())
 
     # Tab 7: Error Bounds
     with tabs[7]:
-        st.markdown("### Error Analysis")
-        render_error_breakdown(result)
+        try:
+            st.markdown("### Error Analysis")
+            render_error_breakdown(result)
+        except Exception as e:
+            st.error(f"Error Bounds tab error: {e}")
+            import traceback
+            st.code(traceback.format_exc())
 
     # Tab 8: Sensitivity
     with tabs[8]:
-        st.markdown("### Sensitivity Analysis")
-        render_sensitivity_heatmap(
-            coeffs["P1_tilde"],
-            coeffs["P2_tilde"],
-            coeffs["P3_tilde"],
-            coeffs["Q_coeffs"],
-            R,
-            st.session_state.theta,
-            st.session_state.K
-        )
+        try:
+            st.markdown("### Sensitivity Analysis")
+            render_sensitivity_heatmap(
+                coeffs["P1_tilde"],
+                coeffs["P2_tilde"],
+                coeffs["P3_tilde"],
+                coeffs["Q_coeffs"],
+                R,
+                st.session_state.theta,
+                st.session_state.K
+            )
+        except Exception as e:
+            st.error(f"Sensitivity tab error: {e}")
+            import traceback
+            st.code(traceback.format_exc())
 
     # Tab 9: Asymptotic
     with tabs[9]:
-        render_asymptotic_tab()
+        try:
+            render_asymptotic_tab()
+        except Exception as e:
+            st.error(f"Asymptotic tab error: {e}")
+            import traceback
+            st.code(traceback.format_exc())
 
     # Tab 10: Derivations
     with tabs[10]:
-        render_derivations_tab(result, coeffs, R)
+        try:
+            render_derivations_tab(result, coeffs, R)
+        except Exception as e:
+            st.error(f"Derivations tab error: {e}")
+            import traceback
+            st.code(traceback.format_exc())
 
     # Tab 11: Leaderboard
     with tabs[11]:
-        render_leaderboard_full()
+        try:
+            render_leaderboard_full()
+        except Exception as e:
+            st.error(f"Leaderboard tab error: {e}")
+            import traceback
+            st.code(traceback.format_exc())
 
     # Export section
     if result is not None:
         st.divider()
         st.markdown("### Export Results")
 
-        col1, col2 = st.columns(2)
+        try:
+            col1, col2 = st.columns(2)
 
-        with col1:
-            latex_report = generate_full_report(
-                coeffs["P1_tilde"],
-                coeffs["P2_tilde"],
-                coeffs["P3_tilde"],
-                coeffs["Q_coeffs"],
-                result,
-                st.session_state.constraint_mode
-            )
-            st.download_button(
-                label="Download LaTeX Report",
-                data=latex_report,
-                file_name="mollifier_report.tex",
-                mime="text/x-latex",
-                width='stretch',
-            )
+            with col1:
+                latex_report = generate_full_report(
+                    coeffs["P1_tilde"],
+                    coeffs["P2_tilde"],
+                    coeffs["P3_tilde"],
+                    coeffs["Q_coeffs"],
+                    result,
+                    st.session_state.constraint_mode
+                )
+                st.download_button(
+                    label="Download LaTeX Report",
+                    data=latex_report,
+                    file_name="mollifier_report.tex",
+                    mime="text/x-latex",
+                    width='stretch',
+                )
 
-        with col2:
-            json_report = export_to_json_string(
-                coeffs["P1_tilde"],
-                coeffs["P2_tilde"],
-                coeffs["P3_tilde"],
-                coeffs["Q_coeffs"],
-                result,
-                st.session_state.constraint_mode
-            )
-            st.download_button(
-                label="Download JSON Report",
-                data=json_report,
-                file_name="mollifier_report.json",
-                mime="application/json",
-                width='stretch',
-            )
+            with col2:
+                json_report = export_to_json_string(
+                    coeffs["P1_tilde"],
+                    coeffs["P2_tilde"],
+                    coeffs["P3_tilde"],
+                    coeffs["Q_coeffs"],
+                    result,
+                    st.session_state.constraint_mode
+                )
+                st.download_button(
+                    label="Download JSON Report",
+                    data=json_report,
+                    file_name="mollifier_report.json",
+                    mime="application/json",
+                    width='stretch',
+                )
+        except Exception as e:
+            st.error(f"Export error: {e}")
+            import traceback
+            st.code(traceback.format_exc())
 
     # Footer
     st.divider()

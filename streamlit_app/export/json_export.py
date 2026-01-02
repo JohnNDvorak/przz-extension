@@ -41,11 +41,11 @@ def generate_json_report(
             "constraint_mode": constraint_mode,
         },
         "configuration": {
-            "K": result["K"],
+            "K": result.get("K", 3),
             "d": 1,
-            "theta": result["theta"],
+            "theta": result.get("theta", 4/7),
             "theta_exact": "4/7",
-            "R": result["R"],
+            "R": result.get("R", 0),
         },
         "polynomials": {
             "P1": {
@@ -70,28 +70,28 @@ def generate_json_report(
             },
         },
         "results": {
-            "kappa": result["kappa"],
+            "kappa": result.get("kappa", 0),
             "kappa_rigorous": result.get("kappa_rigorous"),
-            "c": result["c"],
+            "c": result.get("c", 0),
             "decomposition": {
-                "S12_plus": result["S12_plus"],
-                "S12_minus": result["S12_minus"],
-                "S34": result["S34"],
-                "m": result["m"],
+                "S12_plus": result.get("S12_plus", 0),
+                "S12_minus": result.get("S12_minus", 0),
+                "S34": result.get("S34", 0),
+                "m": result.get("m", 0),
             },
             "integrals": {
-                "I1_plus": result["I1_plus"],
-                "I1_minus": result["I1_minus"],
-                "I2_plus": result["I2_plus"],
-                "I2_minus": result["I2_minus"],
-                "I3_plus": result["I3_plus"],
-                "I4_plus": result["I4_plus"],
+                "I1_plus": result.get("I1_plus", 0),
+                "I1_minus": result.get("I1_minus", 0),
+                "I2_plus": result.get("I2_plus", 0),
+                "I2_minus": result.get("I2_minus", 0),
+                "I3_plus": result.get("I3_plus", 0),
+                "I4_plus": result.get("I4_plus", 0),
             },
             "corrections": {
-                "g_I1": result["g_I1"],
-                "g_I2": result["g_I2"],
-                "g_total": result["g_total"],
-                "base": result["base"],
+                "g_I1": result.get("g_I1", 1.0),
+                "g_I2": result.get("g_I2", 1.0),
+                "g_total": result.get("g_total", 1.0),
+                "base": result.get("base", 0),
             },
         },
         "formulas": {
@@ -102,8 +102,9 @@ def generate_json_report(
     }
 
     # Add error bounds if available
-    if result.get("error_bounds"):
-        report["error_bounds"] = result["error_bounds"]
+    eb = result.get("error_bounds")
+    if eb and isinstance(eb, dict) and "error" not in eb:
+        report["error_bounds"] = eb
 
     return report
 
@@ -150,14 +151,14 @@ def generate_minimal_json(result: Dict) -> str:
         Minimal JSON string
     """
     minimal = {
-        "kappa": result["kappa"],
-        "c": result["c"],
-        "R": result["R"],
-        "theta": result["theta"],
-        "K": result["K"],
-        "S12_plus": result["S12_plus"],
-        "S12_minus": result["S12_minus"],
-        "S34": result["S34"],
-        "m": result["m"],
+        "kappa": result.get("kappa", 0),
+        "c": result.get("c", 0),
+        "R": result.get("R", 0),
+        "theta": result.get("theta", 4/7),
+        "K": result.get("K", 3),
+        "S12_plus": result.get("S12_plus", 0),
+        "S12_minus": result.get("S12_minus", 0),
+        "S34": result.get("S34", 0),
+        "m": result.get("m", 0),
     }
     return json.dumps(minimal, indent=2)
