@@ -1,9 +1,9 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  1 JAN 2026 17:08
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  1 JAN 2026 17:24
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
-**main_results.tex
-(./main_results.tex
+**main_results_v3.tex
+(./main_results_v3.tex
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
 (/usr/local/texlive/2025/texmf-dist/tex/latex/base/article.cls
@@ -710,8 +710,8 @@ File: l3backend-pdftex.def 2024-05-08 L3 backend support: PDF output (pdfTeX)
 \l__color_backend_stack_int=\count334
 \l__pdf_internal_box=\box73
 )
-(./main_results.aux)
-\openout1 = `main_results.aux'.
+No file main_results_v3.aux.
+\openout1 = `main_results_v3.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 54.
 LaTeX Font Info:    ... okay on input line 54.
@@ -731,7 +731,6 @@ LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 54.
 LaTeX Font Info:    ... okay on input line 54.
 LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 54.
 LaTeX Font Info:    ... okay on input line 54.
-
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
 *geometry* verbose mode - [ preamble ] result:
@@ -789,10 +788,8 @@ File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
 ))
 Package hyperref Info: Link coloring OFF on input line 54.
-
-(./main_results.out) (./main_results.out)
 \@outlinefile=\write4
-\openout4 = `main_results.out'.
+\openout4 = `main_results_v3.out'.
 
 LaTeX Font Info:    Trying to load font information for U+msa on input line 56.
 
@@ -811,31 +808,43 @@ Overfull \hbox (23.96884pt too wide) in paragraph at lines 77--78
  []
 
 
+LaTeX Warning: Reference `thm:saturation' on page 1 undefined on input line 82.
+
+
+
+LaTeX Warning: Reference `thm:kappa-rigorous' on page 1 undefined on input line
+ 83.
+
+
+LaTeX Warning: Reference `thm:asymptotic' on page 1 undefined on input line 84.
+
+
+
 
 [1{/usr/local/texlive/2025/texmf-var/fonts/map/pdftex/updmap/pdftex.map}
 
 ]
-(./main_results.toc
+No file main_results_v3.toc.
+\tf@toc=\write5
+\openout5 = `main_results_v3.toc'.
+
+
 
 [2]
-
-[3{/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc
-}]
-
-[4])
-\tf@toc=\write5
-\openout5 = `main_results.toc'.
-
-
-
-[5]
 Overfull \hbox (18.77803pt too wide) in paragraph at lines 114--126
  [] 
  []
 
 
+LaTeX Warning: Reference `thm:asymptotic' on page 3 undefined on input line 128
+.
 
-[6]
+
+LaTeX Warning: Citation `PRZZ2019' on page 3 undefined on input line 132.
+
+
+
+[3]
 
 LaTeX Font Info:    Font shape `OT1/cmss/m/it' in size <10.95> not available
 (Font)              Font shape `OT1/cmss/m/sl' tried instead on input line 206.
@@ -844,9 +853,22 @@ LaTeX Font Info:    Font shape `OT1/cmss/m/it' in size <10.95> not available
 LaTeX Font Warning: Font shape `OT1/cmss/bx/it' undefined
 (Font)              using `OT1/cmss/bx/n' instead on input line 206.
 
-[7]
+[4{/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc
+}]
 
-[8]
+LaTeX Warning: Reference `thm:saturation' on page 5 undefined on input line 258
+.
+
+
+LaTeX Warning: Citation `PRZZ2019' on page 5 undefined on input line 264.
+
+
+
+[5]
+
+LaTeX Warning: Reference `thm:asymptotic' on page 6 undefined on input line 282
+.
+
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `math shift' on input line 323.
@@ -861,13 +883,27 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 
 
 
+[6]
+
+[7]
+
+LaTeX Warning: Reference `thm:mirror-base' on page 8 undefined on input line 38
+7.
+
+
+LaTeX Warning: Reference `sec:gfactors' on page 8 undefined on input line 388.
+
+
+LaTeX Warning: Citation `Conrey1989' on page 8 undefined on input line 446.
+
+
+LaTeX Warning: Citation `Farmer2025' on page 8 undefined on input line 446.
+
+
+
+[8]
+
 [9]
-
-[10]
-
-[11]
-
-[12]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `math shift' on input line 592.
@@ -918,7 +954,7 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 
 
 
-[13]
+[10]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `math shift' on input line 664.
@@ -1001,7 +1037,7 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 
 
 
-[14]
+[11]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `math shift' on input line 727.
@@ -1040,7 +1076,7 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 
 
 
-[15]
+[12]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `math shift' on input line 796.
@@ -1069,7 +1105,7 @@ Overfull \hbox (41.86435pt too wide) detected at line 815
 
 
 
-[16]
+[13]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `math shift' on input line 859.
@@ -1112,7 +1148,7 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 
 
 
-[17]
+[14]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `math shift' on input line 931.
@@ -1155,7 +1191,7 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 
 
 
-[18]
+[15]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `math shift' on input line 998.
@@ -1178,9 +1214,14 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 
 
 
-[19]
+[16]
 
-[20]
+LaTeX Warning: Reference `sec:gfactors' on page 17 undefined on input line 1120
+.
+
+
+
+[17]
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
@@ -1198,63 +1239,63 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 
 
 
+[18]
+
+[19]
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 1258.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `subscript' on input line 1258.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `subscript' on input line 1258.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 1258.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 1310.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `subscript' on input line 1310.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `subscript' on input line 1310.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 1310.
+
+
+
+[20]
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 1354.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `subscript' on input line 1354.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `subscript' on input line 1354.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 1354.
+
+
+
 [21]
-
-[22]
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 1258.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `subscript' on input line 1258.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `subscript' on input line 1258.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 1258.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 1310.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `subscript' on input line 1310.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `subscript' on input line 1310.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 1310.
-
-
-
-[23]
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 1354.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `subscript' on input line 1354.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `subscript' on input line 1354.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 1354.
-
-
-
-[24]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `math shift' on input line 1411.
@@ -1317,7 +1358,7 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 
 
 
-[25]
+[22]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `math shift' on input line 1445.
@@ -1348,7 +1389,7 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 
 
 
-[26]
+[23]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `math shift' on input line 1498.
@@ -1382,7 +1423,7 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 
 
 
-[27]
+[24]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `math shift' on input line 1599.
@@ -1421,7 +1462,7 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 
 
 
-[28]
+[25]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `math shift' on input line 1658.
@@ -1484,7 +1525,7 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 
 
 
-[29]
+[26]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `math shift' on input line 1728.
@@ -1559,39 +1600,64 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 
 
 
-[30]
+[27]
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
 
 
+[28]
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 1908.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 1908.
+
+
+
+[29]
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 1926.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 1926.
+
+
+LaTeX Warning: Reference `thm:saturation' on page 30 undefined on input line 19
+80.
+
+
+LaTeX Warning: Reference `sec:error' on page 30 undefined on input line 1984.
+
+
+
+[30]
+
+LaTeX Warning: Reference `thm:asymptotic' on page 31 undefined on input line 20
+22.
+
+
+
 [31]
 
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 1908.
+LaTeX Warning: Reference `thm:saturation' on page 32 undefined on input line 20
+62.
 
 
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 1908.
+LaTeX Warning: Reference `thm:kappa-rigorous' on page 32 undefined on input lin
+e 2063.
+
+
+LaTeX Warning: Reference `thm:asymptotic' on page 32 undefined on input line 20
+64.
 
 
 
 [32]
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 1926.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 1926.
-
-
-
-[33]
-
-[34]
-
-[35]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `math shift' on input line 2109.
@@ -1642,7 +1708,7 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 
 
 
-[36]
+[33]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `math shift' on input line 2184.
@@ -1689,11 +1755,11 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 
 
 
-[37]
+[34]
 
-[38]
+[35]
 
-[39] (./main_results.aux)
+[36] (./main_results_v3.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
@@ -1702,17 +1768,29 @@ L3 programming layer <2025-01-18>
 
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
-Package rerunfilecheck Info: File `main_results.out' has not changed.
-(rerunfilecheck)             Checksum: 7294AFC140105FF0CEA41D4CFDA00A74;22216.
+
+LaTeX Warning: There were undefined references.
+
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
+
+Package rerunfilecheck Warning: File `main_results_v3.out' has changed.
+(rerunfilecheck)                Rerun to get outlines right
+(rerunfilecheck)                or use package `bookmark'.
+
+Package rerunfilecheck Info: Checksums for `main_results_v3.out':
+(rerunfilecheck)             Before: <no file>
+(rerunfilecheck)             After:  7294AFC140105FF0CEA41D4CFDA00A74;22216.
  ) 
 Here is how much of TeX's memory you used:
- 24065 strings out of 473190
- 446058 string characters out of 5715801
- 828928 words of memory out of 5000000
- 46552 multiletter control sequences out of 15000+600000
+ 23931 strings out of 473190
+ 444014 string characters out of 5715801
+ 825682 words of memory out of 5000000
+ 46429 multiletter control sequences out of 15000+600000
  585282 words of font info for 131 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 102i,15n,107p,549b,833s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 102i,15n,107p,552b,833s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbsy10.pf
 b></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb
 ></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb>
@@ -1747,10 +1825,10 @@ nts/type1/public/amsfonts/symbols/msbm10.pfb></usr/local/texlive/2025/texmf-dis
 t/fonts/type1/public/cm-super/sfbx1095.pfb></usr/local/texlive/2025/texmf-dist/
 fonts/type1/public/cm-super/sfrm1095.pfb></usr/local/texlive/2025/texmf-dist/fo
 nts/type1/public/cm-super/sfti1095.pfb>
-Output written on main_results.pdf (39 pages, 553886 bytes).
+Output written on main_results_v3.pdf (36 pages, 535214 bytes).
 PDF statistics:
- 1229 PDF objects out of 1440 (max. 8388607)
- 1108 compressed objects within 12 object streams
- 362 named destinations out of 1000 (max. 500000)
- 917 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 735 PDF objects out of 1000 (max. 8388607)
+ 622 compressed objects within 7 object streams
+ 359 named destinations out of 1000 (max. 500000)
+ 13 words of extra memory for PDF output out of 10000 (max. 10000000)
 
