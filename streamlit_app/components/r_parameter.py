@@ -39,16 +39,20 @@ def render_r_parameter():
         st.caption("")  # Spacer
         st.caption(f"Range: {R_MIN}-{R_MAX}")
 
+    # Helper to clear R widget caches
+    def _clear_r_caches():
+        for key in ["r_slider_widget", "r_text_input_widget"]:
+            if key in st.session_state:
+                del st.session_state[key]
+
     # Parse text input and update R_value
     try:
         new_R = float(new_R_str) if new_R_str else current_R
         if R_MIN <= new_R <= R_MAX:
             if abs(new_R - current_R) > 0.0001:
                 st.session_state.R_value = new_R
-                st.session_state.last_result = None  # Clear stale result
-                # Clear slider widget cache so it uses new R value
-                if "r_slider_widget" in st.session_state:
-                    del st.session_state["r_slider_widget"]
+                st.session_state.last_result = None
+                _clear_r_caches()
         else:
             st.warning(f"R must be between {R_MIN} and {R_MAX}")
     except ValueError:
@@ -67,7 +71,8 @@ def render_r_parameter():
     # Update from slider if it changed
     if abs(slider_R - st.session_state.R_value) > 0.001:
         st.session_state.R_value = slider_R
-        st.session_state.last_result = None  # Clear stale result
+        st.session_state.last_result = None
+        _clear_r_caches()
         st.rerun()
 
     # Mode-aware quick preset buttons
@@ -75,12 +80,10 @@ def render_r_parameter():
     st.caption("Presets:")
 
     def _set_r_and_rerun(new_r: float):
-        """Helper to update R and clear widget cache."""
+        """Helper to update R and clear widget caches."""
         st.session_state.R_value = new_r
         st.session_state.last_result = None
-        # Clear slider widget cache so it uses new R value
-        if "r_slider_widget" in st.session_state:
-            del st.session_state["r_slider_widget"]
+        _clear_r_caches()
         st.rerun()
 
     if mode == "kappa_star":

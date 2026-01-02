@@ -92,6 +92,12 @@ def main():
 
         # Quick preset buttons
         col1, col2 = st.columns(2)
+        def _clear_r_widget_caches():
+            """Clear both R widget caches so they use new R_value."""
+            for key in ["r_slider_widget", "r_text_input_widget"]:
+                if key in st.session_state:
+                    del st.session_state[key]
+
         with col1:
             if st.button("Load PRZZ", width='stretch'):
                 defaults = get_przz_defaults(mode)
@@ -100,10 +106,8 @@ def main():
                 st.session_state.P3_tilde = defaults["P3_tilde"]
                 st.session_state.Q_coeffs = defaults["Q_coeffs"]
                 st.session_state.R_value = defaults["R"]
-                # Clear slider widget cache so it uses new R value
-                if "r_slider_widget" in st.session_state:
-                    del st.session_state["r_slider_widget"]
-                st.session_state.last_result = None  # Clear stale result
+                _clear_r_widget_caches()
+                st.session_state.last_result = None
                 st.rerun()
         with col2:
             if st.button("Load Best", type="primary", width='stretch'):
@@ -113,10 +117,8 @@ def main():
                 st.session_state.P3_tilde = defaults["P3_tilde"]
                 st.session_state.Q_coeffs = defaults["Q_coeffs"]
                 st.session_state.R_value = defaults["R"]
-                # Clear slider widget cache so it uses new R value
-                if "r_slider_widget" in st.session_state:
-                    del st.session_state["r_slider_widget"]
-                st.session_state.last_result = None  # Clear stale result
+                _clear_r_widget_caches()
+                st.session_state.last_result = None
                 st.rerun()
 
         st.divider()
