@@ -85,18 +85,30 @@ def main():
             key="computation_mode",
             horizontal=False,
         )
-        # Clear stale result when mode changes
+        def _clear_all_widget_caches():
+            """Clear all input widget caches so they use new values."""
+            # R widgets
+            r_keys = ["r_slider_widget", "r_text_input_widget"]
+            # Coefficient sliders: P1_a0..a3, P2_b0..b2, P3_c0..c2
+            p1_keys = [f"P1_a{i}" for i in range(4)]
+            p2_keys = [f"P2_b{i}" for i in range(3)]
+            p3_keys = [f"P3_c{i}" for i in range(3)]
+            # Coefficient text inputs
+            text_keys = ["P1_text", "P2_text", "P3_text"]
+
+            all_keys = r_keys + p1_keys + p2_keys + p3_keys + text_keys
+            for key in all_keys:
+                if key in st.session_state:
+                    del st.session_state[key]
+
+        # Clear stale result and widget caches when mode changes
         if st.session_state.get("mode") != mode:
             st.session_state.last_result = None
+            _clear_all_widget_caches()
         st.session_state.mode = mode
 
         # Quick preset buttons
         col1, col2 = st.columns(2)
-        def _clear_r_widget_caches():
-            """Clear both R widget caches so they use new R_value."""
-            for key in ["r_slider_widget", "r_text_input_widget"]:
-                if key in st.session_state:
-                    del st.session_state[key]
 
         with col1:
             if st.button("Load PRZZ", width='stretch'):
@@ -106,7 +118,7 @@ def main():
                 st.session_state.P3_tilde = defaults["P3_tilde"]
                 st.session_state.Q_coeffs = defaults["Q_coeffs"]
                 st.session_state.R_value = defaults["R"]
-                _clear_r_widget_caches()
+                _clear_all_widget_caches()
                 st.session_state.last_result = None
                 st.rerun()
         with col2:
@@ -117,7 +129,7 @@ def main():
                 st.session_state.P3_tilde = defaults["P3_tilde"]
                 st.session_state.Q_coeffs = defaults["Q_coeffs"]
                 st.session_state.R_value = defaults["R"]
-                _clear_r_widget_caches()
+                _clear_all_widget_caches()
                 st.session_state.last_result = None
                 st.rerun()
 
