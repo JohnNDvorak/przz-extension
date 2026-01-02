@@ -74,10 +74,10 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
             "kappa": result.get("kappa"),
             "c": result.get("c"),
             "R": R,
-            "m": result.get("decomposition", {}).get("m") if result.get("decomposition") else None,
-            "S12_plus": result.get("decomposition", {}).get("S12_plus") if result.get("decomposition") else None,
-            "S12_minus": result.get("decomposition", {}).get("S12_minus") if result.get("decomposition") else None,
-            "S34": result.get("decomposition", {}).get("S34") if result.get("decomposition") else None,
+            "m": result.get("m"),
+            "S12_plus": result.get("S12_plus"),
+            "S12_minus": result.get("S12_minus"),
+            "S34": result.get("S34"),
             "per_pair": result.get("per_pair", {}),
         }
     else:
