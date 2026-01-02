@@ -257,7 +257,10 @@ def render_polynomial_input(poly_name: str, key_prefix: str = None) -> List[floa
         new_values, _ = coefficient_text_input(poly_name, current_values, key_prefix)
 
     # Update session state
-    st.session_state[state_key] = new_values
+    if st.session_state.get(state_key) != new_values:
+        st.session_state[state_key] = new_values
+        # Clear cached result when coefficients change
+        st.session_state.last_result = None
 
     return new_values
 

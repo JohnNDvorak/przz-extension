@@ -85,6 +85,9 @@ def main():
             key="computation_mode",
             horizontal=False,
         )
+        # Clear stale result when mode changes
+        if st.session_state.get("mode") != mode:
+            st.session_state.last_result = None
         st.session_state.mode = mode
 
         # Quick preset buttons
@@ -97,7 +100,7 @@ def main():
                 st.session_state.P3_tilde = defaults["P3_tilde"]
                 st.session_state.Q_coeffs = defaults["Q_coeffs"]
                 st.session_state.R_value = defaults["R"]
-                st.session_state.r_text_input = str(defaults["R"])  # Sync text input
+                st.session_state.last_result = None  # Clear stale result
                 st.rerun()
         with col2:
             if st.button("Load Best", type="primary", width='stretch'):
@@ -107,7 +110,7 @@ def main():
                 st.session_state.P3_tilde = defaults["P3_tilde"]
                 st.session_state.Q_coeffs = defaults["Q_coeffs"]
                 st.session_state.R_value = defaults["R"]
-                st.session_state.r_text_input = str(defaults["R"])  # Sync text input
+                st.session_state.last_result = None  # Clear stale result
                 st.rerun()
 
         st.divider()

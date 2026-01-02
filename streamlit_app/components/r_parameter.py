@@ -45,6 +45,7 @@ def render_r_parameter():
         if R_MIN <= new_R <= R_MAX:
             if abs(new_R - current_R) > 0.0001:
                 st.session_state.R_value = new_R
+                st.session_state.last_result = None  # Clear stale result
         else:
             st.warning(f"R must be between {R_MIN} and {R_MAX}")
     except ValueError:
@@ -63,6 +64,7 @@ def render_r_parameter():
     # Update from slider if it changed
     if abs(slider_R - st.session_state.R_value) > 0.001:
         st.session_state.R_value = slider_R
+        st.session_state.last_result = None  # Clear stale result
         st.rerun()
 
     # Mode-aware quick preset buttons
@@ -75,14 +77,17 @@ def render_r_parameter():
         with c1:
             if st.button("1.08 (Best)", key="r_best_ks", type="primary"):
                 st.session_state.R_value = R_OPTIMIZED_KAPPA_STAR
+                st.session_state.last_result = None
                 st.rerun()
         with c2:
             if st.button("1.1167 (PRZZ)", key="r_przz_ks"):
                 st.session_state.R_value = R_PRZZ_KAPPA_STAR
+                st.session_state.last_result = None
                 st.rerun()
         with c3:
             if st.button("0.85", key="r_085"):
                 st.session_state.R_value = 0.85
+                st.session_state.last_result = None
                 st.rerun()
     else:
         # κ mode presets
@@ -90,14 +95,17 @@ def render_r_parameter():
         with c1:
             if st.button("1.15 (Best)", key="r_best_k", type="primary"):
                 st.session_state.R_value = R_OPTIMIZED_KAPPA
+                st.session_state.last_result = None
                 st.rerun()
         with c2:
             if st.button("1.3036 (PRZZ)", key="r_przz_k"):
                 st.session_state.R_value = R_PRZZ_KAPPA
+                st.session_state.last_result = None
                 st.rerun()
         with c3:
             if st.button("0.85", key="r_085_k"):
                 st.session_state.R_value = 0.85
+                st.session_state.last_result = None
                 st.rerun()
 
     return st.session_state.R_value
