@@ -31,6 +31,7 @@ class MockStreamlit:
         self._infos = []
         self._markdowns = []
         self._expanders = []
+        self._session_state = {}  # Mock session state storage
 
     def metric(self, label, value, help=None, delta=None):
         self._metrics.append({"label": label, "value": value, "help": help})
@@ -122,7 +123,7 @@ def mock_streamlit(monkeypatch):
     mock_module.progress = mock_st.progress
     mock_module.empty = mock_st.empty
     mock_module.cache_data = mock_st.cache_data
-    mock_module.session_state = {}
+    mock_module.session_state = mock_st._session_state
 
     # Patch streamlit in sys.modules BEFORE any imports
     monkeypatch.setitem(sys.modules, 'streamlit', mock_module)
