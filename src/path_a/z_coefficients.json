@@ -1,0 +1,90 @@
+{
+  "metadata": {
+    "description": "z-coefficient data for Path A algebraic proof",
+    "R_star": 1.14976023153715,
+    "z_star": 1.1785106280603983,
+    "z_basis": "z = exp(R/7)",
+    "updated": "2026-01-03"
+  },
+  "parameters": {
+    "theta": 0.5714285714285714,
+    "K": 3,
+    "P1_tilde": [-2.0, 0.9375, 1.0, -0.6],
+    "P2_tilde": [0.5241, 1.3199, -0.9401],
+    "P3_tilde": [0.1367, -0.6865, -0.0499],
+    "Q_monomial": [1.0, -0.637850, -0.631484, -1.286264, 2.560880, -1.024352]
+  },
+  "normalization_factors": {
+    "description": "Factors to convert symbolic → KappaEngine values",
+    "factorial_norm": {
+      "description": "1/(ell1! × ell2!) per pair",
+      "11": 1.0,
+      "12": 0.5,
+      "13": 0.16666666666666666,
+      "22": 0.25,
+      "23": 0.08333333333333333,
+      "33": 0.027777777777777776
+    },
+    "symmetry": {
+      "description": "2 for off-diagonal, 1 for diagonal",
+      "11": 1.0,
+      "12": 2.0,
+      "13": 2.0,
+      "22": 1.0,
+      "23": 2.0,
+      "33": 1.0
+    },
+    "S34_factor": {
+      "description": "Additional factor for S34: (2K)(2K-1)/(2K+1)²",
+      "formula": "(2K)(2K-1) / (2K+1)^2",
+      "value_exact": "30/49",
+      "value_numeric": 0.6122448979591837,
+      "for_K=3": "6×5 / 7² = 30/49"
+    },
+    "I1_status": "Paper regime + factorial norm = KappaEngine (EXACT)",
+    "I2_status": "Symbolic matches KappaEngine (NO CORRECTION NEEDED)",
+    "S34_status": "Raw × (30/49) × factorial norm ≈ KappaEngine (0.01% error)"
+  },
+  "z_powers": {
+    "I1": [0, 14],
+    "I2": [0, 4, 8, 14, 18, 22],
+    "S34": [0, 14],
+    "combined_S12": [0, 4, 8, 14, 18, 22]
+  },
+  "values_at_Rstar": {
+    "I1_plus": 0.05905768689536635,
+    "I2_plus": 0.29017198205242817,
+    "S12_plus": 0.3492296689477945,
+    "S12_minus": 0.10945901998630145,
+    "S34_plus": -0.25549987360543125,
+    "f_I1": 0.241719637645825,
+    "G": 1.0149683127608355,
+    "M0": 8.157435765403715,
+    "M": 8.279538815266704,
+    "c": 1.0000000000000002
+  },
+  "correction_factors": {
+    "g_I1": 1.0009519842922592,
+    "g_I1_exact": "1 + theta*(1-theta)*(2*(K-1)+theta) / (8*K*(2*K+1)**2)",
+    "g_I2": 1.0194363459669582,
+    "g_I2_exact": "1 + theta*(2-theta) / (2*K*(2*K+1))",
+    "M0_exact": "exp(R) + (2*K - 1)"
+  },
+  "symbolic_status": {
+    "I1_symbolic": "COMPLETE - paper regime with factorial norm matches KappaEngine",
+    "I2_symbolic": "COMPLETE - matches KappaEngine directly",
+    "S34_symbolic": "COMPLETE - raw × (30/49) × factorial norm matches (0.01% error)"
+  },
+  "IVT_conditions": {
+    "c_1.0": 0.9863976093989275,
+    "c_1.2": 1.0065614767077022,
+    "monotonicity": "dc/dR > 0 on [1.0, 1.2]"
+  },
+  "proof_status": {
+    "step_1": "COMPLETE - KappaEngine verified c(R*) = 1.0",
+    "step_2": "COMPLETE - Normalization factors identified",
+    "step_3": "PENDING - Express coefficients as rationals a_k(R), b_k(R)",
+    "step_4": "PENDING - Assemble explicit Ñ(R,z) polynomial",
+    "step_5": "PENDING - Verify signs at R=1.0 and R=1.2"
+  }
+}
