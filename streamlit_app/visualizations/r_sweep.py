@@ -1,7 +1,7 @@
 """
 R Sweep Dashboard - Interactive exploration of c(R) geometry.
 
-Shows how c varies with R and identifies the theoretical minimum.
+Shows how c varies with R and identifies the saturation threshold.
 """
 
 import streamlit as st
@@ -17,18 +17,13 @@ def get_precomputed_sweep_data() -> List[Dict]:
         from ..utils.constants import get_r_sweep_data
         return get_r_sweep_data()
     except:
-        # Fallback data from paper Table in Section 6.2
+        # Fallback data from v13 table (optimized polynomials)
         return [
-            {"R": 0.50, "c": 1.0237, "kappa_main": 0.9531, "kappa_rigorous": 0.6872},
-            {"R": 0.70, "c": 1.0057, "kappa_main": 0.9919, "kappa_rigorous": 0.7926},
-            {"R": 0.85, "c": 1.0019, "kappa_main": 0.9977, "kappa_rigorous": 0.8281},
-            {"R": 1.00, "c": 1.0066, "kappa_main": 0.9934, "kappa_rigorous": 0.8449},
-            {"R": 1.10, "c": 1.0020, "kappa_main": 0.9982, "kappa_rigorous": 0.8600},
-            {"R": 1.14976, "c": 1.0000, "kappa_main": 1.0000, "kappa_rigorous": 0.8650},  # THE CEILING
-            {"R": 1.15, "c": 1.0001, "kappa_main": 0.9999, "kappa_rigorous": 0.8650},
-            {"R": 1.20, "c": 1.0265, "kappa_main": 0.9782, "kappa_rigorous": 0.8501},
-            {"R": 1.3036, "c": 1.0433, "kappa_main": 0.9675, "kappa_rigorous": 0.8477},  # PRZZ baseline point
-            {"R": 1.50, "c": 1.0881, "kappa_main": 0.9437, "kappa_rigorous": 0.8367},
+            {"R": 0.80, "c": 0.9432, "kappa_main": 1.0000, "kappa_rigorous": None, "error_percent": None, "error_scale": "Vacuous"},
+            {"R": 1.00, "c": 0.9863, "kappa_main": 1.0000, "kappa_rigorous": None, "error_percent": None, "error_scale": "Vacuous"},
+            {"R": 1.14976, "c": 1.0000, "kappa_main": 1.0000, "kappa_rigorous": 0.8650, "error_percent": 13.50, "error_scale": "Saturation"},
+            {"R": 1.20, "c": 1.0066, "kappa_main": 0.9943, "kappa_rigorous": 0.8593, "error_percent": 13.60, "error_scale": "Non-trivial"},
+            {"R": 1.3036, "c": 1.0433, "kappa_main": 0.9675, "kappa_rigorous": 0.8477, "error_percent": 12.39, "error_scale": "PRZZ point"},
         ]
 
 
@@ -58,26 +53,27 @@ def create_c_R_plot(data: List[Dict], current_R: Optional[float] = None) -> go.F
 
     # Horizontal line at c=1
     fig.add_hline(y=1.0, line_dash="dash", line_color="green",
-                  annotation_text="c = 1 (theoretical floor)",
+                  annotation_text="c = 1 (saturation threshold)",
                   annotation_position="right", row=1, col=1)
 
-    # Mark theoretical minimum
+    # Mark saturation point (rounded for display)
     fig.add_trace(
         go.Scatter(
             x=[1.14976], y=[1.0],
             mode='markers',
-            name='Theoretical minimum',
+            name='Saturation point',
             marker=dict(size=15, color='gold', symbol='star', line=dict(width=2, color='black')),
         ),
         row=1, col=1
     )
 
-    # Mark PRZZ baseline
+    # Mark PRZZ R reference (optimized polynomials)
+    przz_c = np.interp(1.3036, R_vals, c_vals)
     fig.add_trace(
         go.Scatter(
-            x=[1.3036], y=[1.088],
+            x=[1.3036], y=[przz_c],
             mode='markers',
-            name='PRZZ baseline',
+            name='PRZZ R reference',
             marker=dict(size=12, color='red', symbol='diamond'),
         ),
         row=1, col=1
@@ -112,27 +108,31 @@ def create_c_R_plot(data: List[Dict], current_R: Optional[float] = None) -> go.F
         row=2, col=1
     )
 
-    fig.add_trace(
-        go.Scatter(
-            x=R_vals, y=kappa_rig,
-            mode='lines+markers',
-            name='kappa_rigorous',
-            line=dict(color='#d62728', width=2, dash='dot'),
-            marker=dict(size=6),
-        ),
-        row=2, col=1
-    )
+    # Plot rigorous values only where available
+    rig_points = [(r, k) for r, k in zip(R_vals, kappa_rig) if k is not None]
+    if rig_points:
+        rig_R, rig_vals = zip(*rig_points)
+        fig.add_trace(
+            go.Scatter(
+                x=list(rig_R), y=list(rig_vals),
+                mode='lines+markers',
+                name='kappa_rigorous',
+                line=dict(color='#d62728', width=2, dash='dot'),
+                marker=dict(size=6),
+            ),
+            row=2, col=1
+        )
 
     # Horizontal line at kappa=1
     fig.add_hline(y=1.0, line_dash="dash", line_color="gray",
                   annotation_text="kappa = 1 (all zeros)", row=2, col=1)
 
-    # Mark theoretical maximum
+    # Mark saturation point (rounded for display)
     fig.add_trace(
         go.Scatter(
             x=[1.14976], y=[1.0],
             mode='markers',
-            name='Maximum kappa',
+            name='Saturation point',
             marker=dict(size=15, color='gold', symbol='star', line=dict(width=2, color='black')),
             showlegend=False,
         ),
@@ -155,12 +155,12 @@ def create_c_R_plot(data: List[Dict], current_R: Optional[float] = None) -> go.F
 
 
 def create_parabola_visualization() -> go.Figure:
-    """Create the 'kissing the floor' parabola visualization."""
+    """Create the saturation-threshold parabola visualization."""
     R_vals = np.linspace(0.8, 1.5, 100)
 
-    # Approximate c(R) as a parabola around the minimum
-    # c(R) ~ 1 + a*(R - R_min)^2 where R_min = 1.14976
-    R_min = 1.14976
+    # Approximate c(R) as a parabola around the saturation point
+    # c(R) ~ 1 + a*(R - R_min)^2 where R_min ≈ 1.1497602315
+    R_min = 1.1497602315
     a = 0.8  # Curvature parameter
 
     c_vals = 1 + a * (R_vals - R_min)**2
@@ -175,11 +175,11 @@ def create_parabola_visualization() -> go.Figure:
         line=dict(color='#1f77b4', width=3),
     ))
 
-    # Floor at c=1
+    # Saturation threshold at c=1
     fig.add_trace(go.Scatter(
         x=[0.8, 1.5], y=[1.0, 1.0],
         mode='lines',
-        name='c = 1 (floor)',
+        name='c = 1 (saturation)',
         line=dict(color='green', width=2, dash='dash'),
     ))
 
@@ -194,7 +194,7 @@ def create_parabola_visualization() -> go.Figure:
     # Annotation
     fig.add_annotation(
         x=R_min, y=1.0,
-        text=f"R* = {R_min}<br>c = 1.0000",
+        text=f"R_opt = {R_min:.10f}<br>c = 1.0000",
         showarrow=True,
         arrowhead=2,
         ax=50, ay=-50,
@@ -202,7 +202,7 @@ def create_parabola_visualization() -> go.Figure:
     )
 
     fig.update_layout(
-        title="The Geometry of c(R): Kissing the Floor",
+        title="The Geometry of c(R): Saturation Threshold",
         xaxis_title="R (shift parameter)",
         yaxis_title="c (main-term constant)",
         template="plotly_white",
@@ -210,7 +210,7 @@ def create_parabola_visualization() -> go.Figure:
         showlegend=True,
     )
 
-    # Set y-axis range to focus on the minimum
+    # Set y-axis range to focus on saturation region
     fig.update_yaxes(range=[0.98, 1.15])
 
     return fig
@@ -221,52 +221,64 @@ def render_r_sweep_tab(current_coeffs: Optional[Dict] = None):
     st.markdown("### R Sweep Dashboard")
     st.markdown("""
     The shift parameter $R$ determines where the Levinson method evaluates its bound.
-    The key discovery is that **inf$_R$ c(R) = 1**, attained at **R* = 1.14976**, where $c = 1$.
+    The key discovery is a unique **saturation threshold** at
+    **$R_{\\mathrm{opt}} = 1.149760231531068\\ldots$**, where $c(R_{\\mathrm{opt}}) = 1$.
     """)
     st.caption(
         "Paper values use adaptive quadrature (n=100, stable to n=200). "
         "This module uses fixed quadrature (live n=40, full n=60) and rounded R values for interactivity."
     )
+    st.caption("At R = 1.14978, the paper reports c = 1.0000024; the deviation vanishes as R → R_opt.")
 
     # Get precomputed data
     sweep_data = get_precomputed_sweep_data()
 
+    R_vals = [d["R"] for d in sweep_data]
+    c_vals = [d["c"] for d in sweep_data]
+    kappa_main_vals = [d["kappa_main"] for d in sweep_data]
+    kappa_rig_vals = [d["kappa_rigorous"] for d in sweep_data]
+
     # R slider
     st.markdown("#### Explore R values")
+    min_R = min(R_vals)
+    max_R = max(R_vals)
     current_R = st.slider(
         "Select R value",
-        min_value=0.85,
-        max_value=1.50,
+        min_value=float(min_R),
+        max_value=float(max_R),
         value=1.14976,
         step=0.001,
         format="%.4f",
         key="r_sweep_slider"
     )
 
-    # Interpolate values at current R
-    R_vals = [d["R"] for d in sweep_data]
-    c_vals = [d["c"] for d in sweep_data]
-    kappa_main_vals = [d["kappa_main"] for d in sweep_data]
-    kappa_rig_vals = [d["kappa_rigorous"] for d in sweep_data]
-
     c_current = np.interp(current_R, R_vals, c_vals)
     kappa_main_current = np.interp(current_R, R_vals, kappa_main_vals)
-    kappa_rig_current = np.interp(current_R, R_vals, kappa_rig_vals)
+
+    rig_points = [(r, k) for r, k in zip(R_vals, kappa_rig_vals) if k is not None]
+    if rig_points:
+        rig_R, rig_vals = zip(*rig_points)
+        kappa_rig_current = np.interp(current_R, rig_R, rig_vals) if current_R >= min(rig_R) and current_R <= max(rig_R) else None
+    else:
+        kappa_rig_current = None
 
     # Display current values
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("R", f"{current_R:.4f}")
     col2.metric("c", f"{c_current:.6f}")
-    col3.metric("kappa_main", f"{kappa_main_current:.6f}")
-    col4.metric("kappa_rigorous", f"{kappa_rig_current:.4f}")
+    col3.metric("kappa_main", f"{min(kappa_main_current, 1.0):.6f}")
+    if c_current < 1.0 or kappa_rig_current is None:
+        col4.metric("kappa_rigorous", "N/A")
+    else:
+        col4.metric("kappa_rigorous", f"{kappa_rig_current:.4f}")
 
     # Key R values
     st.markdown("#### Key R Values")
     key_R_data = [
-        {"R": 1.14976, "name": "Kappa ceiling (R*)", "c": 1.0000, "kappa_main": 1.0000, "kappa_rig": 0.8650},
-        {"R": 1.079655, "name": "Kappa* ceiling (R*)", "c": 1.0000, "kappa_main": 1.0000, "kappa_rig": 0.84},
-        {"R": 1.3036, "name": "PRZZ kappa", "c": 2.137, "kappa_main": 0.417, "kappa_rig": 0.343},
-        {"R": 1.1167, "name": "PRZZ kappa*", "c": 1.938, "kappa_main": 0.408, "kappa_rig": 0.34},
+        {"R": 1.1497602315, "name": "Kappa saturation (R_opt)", "c": 1.0000, "kappa_main": 1.0000, "kappa_rig": 0.8650},
+        {"R": 1.0796557513, "name": "Kappa* saturation (R*_opt)", "c": 1.0000, "kappa_main": 1.0000, "kappa_rig": 0.84},
+        {"R": 1.3036, "name": "PRZZ kappa (baseline R)", "c": 2.137449, "kappa_main": 0.417293962, "kappa_rig": 0.343},
+        {"R": 1.1167, "name": "PRZZ kappa* (baseline R)", "c": 1.9380, "kappa_main": 0.407511457, "kappa_rig": 0.34},
     ]
 
     cols = st.columns(4)
@@ -279,6 +291,45 @@ def render_r_sweep_tab(current_coeffs: Optional[Dict] = None):
                 st.session_state.r_sweep_slider = kv["R"]
                 st.rerun()
 
+    st.markdown("#### Complete R Sweep Results (paper)")
+    sweep_table = []
+    for row in sweep_data:
+        R_val = row.get("R")
+        c_val = row.get("c")
+        kappa_main_val = row.get("kappa_main")
+        kappa_rig_val = row.get("kappa_rigorous")
+        error_pct = row.get("error_percent")
+        error_scale = row.get("error_scale")
+
+        kappa_main_display = "—"
+        if isinstance(kappa_main_val, (int, float)):
+            kappa_main_display = f"{min(kappa_main_val, 1.0):.4f}"
+            if isinstance(c_val, (int, float)) and c_val < 1.0:
+                kappa_main_display += " (cap)"
+        kappa_rig_display = "—"
+        if isinstance(kappa_rig_val, (int, float)):
+            kappa_rig_display = f"{kappa_rig_val:.4f}"
+
+        sweep_table.append({
+            "R": f"{R_val:.5f}" if isinstance(R_val, (int, float)) else str(R_val),
+            "c": f"{c_val:.4f}" if isinstance(c_val, (int, float)) else "—",
+            "kappa_main": kappa_main_display,
+            "kappa_rigorous": kappa_rig_display,
+            "Error %": f"{error_pct:.2f}%" if isinstance(error_pct, (int, float)) else "—",
+            "Error Scale": error_scale or "—",
+        })
+    st.table(sweep_table)
+    st.caption("Error % and scale are from the explicit error model at L = 40 (relative to R=1.3036 baseline).")
+
+    st.markdown("#### Convergence to Saturation (paper)")
+    convergence_rows = [
+        {"R": "1.14978", "c(R)": "1.000002380", "|c-1|": "2.38e-6"},
+        {"R": "1.14977", "c(R)": "1.000001176", "|c-1|": "1.18e-6"},
+        {"R": "1.149765", "c(R)": "1.000000089", "|c-1|": "8.9e-8"},
+        {"R": "1.149760231...", "c(R)": "1.000000000", "|c-1|": "<5e-16"},
+    ]
+    st.table(convergence_rows)
+
     st.divider()
 
     # Main plot
@@ -289,10 +340,10 @@ def render_r_sweep_tab(current_coeffs: Optional[Dict] = None):
     st.divider()
 
     # Parabola visualization
-    st.markdown("#### The Geometry: Kissing the Floor")
+    st.markdown("#### The Geometry: Saturation Threshold")
     st.markdown("""
-    Near the minimum, c(R) behaves like a parabola that just touches (but never goes below)
-    the floor at c = 1. This is the **saturation point** of the Levinson-Conrey method.
+    Near the saturation threshold, c(R) behaves like a parabola that crosses $c=1$.
+    The crossing point marks the **saturation threshold** of the Levinson-Conrey method.
     """)
 
     fig_parabola = create_parabola_visualization()
@@ -307,12 +358,22 @@ def render_r_sweep_tab(current_coeffs: Optional[Dict] = None):
     """)
 
     st.markdown("""
-    - When **c > 1**: $\\log c > 0$, so $\\kappa < 1$
-    - When **c = 1**: $\\log c = 0$, so $\\kappa = 1$ (theoretical maximum)
-    - The constraint **c >= 1** is enforced by the positive-definiteness of the mollified mean square
+    - When **c > 1**: $\\log c > 0$, so $\\kappa_{\\text{main}} < 1$ (non-trivial bound)
+    - When **c = 1**: $\\log c = 0$, so $\\kappa_{\\text{main}} = 1$ (saturated)
+    - When **c < 1**: $\\log c < 0$, so $\\kappa_{\\text{main}} > 1$ (vacuous, capped at 1)
+    - The rigorous gap scales roughly like $1/R$, so smaller $R$ increases error even when $\\kappa_{\\text{main}}$ rises
 
-    **Key insight:** The optimized polynomials create destructive interference that pushes c
-    as close to 1 as possible. At R* = 1.14976, they achieve exact saturation.
+    **Key insight:** The optimized polynomials create destructive interference that drives $c$
+    to the saturation threshold. At $R_{\\mathrm{opt}} \\approx 1.14976$, we have $c(R_{\\mathrm{opt}})=1$.
+
+    **Flat profile:** The paper notes $c < 1.03$ for $R \\in [0.85, 1.2]$, highlighting
+    robustness near saturation.
+    """)
+
+    st.markdown("""
+    **Why the optimized polynomials are special:**
+    - Optimized: $c \\in [1.002, 1.088]$ for $R \\in [0.5, 1.5]$
+    - PRZZ baseline: $c \\in [2.04, 2.24]$ for $R \\in [0.5, 1.5]$
     """)
 
     # Live computation

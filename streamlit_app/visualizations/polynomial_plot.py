@@ -149,7 +149,7 @@ def create_breakthrough_comparison_plot(
         opt_vals = [1.0000, 0.8650]
 
     fig.add_trace(go.Bar(
-        x=categories, y=przz_vals, name='PRZZ Baseline',
+        x=categories, y=przz_vals, name='PRZZ polynomials',
         marker_color='gray', opacity=0.7,
     ), row=2, col=2)
     fig.add_trace(go.Bar(
@@ -161,18 +161,18 @@ def create_breakthrough_comparison_plot(
     if mode == "kappa_star":
         summary_text = (
             "<b>κ* Results</b><br><br>"
-            "PRZZ: κ*_main=0.41, κ*_rig=0.34<br>"
+            "PRZZ: κ*_main=0.41, κ*_rig=0.34 (explicit model)<br>"
             "Optimized: κ*_main=1.00, κ*_rig=0.84<br><br>"
             "<b>Improvement: +147%</b><br>"
-            "R* = 1.079655 (ceiling)"
+            "R*_opt = 1.0796557513 (saturation)"
         )
     else:
         summary_text = (
             "<b>κ Results</b><br><br>"
-            "PRZZ: κ_main=0.42, κ_rig=0.34<br>"
+            "PRZZ: κ_main=0.42, κ_rig=0.34 (explicit model)<br>"
             "Optimized: κ_main=1.00, κ_rig=0.865<br><br>"
-            "<b>Improvement: +152%</b><br>"
-            "R* = 1.149760 (ceiling)"
+            "<b>Improvement: +152.2%</b><br>"
+            "R_opt = 1.1497602315 (saturation)"
         )
 
     # Add invisible scatter to create subplot, then add annotation
@@ -191,7 +191,7 @@ def create_breakthrough_comparison_plot(
     fig.update_layout(
         title=dict(
             text=f"PRZZ Mollifier Optimization: {mode_label} Breakthrough<br>"
-                 f"<sub>Universal P₁ achieves ~86% rigorous bounds</sub>",
+                 f"<sub>Universal P₁ achieves ~86.5% rigorous bounds</sub>",
             x=0.5,
         ),
         height=700,
@@ -366,6 +366,6 @@ def render_polynomial_plot(
         ```
 
         This achieves:
-        - **κ_rigorous = 0.8650** (+152% over PRZZ)
-        - **κ*_rigorous = 0.84** (+147% over PRZZ)
+        - **κ_rigorous = 0.8650** (+152% over PRZZ polynomials, explicit model)
+        - **κ*_rigorous = 0.84** (+147% over PRZZ polynomials, explicit model)
         """)

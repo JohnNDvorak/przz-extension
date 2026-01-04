@@ -11,44 +11,51 @@ from typing import Dict, List, Optional
 
 # PRZZ baseline values for comparison
 PRZZ_BASELINE = {
-    "kappa": 0.417294,
-    "c": 2.1374,
+    "kappa": 0.417293962,
+    "c": 2.137449,
     "R": 1.3036,
     "m": 8.6825,
     "S12_plus": 0.7975,
     "S12_minus": 0.1152,
     "S34": 0.3398,
-    "g_I1": 1.0009,
-    "g_I2": 1.0194,
+    "g_I1": 1.00095,
+    "g_I2": 1.01944,
     "theta": 4/7,
     "K": 3,
-    # Per-pair I values (approximate from PRZZ)
+    # Per-pair I values (PRZZ baseline, where reported)
     "I1_plus": {
-        (1,1): 0.3842, (1,2): -0.1156, (1,3): 0.0234,
-        (2,2): 0.0892, (2,3): -0.0198, (3,3): 0.0089,
+        (1,1): 0.0934,
+        (1,2): 0.0456,
     },
-    "I1_minus": {
-        (1,1): 0.0891, (1,2): -0.0198, (1,3): 0.0032,
-        (2,2): 0.0112, (2,3): -0.0019, (3,3): 0.0006,
-    },
+    "I1_minus": {},
     "I2_plus": {
-        (1,1): 0.2891, (1,2): -0.0823, (1,3): 0.0167,
-        (2,2): 0.0612, (2,3): -0.0134, (3,3): 0.0058,
+        (1,1): 0.3882,
+        (1,2): 0.1570,
+        (2,2): 0.0656,
+        (2,3): -0.0578,
+        (3,3): 0.0546,
     },
-    "I2_minus": {
-        (1,1): 0.0142, (1,2): -0.0029, (1,3): 0.0004,
-        (2,2): 0.0016, (2,3): -0.0002, (3,3): 0.0001,
+    "I2_minus": {},
+    "I3_plus": {
+        (1,1): -0.1124,
+        (1,2): -0.0534,
     },
-    "I3_plus": {(1,3): 0.0456, (2,3): -0.0098, (3,3): 0.0043},
-    "I4_plus": {(1,3): 0.0512, (2,3): -0.0112, (3,3): 0.0043},
+    "I4_plus": {
+        (1,1): -0.1089,
+        (1,2): -0.0489,
+    },
     "c_pair": {
-        (1,1): 1.58, (1,2): -0.60, (1,3): 0.25,
-        (2,2): 0.38, (2,3): -0.08, (3,3): 0.04,
+        (1,1): 0.2603,
+        (1,2): 0.2006,
+        (1,3): -0.0876,
+        (2,2): 0.0734,
+        (2,3): -0.0645,
+        (3,3): 0.0523,
     },
     # Polynomial coefficients
-    "P1_tilde": [-0.103448, 0.568946, -0.569425, 0.000021],
-    "P2_coeffs": [-0.893282, 1.645186, -0.780174],
-    "P3_coeffs": [0.267645, -0.265173],
+    "P1_tilde": [0.261076, -1.071007, -0.236840, 0.260233],
+    "P2_coeffs": [1.048274, 1.319912, -0.940058],
+    "P3_coeffs": [0.522811, -0.686510, -0.049923],
     "Q_coeffs": {0: 0.490464, 1: 0.636851, 3: -0.159327, 5: 0.032011},
 }
 
@@ -255,7 +262,7 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
 
         $I_1$ is the **derivative term** arising from the second-order pole residue extraction.
 
-        $$I_1^{(\ell_1, \ell_2)}(R) = \frac{\text{sym}}{(\ell_1-1)!(\ell_2-1)!} \int_0^1 \int_0^1 \left.\frac{\partial^2}{\partial x \partial y}\right|_{x=y=0} \mathcal{K}_1(u, t, x, y) \, du \, dt$$
+        $$I_1^{(\ell_1, \ell_2)}(R) = \frac{\text{sym}}{\ell_1! \cdot \ell_2!} \int_0^1 \int_0^1 \left.\frac{\partial^2}{\partial x \partial y}\right|_{x=y=0} \mathcal{K}_1(u, t, x, y) \, du \, dt$$
 
         ---
 
@@ -309,7 +316,7 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
 
         ### Step 5: Final Integration
 
-        $$I_1^{(\ell_1, \ell_2)}(R) = \frac{\text{sym}}{(\ell_1-1)!(\ell_2-1)!} \int_0^1 \int_0^1 P_{\ell_1}(u) P_{\ell_2}(t) Q(u) Q(t) \cdot e^{R\theta(u+t-2)} \cdot \mathcal{D}(u,t) \, du \, dt$$
+        $$I_1^{(\ell_1, \ell_2)}(R) = \frac{\text{sym}}{\ell_1! \cdot \ell_2!} \int_0^1 \int_0^1 P_{\ell_1}(u) P_{\ell_2}(t) Q(u) Q(t) \cdot e^{R\theta(u+t-2)} \cdot \mathcal{D}(u,t) \, du \, dt$$
         """)
 
         st.markdown("### Numerical Values: PRZZ vs Current")
@@ -321,8 +328,14 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
 
         for pair in pairs:
             i1_data["Pair"].append(str(pair))
-            i1_data["I₁(+R) PRZZ"].append(f"{PRZZ_BASELINE['I1_plus'].get(pair, 0):.4f}")
-            i1_data["I₁(−R) PRZZ"].append(f"{PRZZ_BASELINE['I1_minus'].get(pair, 0):.4f}")
+            przz_i1_plus = PRZZ_BASELINE["I1_plus"].get(pair)
+            przz_i1_minus = PRZZ_BASELINE["I1_minus"].get(pair)
+            i1_data["I₁(+R) PRZZ"].append(
+                f"{przz_i1_plus:.4f}" if przz_i1_plus is not None else "—"
+            )
+            i1_data["I₁(−R) PRZZ"].append(
+                f"{przz_i1_minus:.4f}" if przz_i1_minus is not None else "—"
+            )
 
             # Get current values from per_pair if available
             pair_key = f"{pair[0]},{pair[1]}"
@@ -343,7 +356,7 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
 
         $I_2$ is the **direct term** (no derivative on zeta factors).
 
-        $$I_2^{(\ell_1, \ell_2)}(R) = \frac{\text{sym}}{(\ell_1-1)!(\ell_2-1)!} \int_0^1 \int_0^1 \mathcal{K}_2(u, t) \, du \, dt$$
+        $$I_2^{(\ell_1, \ell_2)}(R) = \frac{\text{sym}}{\ell_1! \cdot \ell_2!} \int_0^1 \int_0^1 \mathcal{K}_2(u, t) \, du \, dt$$
 
         ---
 
@@ -357,10 +370,10 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
 
         ### Step 2: The Affine Exponent
 
-        For Case A ($\ell_1 = 1$) or Case B ($\ell_1 = 2$):
+        For Case B ($\ell = 1$, $P_1$):
         $$\psi(u,t) = \theta(u + t) - 2$$
 
-        For Case C ($\ell_1 = 3$ or $\ell_2 = 3$):
+        For Case C ($\ell \in \{2,3\}$, $P_2/P_3$):
         $$\psi(u,t) = \theta(u + t - 2)$$
 
         **Note the critical difference:** Case C has the $-2$ inside the $\theta$ scaling.
@@ -405,8 +418,14 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
 
         for pair in pairs:
             i2_data["Pair"].append(str(pair))
-            i2_data["I₂(+R) PRZZ"].append(f"{PRZZ_BASELINE['I2_plus'].get(pair, 0):.4f}")
-            i2_data["I₂(−R) PRZZ"].append(f"{PRZZ_BASELINE['I2_minus'].get(pair, 0):.4f}")
+            przz_i2_plus = PRZZ_BASELINE["I2_plus"].get(pair)
+            przz_i2_minus = PRZZ_BASELINE["I2_minus"].get(pair)
+            i2_data["I₂(+R) PRZZ"].append(
+                f"{przz_i2_plus:.4f}" if przz_i2_plus is not None else "—"
+            )
+            i2_data["I₂(−R) PRZZ"].append(
+                f"{przz_i2_minus:.4f}" if przz_i2_minus is not None else "—"
+            )
 
             pair_key = f"{pair[0]},{pair[1]}"
             if current["per_pair"] and pair_key in current["per_pair"]:
@@ -424,21 +443,23 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
         st.markdown(r"""
         ### Definition
 
-        $I_3$ arises only for pairs involving piece $\ell \geq 3$ (Case C).
+        $I_3$ arises from the single-derivative auxiliary term in the PRZZ decomposition.
         It involves a **single derivative** with respect to $x$.
 
-        $$I_3^{(\ell_1, \ell_2)}(R) = \frac{\text{sym}}{(\ell_1-1)!(\ell_2-1)!} \int_0^1 \int_0^1 \left.\frac{\partial}{\partial x}\right|_{x=0} \mathcal{K}_3(u, t, x) \, du \, dt$$
+        $$I_3^{(\ell_1, \ell_2)}(R) = \frac{\text{sym}}{\ell_1! \cdot \ell_2!} \int_0^1 \int_0^1 \left.\frac{\partial}{\partial x}\right|_{x=0} \mathcal{K}_3(u, t, x) \, du \, dt$$
 
         ---
 
         ### Step 1: When Does I₃ Appear?
 
-        $I_3$ appears only when:
-        - Pair $(1,3)$: $\ell_1 = 1$, $\ell_2 = 3$
-        - Pair $(2,3)$: $\ell_1 = 2$, $\ell_2 = 3$
-        - Pair $(3,3)$: $\ell_1 = 3$, $\ell_2 = 3$
+        $I_3$ appears in the K=3 summary table. In the optimized decomposition,
+        $(1,3)$ and $(2,3)$ are suppressed (shown as ---), while the nonzero entries are:
+        - Pair $(1,1)$
+        - Pair $(1,2)$
+        - Pair $(2,2)$
+        - Pair $(3,3)$
 
-        The $I_3$ term captures the asymmetric contribution from the $\ell_2 = 3$ piece.
+        The $I_3$ term captures the single-derivative auxiliary contribution at $+R$.
 
         ---
 
@@ -462,7 +483,7 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
 
         ### Step 4: Final Formula
 
-        $$I_3^{(\ell_1, \ell_2)}(R) = \frac{R \cdot \text{sym}}{(\ell_1-1)!(\ell_2-1)!} \int_0^1 \int_0^1 (1-\theta u) P_{\ell_1}(u) P_{\ell_2}(t) Q(u) Q(t) \cdot e^{R\theta(u+t-2)} \, du \, dt$$
+        $$I_3^{(\ell_1, \ell_2)}(R) = \frac{R \cdot \text{sym}}{\ell_1! \cdot \ell_2!} \int_0^1 \int_0^1 (1-\theta u) P_{\ell_1}(u) P_{\ell_2}(t) Q(u) Q(t) \cdot e^{R\theta(u+t-2)} \, du \, dt$$
 
         ---
 
@@ -473,19 +494,24 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
 
         st.markdown("### Numerical Values: PRZZ vs Current")
 
-        i3_pairs = [(1,3), (2,3), (3,3)]
+        i3_pairs = pairs
         i3_data = {"Pair": [], "I₃(+R) PRZZ": [], "I₃(+R) Current": [], "Δ": []}
 
         for pair in i3_pairs:
             i3_data["Pair"].append(str(pair))
-            przz_val = PRZZ_BASELINE['I3_plus'].get(pair, 0)
-            i3_data["I₃(+R) PRZZ"].append(f"{przz_val:.4f}")
+            przz_val = PRZZ_BASELINE["I3_plus"].get(pair)
+            i3_data["I₃(+R) PRZZ"].append(
+                f"{przz_val:.4f}" if przz_val is not None else "—"
+            )
 
             pair_key = f"{pair[0]},{pair[1]}"
             if current["per_pair"] and pair_key in current["per_pair"]:
                 curr_val = current["per_pair"][pair_key].get('I3_plus', 0)
                 i3_data["I₃(+R) Current"].append(f"{curr_val:.4f}")
-                i3_data["Δ"].append(f"{curr_val - przz_val:+.4f}")
+                if przz_val is not None:
+                    i3_data["Δ"].append(f"{curr_val - przz_val:+.4f}")
+                else:
+                    i3_data["Δ"].append("—")
             else:
                 i3_data["I₃(+R) Current"].append("—")
                 i3_data["Δ"].append("—")
@@ -499,14 +525,15 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
 
         $I_4$ is the **symmetric counterpart** to $I_3$, involving a derivative with respect to $y$.
 
-        $$I_4^{(\ell_1, \ell_2)}(R) = \frac{\text{sym}}{(\ell_1-1)!(\ell_2-1)!} \int_0^1 \int_0^1 \left.\frac{\partial}{\partial y}\right|_{y=0} \mathcal{K}_4(u, t, y) \, du \, dt$$
+        $$I_4^{(\ell_1, \ell_2)}(R) = \frac{\text{sym}}{\ell_1! \cdot \ell_2!} \int_0^1 \int_0^1 \left.\frac{\partial}{\partial y}\right|_{y=0} \mathcal{K}_4(u, t, y) \, du \, dt$$
 
         ---
 
         ### Step 1: When Does I₄ Appear?
 
-        $I_4$ appears for the same pairs as $I_3$:
-        - Pair $(1,3)$, $(2,3)$, $(3,3)$
+        $I_4$ appears for the same pairs as $I_3$. In the optimized summary,
+        $(1,3)$ and $(2,3)$ are suppressed, while the nonzero entries are:
+        - Pair $(1,1)$, $(1,2)$, $(2,2)$, $(3,3)$
 
         However, the derivative is with respect to $y$, capturing the $\ell_1$ side contribution.
 
@@ -532,15 +559,15 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
 
         ### Step 4: Final Formula
 
-        $$I_4^{(\ell_1, \ell_2)}(R) = \frac{R \cdot \text{sym}}{(\ell_1-1)!(\ell_2-1)!} \int_0^1 \int_0^1 (1-\theta t) P_{\ell_1}(u) P_{\ell_2}(t) Q(u) Q(t) \cdot e^{R\theta(u+t-2)} \, du \, dt$$
+        $$I_4^{(\ell_1, \ell_2)}(R) = \frac{R \cdot \text{sym}}{\ell_1! \cdot \ell_2!} \int_0^1 \int_0^1 (1-\theta t) P_{\ell_1}(u) P_{\ell_2}(t) Q(u) Q(t) \cdot e^{R\theta(u+t-2)} \, du \, dt$$
 
         ---
 
         ### Symmetry with I₃
 
-        For **diagonal pairs** $(3,3)$: $I_3^{(3,3)} = I_4^{(3,3)}$
+        For **diagonal pairs** $(1,1)$, $(2,2)$, $(3,3)$: $I_3 = I_4$
 
-        For **off-diagonal pairs** $(1,3)$, $(2,3)$: $I_3 \neq I_4$ in general.
+        For **off-diagonal pairs** $(1,2)$: $I_3 \neq I_4$ in general.
         """)
 
         st.markdown("### Numerical Values: PRZZ vs Current")
@@ -549,14 +576,19 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
 
         for pair in i3_pairs:
             i4_data["Pair"].append(str(pair))
-            przz_val = PRZZ_BASELINE['I4_plus'].get(pair, 0)
-            i4_data["I₄(+R) PRZZ"].append(f"{przz_val:.4f}")
+            przz_val = PRZZ_BASELINE["I4_plus"].get(pair)
+            i4_data["I₄(+R) PRZZ"].append(
+                f"{przz_val:.4f}" if przz_val is not None else "—"
+            )
 
             pair_key = f"{pair[0]},{pair[1]}"
             if current["per_pair"] and pair_key in current["per_pair"]:
                 curr_val = current["per_pair"][pair_key].get('I4_plus', 0)
                 i4_data["I₄(+R) Current"].append(f"{curr_val:.4f}")
-                i4_data["Δ"].append(f"{curr_val - przz_val:+.4f}")
+                if przz_val is not None:
+                    i4_data["Δ"].append(f"{curr_val - przz_val:+.4f}")
+                else:
+                    i4_data["Δ"].append("—")
             else:
                 i4_data["I₄(+R) Current"].append("—")
                 i4_data["Δ"].append("—")
@@ -574,19 +606,19 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
 
         where:
         - $\text{sym} = 2$ for off-diagonal, $1$ for diagonal
-        - $\text{norm} = \frac{1}{(\ell_1-1)!(\ell_2-1)!}$
+        - $\text{norm} = \frac{1}{\ell_1! \cdot \ell_2!}$
         """)
 
         # Per-pair comparison table
         st.markdown("### Per-Pair Contributions: PRZZ vs Current")
 
         pair_info = {
-            (1,1): {"case": "A×A", "norm": 1.0, "sym": 1, "has_I34": False},
-            (1,2): {"case": "A×B", "norm": 1.0, "sym": 2, "has_I34": False},
-            (1,3): {"case": "A×C", "norm": 0.5, "sym": 2, "has_I34": True},
-            (2,2): {"case": "B×B", "norm": 1.0, "sym": 1, "has_I34": False},
-            (2,3): {"case": "B×C", "norm": 0.5, "sym": 2, "has_I34": True},
-            (3,3): {"case": "C×C", "norm": 0.25, "sym": 1, "has_I34": True},
+            (1,1): {"case": "B×B", "norm": 1.0, "sym": 1, "has_I34": True},
+            (1,2): {"case": "B×C", "norm": 1/2, "sym": 2, "has_I34": True},
+            (1,3): {"case": "B×C", "norm": 1/6, "sym": 2, "has_I34": False},
+            (2,2): {"case": "C×C", "norm": 1/4, "sym": 1, "has_I34": True},
+            (2,3): {"case": "C×C", "norm": 1/12, "sym": 2, "has_I34": False},
+            (3,3): {"case": "C×C", "norm": 1/36, "sym": 1, "has_I34": True},
         }
 
         pair_data = {
@@ -598,7 +630,7 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
             info = pair_info[pair]
             pair_data["Pair"].append(str(pair))
             pair_data["Case"].append(info["case"])
-            pair_data["Norm"].append(f"{info['norm']}")
+            pair_data["Norm"].append(f"{info['norm']:.4f}")
             pair_data["Sym"].append(str(info["sym"]))
 
             przz_c = PRZZ_BASELINE["c_pair"].get(pair, 0)
@@ -630,7 +662,7 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
 
             col1, col2 = st.columns(2)
             with col1:
-                st.markdown(f"- **Normalization:** 1/({pair[0]-1}!×{pair[1]-1}!) = {info['norm']}")
+                st.markdown(f"- **Normalization:** 1/({pair[0]}!×{pair[1]}!) = {info['norm']:.4f}")
                 st.markdown(f"- **Symmetry factor:** {info['sym']}")
                 st.markdown(f"- **Has I₃,I₄:** {'Yes' if info['has_I34'] else 'No'}")
 
@@ -656,7 +688,7 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
         """)
 
         # Error budget comparison
-        st.markdown("### Error Budget: PRZZ vs Current")
+        st.markdown("### Error Budget: Paper (R_opt=1.14976) vs Current")
 
         error_data = {
             "Source": ["Contour", "Taylor", "I₅", "Euler-Maclaurin", "**Total**"],
@@ -667,7 +699,7 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
                 r"$C_4 (\|P\|+\|P'\|) / L^2$",
                 "—"
             ],
-            "L=40 PRZZ": ["0.0875", "0.0004", "0.0008", "0.0001", "**0.0888**"],
+            "L=40 (R_opt=1.14976)": ["0.0582", "0.0664", "0.0028", "0.0076", "**0.1350**"],
         }
 
         eb = result.get("error_bounds") if result else None
@@ -803,10 +835,10 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
             coeff_data = {
                 "Polynomial": ["P₁ tilde[0]", "P₁ tilde[1]", "P₁ tilde[2]", "P₁ tilde[3]",
                               "P₂[0]", "P₂[1]", "P₂[2]",
-                              "P₃[0]", "P₃[1]"],
+                              "P₃[0]", "P₃[1]", "P₃[2]"],
                 "PRZZ": [f"{PRZZ_BASELINE['P1_tilde'][i]:.6f}" for i in range(4)] +
                        [f"{PRZZ_BASELINE['P2_coeffs'][i]:.6f}" for i in range(3)] +
-                       [f"{PRZZ_BASELINE['P3_coeffs'][i]:.6f}" for i in range(2)],
+                       [f"{PRZZ_BASELINE['P3_coeffs'][i]:.6f}" for i in range(3)],
             }
 
             curr_p1 = coeffs.get("P1_tilde", [0]*4)
@@ -815,10 +847,10 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
 
             coeff_data["Current"] = [f"{curr_p1[i]:.6f}" for i in range(min(4, len(curr_p1)))]
             coeff_data["Current"] += [f"{curr_p2[i]:.6f}" for i in range(min(3, len(curr_p2)))]
-            coeff_data["Current"] += [f"{curr_p3[i]:.6f}" for i in range(min(2, len(curr_p3)))]
+            coeff_data["Current"] += [f"{curr_p3[i]:.6f}" for i in range(min(3, len(curr_p3)))]
 
             # Pad if necessary
-            while len(coeff_data["Current"]) < 9:
+            while len(coeff_data["Current"]) < 10:
                 coeff_data["Current"].append("—")
 
             st.table(coeff_data)
@@ -932,6 +964,28 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
                 st.latex(rf"\kappa = 1 - \frac{{\ln({current['c']:.4f})}}{{{R:.4f}}} = 1 - \frac{{{np.log(current['c']):.4f}}}{{{R:.4f}}} = {current['kappa']:.6f}")
             else:
                 st.markdown("**Current:** Click 'Compute Full Result' to see values")
+
+    # Validation gates and test coverage
+    with st.expander("**13. Validation Gates and Test Coverage**", expanded=False):
+        st.markdown("### Validation Gate Summary (paper)")
+        gate_rows = [
+            {"Gate": "PSD/CS", "Description": "Gram matrix PSD, |rho_ij| < 1", "Status": "PASS"},
+            {"Gate": "K=2", "Description": "P3 = 0 eliminates Case C pairs", "Status": "PASS"},
+            {"Gate": "Independent", "Description": "Cross-validator match < 1e-15", "Status": "PASS"},
+            {"Gate": "Basis", "Description": "Monomial vs Chebyshev give identical c", "Status": "PASS"},
+            {"Gate": "Quadrature", "Description": "n=60/80/100 convergence verified", "Status": "PASS"},
+        ]
+        st.table(gate_rows)
+
+        st.markdown("### Test Coverage by Phase (paper)")
+        test_rows = [
+            {"Phase": "Phase 55: First-principles chain", "Tests": 25},
+            {"Phase": "Phase 56: Full trace", "Tests": 27},
+            {"Phase": "Phase 57: Gauge invariance", "Tests": 29},
+            {"Phase": "Phase 58--62: Derivation completion", "Tests": 11},
+            {"Phase": "Total", "Tests": 92},
+        ]
+        st.table(test_rows)
 
 
 def render_derivations_tab(result: Optional[Dict] = None, coeffs: Optional[Dict] = None, R: float = 1.3036):

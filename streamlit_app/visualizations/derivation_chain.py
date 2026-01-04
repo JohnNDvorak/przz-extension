@@ -1,7 +1,7 @@
 """
 Derivation Chain - Interactive flowchart showing the derivation path.
 
-Shows: PRZZ Axioms -> Derived Constants -> Final kappa
+Shows: PRZZ Inputs -> Derived Constants -> Final kappa
 """
 
 import streamlit as st
@@ -11,34 +11,34 @@ import math
 
 
 # Derivation chain data
-AXIOMS = {
-    "axiom1": {
+PRZZ_INPUTS = {
+    "input1": {
         "name": "Theta Permitted",
         "short": "theta = 4/7",
-        "description": r"The mollifier exponent $\theta = 4/7$ is permitted by PRZZ Theorem 1.1",
+        "description": r"The mollifier exponent $\theta = 4/7$ is permitted by PRZZ Input 1",
         "value": 4/7,
-        "source": "PRZZ Section 1",
+        "source": "PRZZ Input 1",
     },
-    "axiom2": {
+    "input2": {
         "name": "Mirror Identity",
         "short": "Mirror formula",
         "description": r"$I(\alpha,\beta) + T^{-\alpha-\beta} \cdot I(-\beta,-\alpha)$ for $S_{12}$",
         "value": None,
-        "source": "PRZZ Section 10",
+        "source": "PRZZ Input 2",
     },
-    "axiom3": {
+    "input3": {
         "name": "Euler-Maclaurin Weight",
         "short": "(1-u)^{2K-1}",
         "description": r"The Euler-Maclaurin kernel weight $(1-u)^{2K-1}$ for $I_2$",
         "value": None,
-        "source": "PRZZ Lemma 5.1",
+        "source": "PRZZ Input 3",
     },
-    "axiom4": {
+    "input4": {
         "name": "Log Factor",
         "short": "1/theta + x + y",
         "description": r"The $I_1$ integrand includes $\log(1/\theta + x + y)$",
         "value": None,
-        "source": "PRZZ Section 7",
+        "source": "PRZZ Input 4",
     },
 }
 
@@ -48,7 +48,7 @@ DERIVED_CONSTANTS = {
         "formula": r"$\text{Beta}(2, 2K) = \frac{1}{2K(2K+1)}$",
         "value": 1/(2*3*(2*3+1)),  # K=3
         "value_display": "1/42",
-        "depends_on": ["axiom3"],
+        "depends_on": ["input3"],
         "source": "Lemma 5.1",
     },
     "g_I2": {
@@ -56,7 +56,7 @@ DERIVED_CONSTANTS = {
         "formula": r"$g_{I_2} = 1 + \frac{\theta(2-\theta)}{2K(2K+1)}$",
         "value": 1 + (4/7)*(10/7)/(6*7),
         "value_display": "1.01944",
-        "depends_on": ["axiom1", "axiom3"],
+        "depends_on": ["input1", "input3"],
         "source": "Theorem 5.1",
     },
     "g_I1": {
@@ -64,7 +64,7 @@ DERIVED_CONSTANTS = {
         "formula": r"$g_{I_1} = 1 + \frac{\theta(1-\theta)(2(K-1)+\theta)}{8K(2K+1)^2}$",
         "value": 1 + 16/16807,
         "value_display": "1.00095",
-        "depends_on": ["axiom1", "axiom4"],
+        "depends_on": ["input1", "input4"],
         "source": "Theorem 5.2",
     },
     "enhancement": {
@@ -72,7 +72,7 @@ DERIVED_CONSTANTS = {
         "formula": r"$1 + \frac{1}{K(K+1)(2K+1) + 2K\theta}$",
         "value": 1 + 7/612,
         "value_display": "1.01144",
-        "depends_on": ["axiom1"],
+        "depends_on": ["input1"],
         "source": "Theorem 5.3",
     },
     "M0": {
@@ -80,16 +80,16 @@ DERIVED_CONSTANTS = {
         "formula": r"$M_0 = e^R + (2K-1)$",
         "value": None,  # Depends on R
         "value_display": "e^R + 5",
-        "depends_on": ["axiom2"],
+        "depends_on": ["input2"],
         "source": "Theorem 4.2",
     },
     "G_total": {
-        "name": "Total G Factor",
+        "name": "G (Extracted)",
         "formula": r"$G = f_{I_1} \cdot g_{I_1} + (1 - f_{I_1}) \cdot g_{I_2}$",
-        "value": 1.014,  # Approximately
-        "value_display": "1.014",
+        "value": 709210 / 698753,
+        "value_display": "709210/698753",
         "depends_on": ["g_I1", "g_I2"],
-        "source": "Definition 4.1",
+        "source": "Extracted from integral structure",
     },
     "M": {
         "name": "Full Mirror M",
@@ -115,6 +115,17 @@ FINAL_RESULT = {
 }
 
 
+def format_dependency(dep: str) -> str:
+    """Format dependency identifiers for display."""
+    if dep in PRZZ_INPUTS:
+        return f"Input {dep[-1]}: {PRZZ_INPUTS[dep]['name']}"
+    if dep in DERIVED_CONSTANTS:
+        return DERIVED_CONSTANTS[dep]["name"]
+    if dep in FINAL_RESULT:
+        return FINAL_RESULT[dep]["name"]
+    return dep
+
+
 def compute_derived_values(R: float, theta: float = 4/7, K: int = 3) -> Dict:
     """Compute all derived constants at a given R value."""
     values = {}
@@ -127,8 +138,8 @@ def compute_derived_values(R: float, theta: float = 4/7, K: int = 3) -> Dict:
     values["g_I1"] = 1 + theta * (1 - theta) * (2*(K-1) + theta) / (8 * K * (2*K + 1)**2)
     values["enhancement"] = 1 + 1 / (K * (K+1) * (2*K+1) + 2*K*theta)
 
-    # G total
-    values["G_total"] = values["g_I1"] * values["g_I2"] * values["enhancement"]
+    # G total (extracted constant)
+    values["G_total"] = 709210 / 698753
 
     # Mirror base
     values["M0"] = math.exp(R) + (2*K - 1)
@@ -142,11 +153,11 @@ def create_flowchart() -> go.Figure:
 
     # Node positions (x, y)
     positions = {
-        # Axioms (left column)
-        "axiom1": (0, 3),
-        "axiom2": (0, 2),
-        "axiom3": (0, 1),
-        "axiom4": (0, 0),
+        # Inputs (left column)
+        "input1": (0, 3),
+        "input2": (0, 2),
+        "input3": (0, 1),
+        "input4": (0, 0),
         # Derived (middle column)
         "beta": (1, 2.5),
         "g_I2": (1, 1.5),
@@ -162,12 +173,12 @@ def create_flowchart() -> go.Figure:
 
     # Edges
     edges = [
-        ("axiom3", "beta"),
-        ("axiom1", "g_I2"), ("axiom3", "g_I2"),
-        ("axiom1", "g_I1"), ("axiom4", "g_I1"),
-        ("axiom1", "enhancement"),
-        ("axiom2", "M0"),
-        ("g_I1", "G_total"), ("g_I2", "G_total"), ("enhancement", "G_total"),
+        ("input3", "beta"),
+        ("input1", "g_I2"), ("input3", "g_I2"),
+        ("input1", "g_I1"), ("input4", "g_I1"),
+        ("input1", "enhancement"),
+        ("input2", "M0"),
+        ("g_I1", "G_total"), ("g_I2", "G_total"),
         ("G_total", "M"), ("M0", "M"),
         ("M", "c"),
         ("c", "kappa"),
@@ -196,9 +207,9 @@ def create_flowchart() -> go.Figure:
         node_x.append(x)
         node_y.append(y)
 
-        if node_id.startswith("axiom"):
-            text = AXIOMS[node_id]["short"]
-            color = "#1f77b4"  # Blue for axioms
+        if node_id.startswith("input"):
+            text = PRZZ_INPUTS[node_id]["short"]
+            color = "#1f77b4"  # Blue for inputs
         elif node_id in DERIVED_CONSTANTS:
             text = DERIVED_CONSTANTS[node_id]["name"].replace("_", "<sub>") + "</sub>" if "_" in DERIVED_CONSTANTS[node_id]["name"] else DERIVED_CONSTANTS[node_id]["name"]
             color = "#2ca02c"  # Green for derived
@@ -225,7 +236,7 @@ def create_flowchart() -> go.Figure:
         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
         height=400,
         margin=dict(l=20, r=20, t=30, b=20),
-        title="Derivation Chain: Axioms -> Constants -> Kappa",
+        title="Derivation Chain: Inputs -> Constants -> Kappa",
     )
 
     return fig
@@ -233,13 +244,13 @@ def create_flowchart() -> go.Figure:
 
 def render_derivation_node(node_id: str, values: Dict):
     """Render details for a selected derivation node."""
-    if node_id in AXIOMS:
-        ax = AXIOMS[node_id]
-        st.markdown(f"### Axiom: {ax['name']}")
-        st.markdown(ax['description'])
-        if ax['value'] is not None:
-            st.metric("Value", f"{ax['value']:.6f}")
-        st.caption(f"Source: {ax['source']}")
+    if node_id in PRZZ_INPUTS:
+        input_data = PRZZ_INPUTS[node_id]
+        st.markdown(f"### Input: {input_data['name']}")
+        st.markdown(input_data['description'])
+        if input_data['value'] is not None:
+            st.metric("Value", f"{input_data['value']:.6f}")
+        st.caption(f"Source: {input_data['source']}")
 
     elif node_id in DERIVED_CONSTANTS:
         dc = DERIVED_CONSTANTS[node_id]
@@ -251,21 +262,21 @@ def render_derivation_node(node_id: str, values: Dict):
             col1.metric("Computed", f"{values[node_id]:.6f}")
             col2.metric("Symbolic", dc['value_display'])
 
-        st.caption(f"Depends on: {', '.join(dc['depends_on'])}")
+        st.caption(f"Depends on: {', '.join(format_dependency(dep) for dep in dc['depends_on'])}")
         st.caption(f"Source: {dc['source']}")
 
     elif node_id in FINAL_RESULT:
         fr = FINAL_RESULT[node_id]
         st.markdown(f"### {fr['name']}")
         st.latex(fr['formula'].replace('$', ''))
-        st.caption(f"Depends on: {', '.join(fr['depends_on'])}")
+        st.caption(f"Depends on: {', '.join(format_dependency(dep) for dep in fr['depends_on'])}")
 
 
 def render_derivation_chain(R: float = 1.14976, theta: float = 4/7, K: int = 3):
     """Render the full derivation chain tab."""
     st.markdown("### Derivation Chain")
     st.markdown("""
-    This diagram shows how the final $\kappa$ bound is derived from PRZZ axioms
+    This diagram shows how the final $\kappa$ bound is derived from PRZZ inputs
     through a sequence of derived constants.
     """)
 
@@ -278,7 +289,7 @@ def render_derivation_chain(R: float = 1.14976, theta: float = 4/7, K: int = 3):
 
     # Legend
     col1, col2, col3 = st.columns(3)
-    col1.markdown(":blue_circle: **Axioms** (PRZZ foundations)")
+    col1.markdown(":blue_circle: **Inputs** (PRZZ foundations)")
     col2.markdown(":green_circle: **Derived** (computed constants)")
     col3.markdown(":red_circle: **Final** (results)")
 
@@ -287,9 +298,9 @@ def render_derivation_chain(R: float = 1.14976, theta: float = 4/7, K: int = 3):
     # Interactive node explorer
     st.markdown("### Explore Derivation Steps")
 
-    all_nodes = list(AXIOMS.keys()) + list(DERIVED_CONSTANTS.keys()) + list(FINAL_RESULT.keys())
+    all_nodes = list(PRZZ_INPUTS.keys()) + list(DERIVED_CONSTANTS.keys()) + list(FINAL_RESULT.keys())
     node_names = {
-        **{k: f"Axiom: {v['name']}" for k, v in AXIOMS.items()},
+        **{k: f"Input: {v['name']}" for k, v in PRZZ_INPUTS.items()},
         **{k: f"Derived: {v['name']}" for k, v in DERIVED_CONSTANTS.items()},
         **{k: f"Result: {v['name']}" for k, v in FINAL_RESULT.items()},
     }

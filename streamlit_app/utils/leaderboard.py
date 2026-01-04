@@ -182,7 +182,7 @@ class Leaderboard:
             return True
         return False
 
-    def get_przz_rank(self, przz_kappa: float = 0.417296) -> Optional[int]:
+    def get_przz_rank(self, przz_kappa: float = 0.417293962) -> Optional[int]:
         """Get where PRZZ baseline would rank."""
         for i, entry in enumerate(self.entries):
             if entry.kappa < przz_kappa:

@@ -275,10 +275,10 @@ def render_sensitivity_heatmap(
                 st.metric("Range", f"{np.max(valid_kappas) - np.min(valid_kappas):.6f}")
 
             # Show optimal point details
-            przz_kappa = 0.417296
+            przz_kappa = 0.417293962
             improvement = (max_val - przz_kappa) / przz_kappa * 100
             if improvement > 0:
-                st.success(f"**Optimal point found!** {data['x_coeff']} = {max_x:.6f}, {data['y_coeff']} = {max_y:.6f} → κ = {max_val:.6f} ({improvement:+.1f}% vs PRZZ)")
+                st.success(f"**Optimal point found!** {data['x_coeff']} = {max_x:.6f}, {data['y_coeff']} = {max_y:.6f} → κ = {max_val:.6f} ({improvement:+.1f}% vs PRZZ main-term baseline)")
             else:
                 st.info(f"**Optimal point found!** {data['x_coeff']} = {max_x:.6f}, {data['y_coeff']} = {max_y:.6f} → κ = {max_val:.6f}")
 

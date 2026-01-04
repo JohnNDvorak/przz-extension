@@ -144,5 +144,39 @@ def render_error_breakdown(
     - **Theoretical bound**: Very conservative upper bound (assumes worst-case correlations)
 
     The actual error in validated computations is typically much smaller than these bounds.
-    PRZZ baseline achieves ~0.003% precision.
+    PRZZ reproduction is within 0.0005% (κ) and 0.0004% (κ*).
     """)
+
+    st.markdown("""
+    **Scaling note:**
+    The paper shows the error contribution entering as
+    $(C_{\text{per\_L}}/L + C_{\text{per\_L}^2}/L^2)/(R \\cdot c)$, so smaller $R$ increases the
+    rigorous gap even when $\\kappa_{\\text{main}}$ improves.
+    """)
+
+    st.markdown("""
+    **Explicit vs certified:**
+    These bounds are explicit numerical evaluations of PRZZ's asymptotic error constants.
+    We reserve **certified** for bounds verified by interval arithmetic.
+    """)
+
+    st.markdown("""
+    **LMFDB sanity check (paper):**
+    - At $T_{\\max} \\approx 5\\times 10^6$, the formula gives $\\kappa \\geq 0.656$
+    - This lies within the Platt--Trudgian verified RH height ($3\\times 10^{12}$), where $N_0(T)=N(T)$
+    - The ~34% gap indicates conservative error analysis; $\\max |\\Delta_n| = 1.448$ matches known $S(T)$ bounds
+    - This validates the formula implementation but is not independent evidence for the main theorems
+    """)
+
+    st.markdown("#### Error Source Breakdown at Optimal R")
+    source_rows = [
+        {"Source": "C_contour", "Constant": "1.723", "Order": "O(T/L)", "Contribution": "43.1%"},
+        {"Source": "C_Taylor", "Constant": "3.919", "Order": "O(T/L)", "Contribution": "49.2%"},
+        {"Source": "C_I5", "Constant": "1.697", "Order": "O(T/L^2)", "Contribution": "2.1%"},
+        {"Source": "C_EM", "Constant": "0.529", "Order": "O(T/L)", "Contribution": "5.6%"},
+    ]
+    st.table(source_rows)
+    st.caption("Total error at L = 40 is ~13.5% of kappa_main (paper table).")
+
+    st.markdown("#### Stability Note")
+    st.caption("Stability checks are reported in the paper; this tab focuses on explicit error constants and their impact on the bound.")

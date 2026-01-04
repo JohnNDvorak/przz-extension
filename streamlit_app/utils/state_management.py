@@ -41,7 +41,7 @@ def initialize_state():
         # Configuration
         "constraint_mode": "cap2",  # Default to cap=2
         "input_mode": "sliders",    # "sliders" or "text"
-        "R_value": R_OPTIMIZED_KAPPA,  # Default to rounded R (paper: R* = 1.149760...)
+        "R_value": R_OPTIMIZED_KAPPA,  # Default to rounded R (paper: R_opt = 1.149760...)
         "theta": THETA,
         "K": K,
 
@@ -135,7 +135,7 @@ def reset_to_przz():
 
 def get_R() -> float:
     """Get current R value."""
-    return st.session_state.get("R_value", 1.15)
+    return st.session_state.get("R_value", R_OPTIMIZED_KAPPA)
 
 
 def get_constraint_bounds():

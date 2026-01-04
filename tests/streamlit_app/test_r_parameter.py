@@ -23,7 +23,7 @@ class TestRParameterConstants:
             R_PRZZ_KAPPA, R_OPTIMIZED_KAPPA
         )
         assert R_PRZZ_KAPPA == 1.3036
-        assert R_OPTIMIZED_KAPPA == 1.14978
+        assert R_OPTIMIZED_KAPPA == pytest.approx(1.149760231531068)
 
     def test_kappa_star_r_values_exist(self):
         """κ* mode R values should be defined."""
@@ -31,7 +31,7 @@ class TestRParameterConstants:
             R_PRZZ_KAPPA_STAR, R_OPTIMIZED_KAPPA_STAR
         )
         assert R_PRZZ_KAPPA_STAR == 1.1167
-        assert R_OPTIMIZED_KAPPA_STAR == 1.07966
+        assert R_OPTIMIZED_KAPPA_STAR == pytest.approx(1.079655751341322)
 
     def test_kappa_and_kappa_star_r_values_differ(self):
         """κ and κ* should have different R values."""
@@ -96,7 +96,7 @@ class TestGetOptimizedDefaults:
         )
         defaults = get_optimized_defaults("kappa")
         assert defaults["R"] == R_OPTIMIZED_KAPPA
-        assert abs(defaults["R"] - 1.14978) < 0.00001
+        assert defaults["R"] == pytest.approx(1.149760231531068)
 
     def test_kappa_star_mode_returns_optimized_kappa_star_r(self):
         """κ* mode should return R_OPTIMIZED_KAPPA_STAR."""
@@ -105,7 +105,7 @@ class TestGetOptimizedDefaults:
         )
         defaults = get_optimized_defaults("kappa_star")
         assert defaults["R"] == R_OPTIMIZED_KAPPA_STAR
-        assert abs(defaults["R"] - 1.07966) < 0.00001
+        assert defaults["R"] == pytest.approx(1.079655751341322)
 
     def test_kappa_vs_kappa_star_r_difference(self):
         """The R values for κ and κ* optimized should differ by ~0.07."""
@@ -203,16 +203,20 @@ class TestStateManagementGetR:
             del mock_streamlit._session_state["R_value"]
 
         r = get_R()
-        # Default is 1.15 per the code
-        assert r == 1.15
+        from streamlit_app.utils.constants import R_OPTIMIZED_KAPPA
+
+        # Default is the optimized R_opt per the code
+        assert r == pytest.approx(R_OPTIMIZED_KAPPA)
 
     def test_get_r_returns_session_value(self, mock_streamlit):
         """get_R should return session state value when set."""
         from streamlit_app.utils.state_management import get_R
 
-        mock_streamlit._session_state["R_value"] = 1.07966
+        from streamlit_app.utils.constants import R_OPTIMIZED_KAPPA_STAR
+
+        mock_streamlit._session_state["R_value"] = R_OPTIMIZED_KAPPA_STAR
         r = get_R()
-        assert r == 1.07966
+        assert r == pytest.approx(R_OPTIMIZED_KAPPA_STAR)
 
 
 class TestComputationUsesCorrectR:
@@ -227,7 +231,7 @@ class TestComputationUsesCorrectR:
             P2_coeffs=[0.3],
             P3_coeffs=[0.4],
             Q_coeffs={0: 0.5},
-            R=1.14978,
+            R=1.149760231531068,
             theta=4/7,
         )
 
@@ -236,7 +240,7 @@ class TestComputationUsesCorrectR:
             P2_coeffs=[0.3],
             P3_coeffs=[0.4],
             Q_coeffs={0: 0.5},
-            R=1.07966,  # Different R
+            R=1.079655751341322,  # Different R
             theta=4/7,
         )
 
@@ -253,13 +257,13 @@ class TestComputationUsesCorrectR:
             P2_coeffs=[0.1],
             P3_coeffs=[0.1],
             Q_coeffs={0: 0.5},
-            R=1.079660001,  # Slight variation
+            R=1.079655751341322,  # Slight variation
             theta=4/7,
         )
 
         data = json.loads(key)
         # R should be rounded to 6 decimal places
-        assert data["R"] == 1.07966
+        assert data["R"] == 1.079656
 
 
 class TestExpectedKappaResults:
@@ -271,7 +275,7 @@ class TestExpectedKappaResults:
 
         # For c=1, κ should equal 1 regardless of R
         c = 1.0
-        for R in [1.0, 1.14978, 1.3036]:
+        for R in [1.0, 1.149760231531068, 1.3036]:
             kappa = 1 - math.log(c) / R
             assert abs(kappa - 1.0) < 1e-10
 

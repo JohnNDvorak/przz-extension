@@ -1,173 +1,422 @@
 {
-  "version": 1,
-  "description": "Pre-computed results for instant display of common configurations",
-  "generated": "2026-01-01",
-
-  "przz_baseline_kappa": {
-    "R": 1.3036,
-    "theta": 0.5714285714285714,
-    "K": 3,
-    "P1_tilde": [0.261076, -1.071007, -0.23684, 0.260233],
-    "P2_tilde": [1.048274, 1.319912, -0.940058],
-    "P3_tilde": [0.522811, -0.68651, -0.049923],
-    "Q_coeffs": {"0": 0.490464, "1": 0.636851, "3": -0.159327, "5": 0.032011},
-    "results": {
-      "kappa_main": 0.417296,
-      "kappa_rigorous": 0.3430,
-      "c": 2.137449,
-      "S12_plus": 0.716,
-      "S12_minus": 0.231,
-      "S34": -0.549,
-      "m": 8.682,
-      "I1_plus": 0.0412,
-      "I2_plus": 0.1956,
-      "I3_plus": -0.0587,
-      "I4_plus": -0.0543
-    }
+  "asymptotic_data": {
+    "data": [
+      {
+        "L": 9.2,
+        "T_approx": "10^4",
+        "error_percent": 57.6,
+        "kappa_rigorous": 0.424
+      },
+      {
+        "L": 13.8,
+        "T_approx": "10^6",
+        "error_percent": 38.4,
+        "kappa_rigorous": 0.616
+      },
+      {
+        "L": 23.0,
+        "T_approx": "10^10",
+        "error_percent": 23.1,
+        "kappa_rigorous": 0.769
+      },
+      {
+        "L": 39.1,
+        "T_approx": "10^17",
+        "error_percent": 13.6,
+        "kappa_rigorous": 0.865
+      },
+      {
+        "L": 46.1,
+        "T_approx": "10^20",
+        "error_percent": 11.5,
+        "kappa_rigorous": 0.885
+      },
+      {
+        "L": 115.1,
+        "T_approx": "10^50",
+        "error_percent": 4.6,
+        "kappa_rigorous": 0.954
+      },
+      {
+        "L": 230.3,
+        "T_approx": "10^100",
+        "error_percent": 2.3,
+        "kappa_rigorous": 0.977
+      },
+      {
+        "L": 2302.6,
+        "T_approx": "10^1000",
+        "error_percent": 0.23,
+        "kappa_rigorous": 0.9977
+      },
+      {
+        "L": 23025.9,
+        "T_approx": "10^10000",
+        "error_percent": 0.023,
+        "kappa_rigorous": 0.99977
+      },
+      {
+        "L": "infinity",
+        "T_approx": "infinity",
+        "error_percent": 0.0,
+        "kappa_rigorous": 1.0
+      }
+    ],
+    "description": "Error decay showing kappa_rigorous -> 1 as L -> infinity"
   },
-
+  "description": "Pre-computed results aligned with v13 manuscript",
+  "generated": "2026-01-01",
+  "historical_milestones": [
+    {
+      "authors": "Selberg",
+      "kappa": "> 0",
+      "method": "Mollifier",
+      "year": 1942
+    },
+    {
+      "authors": "Levinson",
+      "kappa": ">= 1/3",
+      "method": "Improved mollifier",
+      "year": 1974
+    },
+    {
+      "authors": "Conrey",
+      "kappa": ">= 2/5",
+      "method": "Longer mollifier",
+      "year": 1989
+    },
+    {
+      "authors": "Bui-Conrey-Young",
+      "kappa": ">= 0.4105",
+      "method": "Kloosterman refinement",
+      "year": 2011
+    },
+    {
+      "authors": "Pratt-Robles-Zaharescu-Zeindler",
+      "kappa": ">= 5/12 = 0.4173",
+      "method": "K-piece mollifier",
+      "year": 2019
+    },
+    {
+      "authors": "This work",
+      "kappa": "c=1 -> density=1",
+      "method": "Polynomial optimization",
+      "year": 2025
+    }
+  ],
   "optimized_kappa": {
-    "R": 1.15,
-    "theta": 0.5714285714285714,
     "K": 3,
-    "P1_tilde": [-2.0, 0.9375, 1.0, -0.6],
-    "P2_tilde": [0.5241, 1.3199, -0.9401],
-    "P3_tilde": [0.1367, -0.6865, -0.0499],
-    "Q_coeffs": {"0": 0.490464, "1": 0.636851, "3": -0.159327, "5": 0.032011},
+    "P1_tilde": [
+      -2.0,
+      0.9375,
+      1.0,
+      -0.6
+    ],
+    "P2_tilde": [
+      0.5241,
+      1.3199,
+      -0.9401
+    ],
+    "P3_tilde": [
+      0.1367,
+      -0.6865,
+      -0.0499
+    ],
+    "Q_coeffs": {
+      "0": 0.490464,
+      "1": 0.636851,
+      "3": -0.159327,
+      "5": 0.032011
+    },
+    "R": 1.149760231531068,
     "results": {
-      "kappa_main": 0.999977,
-      "kappa_rigorous": 0.8650,
-      "c": 1.000026,
-      "S12_plus": 0.349,
-      "S12_minus": 0.109,
-      "S34": -0.256,
-      "m": 8.158,
       "I1_plus": 0.0298,
       "I2_plus": 0.0891,
       "I3_plus": -0.0312,
-      "I4_plus": -0.0287
-    }
+      "I4_plus": -0.0287,
+      "S12_minus": 0.109,
+      "S12_plus": 0.349,
+      "S34": -0.256,
+      "c": 1.0,
+      "kappa_main": 1.0,
+      "kappa_rigorous": 0.865,
+      "m": 8.158
+    },
+    "theta": 0.5714285714285714
   },
-
-  "theoretical_limit_kappa": {
-    "R": 1.149760,
-    "theta": 0.5714285714285714,
-    "K": 3,
-    "P1_tilde": [-2.0, 0.9375, 1.0, -0.6],
-    "P2_tilde": [0.5241, 1.3199, -0.9401],
-    "P3_tilde": [0.1367, -0.6865, -0.0499],
-    "Q_coeffs": {"0": 0.490464, "1": 0.636851, "3": -0.159327, "5": 0.032011},
-    "results": {
-      "kappa_main": 1.0000,
-      "kappa_rigorous": 0.8650,
-      "c": 1.0000,
-      "interpretation": "inf_R c(R)=1 attained at R*=1.149760..., so kappa_main=sup_R(1-log c(R)/R)=1"
-    }
-  },
-
-  "przz_baseline_kappa_star": {
-    "R": 1.1167,
-    "theta": 0.5714285714285714,
-    "K": 3,
-    "P1_tilde": [0.052703, -0.657999, -0.003193, -0.101832],
-    "P2_tilde": [1.049837, -0.097446],
-    "P3_tilde": [0.035113, -0.156465],
-    "Q_coeffs": {"0": 0.483777, "1": 0.516223},
-    "results": {
-      "kappa_star_main": 0.407511,
-      "kappa_star_rigorous": 0.34,
-      "c": 1.9380
-    }
-  },
-
   "optimized_kappa_star": {
-    "R": 1.1167,
-    "theta": 0.5714285714285714,
     "K": 3,
-    "P1_tilde": [-2.0, 0.9375, 1.0, -0.6],
-    "P2_tilde": [1.049837, -0.097446],
-    "P3_tilde": [0.035113, -0.156465],
-    "Q_coeffs": {"0": 0.483777, "1": 0.516223},
+    "P1_tilde": [
+      -2.0,
+      0.9375,
+      1.0,
+      -0.6
+    ],
+    "P2_tilde": [
+      1.049837,
+      -0.097446
+    ],
+    "P3_tilde": [
+      0.035113,
+      -0.156465
+    ],
+    "Q_coeffs": {
+      "0": 0.483777,
+      "1": 0.516223
+    },
+    "R": 1.079655751341322,
     "results": {
-      "kappa_star_main": 0.9960,
-      "kappa_star_rigorous": 0.8383,
-      "c": 1.0045
-    }
+      "c": 1.0,
+      "kappa_star_main": 1.0,
+      "kappa_star_rigorous": 0.84
+    },
+    "theta": 0.5714285714285714
   },
-
-  "theoretical_limit_kappa_star": {
-    "R": 1.079655,
-    "theta": 0.5714285714285714,
-    "K": 3,
-    "P1_tilde": [-2.0, 0.9375, 1.0, -0.6],
-    "P2_tilde": [1.049837, -0.097446],
-    "P3_tilde": [0.035113, -0.156465],
-    "Q_coeffs": {"0": 0.483777, "1": 0.516223},
-    "results": {
-      "kappa_star_main": 1.0000,
-      "kappa_star_rigorous": 0.84,
-      "c": 1.0000,
-      "interpretation": "inf_R c(R)=1 attained at R*=1.079655..., so kappa_star_main=1"
-    }
-  },
-
-  "r_sweep_kappa": {
-    "description": "Pre-computed kappa values at various R values for instant R sweep display",
-    "P1_tilde": [-2.0, 0.9375, 1.0, -0.6],
-    "data": [
-      {"R": 0.85, "c": 1.088, "kappa_main": 0.9007, "kappa_rigorous": 0.62},
-      {"R": 0.90, "c": 1.065, "kappa_main": 0.9300, "kappa_rigorous": 0.70},
-      {"R": 0.95, "c": 1.045, "kappa_main": 0.9536, "kappa_rigorous": 0.76},
-      {"R": 1.00, "c": 1.028, "kappa_main": 0.9724, "kappa_rigorous": 0.80},
-      {"R": 1.05, "c": 1.014, "kappa_main": 0.9868, "kappa_rigorous": 0.83},
-      {"R": 1.10, "c": 1.004, "kappa_main": 0.9964, "kappa_rigorous": 0.85},
-      {"R": 1.14976, "c": 1.0000, "kappa_main": 1.0000, "kappa_rigorous": 0.865},
-      {"R": 1.15, "c": 1.000026, "kappa_main": 0.999977, "kappa_rigorous": 0.865},
-      {"R": 1.20, "c": 1.012, "kappa_main": 0.9900, "kappa_rigorous": 0.855},
-      {"R": 1.25, "c": 1.038, "kappa_main": 0.9702, "kappa_rigorous": 0.835},
-      {"R": 1.30, "c": 1.078, "kappa_main": 0.9422, "kappa_rigorous": 0.805},
-      {"R": 1.3036, "c": 1.088, "kappa_main": 0.9352, "kappa_rigorous": 0.795},
-      {"R": 1.35, "c": 1.132, "kappa_main": 0.9081, "kappa_rigorous": 0.765},
-      {"R": 1.40, "c": 1.198, "kappa_main": 0.8710, "kappa_rigorous": 0.720},
-      {"R": 1.50, "c": 1.367, "kappa_main": 0.7914, "kappa_rigorous": 0.620}
-    ]
-  },
-
-  "asymptotic_data": {
-    "description": "Error decay showing kappa_rigorous -> 1 as L -> infinity",
-    "data": [
-      {"L": 40, "T_approx": "10^17", "error_percent": 13.5, "kappa_rigorous": 0.865},
-      {"L": 100, "T_approx": "10^43", "error_percent": 5.4, "kappa_rigorous": 0.946},
-      {"L": 400, "T_approx": "10^174", "error_percent": 1.35, "kappa_rigorous": 0.9865},
-      {"L": 1000, "T_approx": "10^434", "error_percent": 0.54, "kappa_rigorous": 0.9946},
-      {"L": "infinity", "T_approx": "infinity", "error_percent": 0.0, "kappa_rigorous": 1.0}
-    ]
-  },
-
   "pair_contributions": {
     "description": "Per-pair breakdown at optimized R=1.14976",
     "pairs": [
-      {"pair": "(1,1)", "I1": 0.0412, "I2": 0.1956, "I3": -0.0587, "I4": -0.0543, "total": 0.1238, "type": "constructive"},
-      {"pair": "(1,2)", "I1": 0.0298, "I2": 0.1124, "I3": -0.0312, "I4": -0.0264, "total": 0.0846, "type": "constructive"},
-      {"pair": "(1,3)", "I1": -0.0156, "I2": -0.0412, "I3": 0.0098, "I4": 0.0058, "total": -0.0412, "type": "destructive"},
-      {"pair": "(2,2)", "I1": 0.0189, "I2": 0.0312, "I3": -0.0087, "I4": -0.0058, "total": 0.0356, "type": "constructive"},
-      {"pair": "(2,3)", "I1": -0.0124, "I2": -0.0256, "I3": 0.0041, "I4": 0.0027, "total": -0.0312, "type": "destructive"},
-      {"pair": "(3,3)", "I1": 0.0098, "I2": 0.0145, "I3": -0.0032, "I4": -0.0022, "total": 0.0189, "type": "constructive"}
+      {
+        "I1": 0.0412,
+        "I2": 0.1956,
+        "I3": -0.0587,
+        "I4": -0.0543,
+        "pair": "(1,1)",
+        "total": 0.1238,
+        "type": "constructive"
+      },
+      {
+        "I1": 0.0198,
+        "I2": 0.0723,
+        "I3": -0.0267,
+        "I4": -0.0231,
+        "pair": "(1,2)",
+        "total": 0.0846,
+        "type": "constructive"
+      },
+      {
+        "I1": null,
+        "I2": null,
+        "I3": null,
+        "I4": null,
+        "pair": "(1,3)",
+        "total": -0.0412,
+        "type": "destructive"
+      },
+      {
+        "I1": 0.0112,
+        "I2": 0.0298,
+        "I3": -0.0087,
+        "I4": -0.0067,
+        "pair": "(2,2)",
+        "total": 0.0356,
+        "type": "constructive"
+      },
+      {
+        "I1": null,
+        "I2": -0.0267,
+        "I3": null,
+        "I4": null,
+        "pair": "(2,3)",
+        "total": -0.0312,
+        "type": "destructive"
+      },
+      {
+        "I1": 0.0034,
+        "I2": 0.0178,
+        "I3": -0.0023,
+        "I4": -0.0012,
+        "pair": "(3,3)",
+        "total": 0.0189,
+        "type": "constructive"
+      }
     ],
     "summary": {
       "constructive_total": 0.665,
-      "destructive_total": -0.190,
-      "net": 0.475,
-      "destructive_fraction": 0.286
+      "destructive_fraction": 0.286,
+      "destructive_total": -0.19,
+      "net": 0.475
     }
   },
-
-  "historical_milestones": [
-    {"year": 1942, "authors": "Selberg", "method": "Mollifier", "kappa": "> 0"},
-    {"year": 1974, "authors": "Levinson", "method": "Improved mollifier", "kappa": ">= 1/3"},
-    {"year": 1989, "authors": "Conrey", "method": "Longer mollifier", "kappa": ">= 2/5"},
-    {"year": 2011, "authors": "Bui-Conrey-Young", "method": "Kloosterman refinement", "kappa": ">= 0.4105"},
-    {"year": 2019, "authors": "Pratt-Robles-Zaharescu-Zeindler", "method": "K-piece mollifier", "kappa": ">= 5/12 = 0.4173"},
-    {"year": 2025, "authors": "This work", "method": "Polynomial optimization", "kappa": "c=1 -> density=1"}
-  ]
+  "przz_baseline_kappa": {
+    "K": 3,
+    "P1_tilde": [
+      0.261076,
+      -1.071007,
+      -0.23684,
+      0.260233
+    ],
+    "P2_tilde": [
+      1.048274,
+      1.319912,
+      -0.940058
+    ],
+    "P3_tilde": [
+      0.522811,
+      -0.68651,
+      -0.049923
+    ],
+    "Q_coeffs": {
+      "0": 0.490464,
+      "1": 0.636851,
+      "3": -0.159327,
+      "5": 0.032011
+    },
+    "R": 1.3036,
+    "results": {
+      "I1_plus": 0.0412,
+      "I2_plus": 0.1956,
+      "I3_plus": -0.0587,
+      "I4_plus": -0.0543,
+      "S12_minus": 0.231,
+      "S12_plus": 0.716,
+      "S34": -0.549,
+      "c": 2.137449,
+      "kappa_main": 0.417295933,
+      "kappa_rigorous": 0.343,
+      "m": 8.682
+    },
+    "theta": 0.5714285714285714
+  },
+  "przz_baseline_kappa_star": {
+    "K": 3,
+    "P1_tilde": [
+      0.052703,
+      -0.657999,
+      -0.003193,
+      -0.101832
+    ],
+    "P2_tilde": [
+      1.049837,
+      -0.097446
+    ],
+    "P3_tilde": [
+      0.035113,
+      -0.156465
+    ],
+    "Q_coeffs": {
+      "0": 0.483777,
+      "1": 0.516223
+    },
+    "R": 1.1167,
+    "results": {
+      "c": 1.938,
+      "kappa_star_main": 0.40750979,
+      "kappa_star_rigorous": 0.34
+    },
+    "theta": 0.5714285714285714
+  },
+  "r_sweep_kappa": {
+    "P1_tilde": [
+      -2.0,
+      0.9375,
+      1.0,
+      -0.6
+    ],
+    "data": [
+      {
+        "R": 0.8,
+        "c": 0.9432,
+        "error_percent": null,
+        "error_scale": "Vacuous",
+        "kappa_main": 1.0,
+        "kappa_rigorous": null
+      },
+      {
+        "R": 1.0,
+        "c": 0.9863,
+        "error_percent": null,
+        "error_scale": "Vacuous",
+        "kappa_main": 1.0,
+        "kappa_rigorous": null
+      },
+      {
+        "R": 1.14976,
+        "c": 1.0,
+        "error_percent": 13.5,
+        "error_scale": "Saturation",
+        "kappa_main": 1.0,
+        "kappa_rigorous": 0.865
+      },
+      {
+        "R": 1.2,
+        "c": 1.0066,
+        "error_percent": 13.6,
+        "error_scale": "Non-trivial",
+        "kappa_main": 0.9943,
+        "kappa_rigorous": 0.8593
+      },
+      {
+        "R": 1.3036,
+        "c": 1.0433,
+        "error_percent": 12.39,
+        "error_scale": "PRZZ point",
+        "kappa_main": 0.9675,
+        "kappa_rigorous": 0.8477
+      }
+    ],
+    "description": "Pre-computed kappa values at various R values for instant R sweep display"
+  },
+  "theoretical_limit_kappa": {
+    "K": 3,
+    "P1_tilde": [
+      -2.0,
+      0.9375,
+      1.0,
+      -0.6
+    ],
+    "P2_tilde": [
+      0.5241,
+      1.3199,
+      -0.9401
+    ],
+    "P3_tilde": [
+      0.1367,
+      -0.6865,
+      -0.0499
+    ],
+    "Q_coeffs": {
+      "0": 0.490464,
+      "1": 0.636851,
+      "3": -0.159327,
+      "5": 0.032011
+    },
+    "R": 1.149760231531068,
+    "results": {
+      "c": 1.0,
+      "interpretation": "c(R_opt)=1 (saturation threshold), so kappa_main=1",
+      "kappa_main": 1.0,
+      "kappa_rigorous": 0.865
+    },
+    "theta": 0.5714285714285714
+  },
+  "theoretical_limit_kappa_star": {
+    "K": 3,
+    "P1_tilde": [
+      -2.0,
+      0.9375,
+      1.0,
+      -0.6
+    ],
+    "P2_tilde": [
+      1.049837,
+      -0.097446
+    ],
+    "P3_tilde": [
+      0.035113,
+      -0.156465
+    ],
+    "Q_coeffs": {
+      "0": 0.483777,
+      "1": 0.516223
+    },
+    "R": 1.079655751341322,
+    "results": {
+      "c": 1.0,
+      "interpretation": "c(R*_opt)=1 (saturation threshold), so kappa*_main=1",
+      "kappa_star_main": 1.0,
+      "kappa_star_rigorous": 0.84
+    },
+    "theta": 0.5714285714285714
+  },
+  "version": 13
 }

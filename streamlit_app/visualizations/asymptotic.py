@@ -23,10 +23,15 @@ def get_asymptotic_data() -> List[Dict]:
 
     # Fallback data (from paper Table in Section 9.2)
     return [
-        {"L": 40, "T_approx": "10^17", "error_percent": 13.5, "kappa_rigorous": 0.865},
-        {"L": 100, "T_approx": "10^43", "error_percent": 5.4, "kappa_rigorous": 0.946},
-        {"L": 400, "T_approx": "10^174", "error_percent": 1.35, "kappa_rigorous": 0.9865},
-        {"L": 1000, "T_approx": "10^434", "error_percent": 0.54, "kappa_rigorous": 0.9946},
+        {"L": 9.2, "T_approx": "10^4", "error_percent": 57.6, "kappa_rigorous": 0.424},
+        {"L": 13.8, "T_approx": "10^6", "error_percent": 38.4, "kappa_rigorous": 0.616},
+        {"L": 23.0, "T_approx": "10^10", "error_percent": 23.1, "kappa_rigorous": 0.769},
+        {"L": 39.1, "T_approx": "10^17", "error_percent": 13.6, "kappa_rigorous": 0.865},
+        {"L": 46.1, "T_approx": "10^20", "error_percent": 11.5, "kappa_rigorous": 0.885},
+        {"L": 115.1, "T_approx": "10^50", "error_percent": 4.6, "kappa_rigorous": 0.954},
+        {"L": 230.3, "T_approx": "10^100", "error_percent": 2.3, "kappa_rigorous": 0.977},
+        {"L": 2302.6, "T_approx": "10^1000", "error_percent": 0.23, "kappa_rigorous": 0.9977},
+        {"L": 23025.9, "T_approx": "10^10000", "error_percent": 0.023, "kappa_rigorous": 0.99977},
     ]
 
 
@@ -78,7 +83,7 @@ def create_asymptotic_plot(data: List[Dict], current_L: float = 40) -> go.Figure
     # Limit line at kappa = 1
     fig.add_hline(
         y=1.0, line_dash="dash", line_color="green",
-        annotation_text="kappa = 1 (limit as L -> infinity)",
+        annotation_text="kappa = 1 (liminf as L -> infinity)",
         annotation_position="right"
     )
 
@@ -156,29 +161,45 @@ def render_asymptotic_tab():
     As $T \\to \\infty$ (equivalently, $L = \\log T \\to \\infty$), the error term vanishes
     and $\\kappa_{\\text{rigorous}} \\to 1$.
 
-    This proves **Theorem 1.3**: The density of zeros on the critical line approaches 1.
+    This supports **Theorem 1.3**: $\\kappa := \\liminf_{T \\to \\infty} N_0(T)/N(T) = 1$.
+    The explicit finite-height bound is valid for $T \\gtrsim 10^{17}$ (i.e., $L \\approx 40$).
     """)
 
     # Get data
     data = get_asymptotic_data()
 
-    # L slider
+    # L selector
     st.markdown("#### Explore L = log(T)")
-    current_L = st.slider(
+    numeric_L = [d["L"] for d in data if isinstance(d["L"], (int, float))]
+    if not numeric_L:
+        st.warning("No asymptotic data available.")
+        return
+
+    L_options = sorted(numeric_L)
+    default_L = min(L_options, key=lambda x: abs(x - 39.1))
+    current_L = st.select_slider(
         "Select L value",
-        min_value=40,
-        max_value=1000,
-        value=40,
-        step=10,
-        key="asymptotic_L_slider"
+        options=L_options,
+        value=default_L,
+        key="asymptotic_L_slider",
+        format_func=lambda x: f"{x:.1f}",
     )
 
-    # Compute values at current L
-    metrics = compute_error_at_L(current_L)
+    # Use table values when available for exact display
+    row = next((d for d in data if d.get("L") == current_L), None)
+    if row:
+        metrics = {
+            "L": current_L,
+            "T_approx": row.get("T_approx", "—"),
+            "error_percent": row.get("error_percent", 0.0),
+            "kappa_rigorous": row.get("kappa_rigorous", 0.0),
+        }
+    else:
+        metrics = compute_error_at_L(current_L)
 
     # Display current values
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("L = log(T)", f"{current_L}")
+    col1.metric("L = log(T)", f"{current_L:.1f}")
     col2.metric("T approximation", metrics["T_approx"])
     col3.metric("Error", f"{metrics['error_percent']:.2f}%")
     col4.metric("kappa_rigorous", f"{metrics['kappa_rigorous']:.4f}")
@@ -204,8 +225,10 @@ def render_asymptotic_tab():
     table_data = []
     for d in data:
         if isinstance(d["L"], (int, float)):
+            L_val = d["L"]
+            L_str = f"{L_val:.1f}"
             table_data.append({
-                "L": str(int(d["L"])),
+                "L": L_str,
                 "T (approx)": str(d["T_approx"]),
                 "Error (%)": f"{d['error_percent']:.2f}",
                 "kappa_rigorous": f"{d['kappa_rigorous']:.4f}",
@@ -224,6 +247,17 @@ def render_asymptotic_tab():
     import pandas as pd
     df = pd.DataFrame(table_data)
     st.dataframe(df, hide_index=True)
+
+    st.markdown("#### Height Milestones")
+    milestone_rows = [
+        {"Target κ": "≥ 50%", "Required T": "10^5"},
+        {"Target κ": "≥ 86.5%", "Required T": "10^17"},
+        {"Target κ": "≥ 90%", "Required T": "10^23"},
+        {"Target κ": "≥ 99%", "Required T": "10^230"},
+        {"Target κ": "≥ 99.99%", "Required T": "10^23026"},
+    ]
+    st.table(milestone_rows)
+    st.caption("From the paper's explicit error constants and $\\kappa_{\\text{rigorous}}$ table.")
 
     st.divider()
 
@@ -252,7 +286,7 @@ def render_asymptotic_tab():
     """)
 
     st.latex(r"""
-    \lim_{T \to \infty} \frac{N_0(T)}{N(T)} = 1
+    \liminf_{T \to \infty} \frac{N_0(T)}{N(T)} = 1
     """)
 
     st.info("""

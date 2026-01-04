@@ -102,7 +102,7 @@ def render_r_parameter():
         # κ* mode presets
         c1, c2 = st.columns(2)
         with c1:
-            if st.button("1.08 (Best)", key="r_best_ks", type="primary"):
+            if st.button("1.079655 (Best)", key="r_best_ks", type="primary"):
                 _set_r_and_rerun(R_OPTIMIZED_KAPPA_STAR)
         with c2:
             if st.button("1.1167 (PRZZ)", key="r_przz_ks"):
@@ -111,7 +111,7 @@ def render_r_parameter():
         # κ mode presets
         c1, c2 = st.columns(2)
         with c1:
-            if st.button("1.15 (Best)", key="r_best_k", type="primary"):
+            if st.button("1.149760 (Best)", key="r_best_k", type="primary"):
                 _set_r_and_rerun(R_OPTIMIZED_KAPPA)
         with c2:
             if st.button("1.3036 (PRZZ)", key="r_przz_k"):
@@ -135,4 +135,4 @@ def render_r_info():
 
 def get_current_R():
     """Get the current R value."""
-    return st.session_state.get("R_value", 1.15)
+    return st.session_state.get("R_value", R_OPTIMIZED_KAPPA)
