@@ -81,7 +81,7 @@ def main():
         mode = st.radio(
             "Select metric",
             ["kappa", "kappa_star"],
-            format_func=lambda x: "κ (zeros on critical line)" if x == "kappa" else "κ* (simple zeros)",
+            format_func=lambda x: "κ (zeros on critical line)" if x == "kappa" else "κ* (simple critical-line zeros)",
             key="computation_mode",
             horizontal=False,
         )
@@ -406,7 +406,7 @@ def main():
     st.divider()
     st.caption(
         "PRZZ Mollifier Explorer | Based on Pratt-Robles-Zaharescu-Zeindler (2019) | "
-        f"kappa = 1 - log(c)/R"
+        "kappa >= 1 - max(log(c), 0)/R"
     )
 
 

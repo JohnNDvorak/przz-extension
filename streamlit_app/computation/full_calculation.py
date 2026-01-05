@@ -165,11 +165,11 @@ def display_full_result(result: Dict):
     with col2:
         if kappa_rigorous is not None:
             st.metric(
-                label="κ (rigorous)",
+                label="κ (explicit)",
                 value=f"{kappa_rigorous:.6f}",
             )
         else:
-            st.metric(label="κ (rigorous)", value="N/A")
+            st.metric(label="κ (explicit)", value="N/A")
 
     with col3:
         st.metric(

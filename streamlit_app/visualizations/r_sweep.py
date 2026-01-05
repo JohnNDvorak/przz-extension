@@ -17,7 +17,7 @@ def get_precomputed_sweep_data() -> List[Dict]:
         from ..utils.constants import get_r_sweep_data
         return get_r_sweep_data()
     except:
-        # Fallback data from v13 table (optimized polynomials)
+        # Fallback data from v15 table (optimized polynomials)
         return [
             {"R": 0.80, "c": 0.9432, "kappa_main": 1.0000, "kappa_rigorous": None, "error_percent": None, "error_scale": "Vacuous"},
             {"R": 1.00, "c": 0.9863, "kappa_main": 1.0000, "kappa_rigorous": None, "error_percent": None, "error_scale": "Vacuous"},
@@ -108,7 +108,7 @@ def create_c_R_plot(data: List[Dict], current_R: Optional[float] = None) -> go.F
         row=2, col=1
     )
 
-    # Plot rigorous values only where available
+    # Plot explicit values only where available
     rig_points = [(r, k) for r, k in zip(R_vals, kappa_rig) if k is not None]
     if rig_points:
         rig_R, rig_vals = zip(*rig_points)
@@ -116,7 +116,7 @@ def create_c_R_plot(data: List[Dict], current_R: Optional[float] = None) -> go.F
             go.Scatter(
                 x=list(rig_R), y=list(rig_vals),
                 mode='lines+markers',
-                name='kappa_rigorous',
+                name='kappa_explicit',
                 line=dict(color='#d62728', width=2, dash='dot'),
                 marker=dict(size=6),
             ),
@@ -225,10 +225,13 @@ def render_r_sweep_tab(current_coeffs: Optional[Dict] = None):
     **$R_{\\mathrm{opt}} = 1.149760231531068\\ldots$**, where $c(R_{\\mathrm{opt}}) = 1$.
     """)
     st.caption(
-        "Paper values use adaptive quadrature (n=100, stable to n=200). "
+        "Paper values use adaptive quadrature (n=100) and the closed-form normal form. "
         "This module uses fixed quadrature (live n=40, full n=60) and rounded R values for interactivity."
     )
-    st.caption("At R = 1.14978, the paper reports c = 1.0000024; the deviation vanishes as R → R_opt.")
+    st.caption(
+        "At R = 1.14978, the paper reports c = 1.0000024; the deviation vanishes as R -> R_opt. "
+        "At R = 1.14976023153715, the residual is |c-1| ≈ 7.4e-13."
+    )
 
     # Get precomputed data
     sweep_data = get_precomputed_sweep_data()
@@ -268,15 +271,15 @@ def render_r_sweep_tab(current_coeffs: Optional[Dict] = None):
     col2.metric("c", f"{c_current:.6f}")
     col3.metric("kappa_main", f"{min(kappa_main_current, 1.0):.6f}")
     if c_current < 1.0 or kappa_rig_current is None:
-        col4.metric("kappa_rigorous", "N/A")
+        col4.metric("kappa_explicit", "N/A")
     else:
-        col4.metric("kappa_rigorous", f"{kappa_rig_current:.4f}")
+        col4.metric("kappa_explicit", f"{kappa_rig_current:.4f}")
 
     # Key R values
     st.markdown("#### Key R Values")
     key_R_data = [
         {"R": 1.1497602315, "name": "Kappa saturation (R_opt)", "c": 1.0000, "kappa_main": 1.0000, "kappa_rig": 0.8650},
-        {"R": 1.0796557513, "name": "Kappa* saturation (R*_opt)", "c": 1.0000, "kappa_main": 1.0000, "kappa_rig": 0.84},
+        {"R": 1.07965575130865, "name": "Kappa* saturation (R*_opt)", "c": 1.0000, "kappa_main": 1.0000, "kappa_rig": 0.84},
         {"R": 1.3036, "name": "PRZZ kappa (baseline R)", "c": 2.137449, "kappa_main": 0.417293962, "kappa_rig": 0.343},
         {"R": 1.1167, "name": "PRZZ kappa* (baseline R)", "c": 1.9380, "kappa_main": 0.407511457, "kappa_rig": 0.34},
     ]
@@ -314,7 +317,7 @@ def render_r_sweep_tab(current_coeffs: Optional[Dict] = None):
             "R": f"{R_val:.5f}" if isinstance(R_val, (int, float)) else str(R_val),
             "c": f"{c_val:.4f}" if isinstance(c_val, (int, float)) else "—",
             "kappa_main": kappa_main_display,
-            "kappa_rigorous": kappa_rig_display,
+            "kappa_explicit": kappa_rig_display,
             "Error %": f"{error_pct:.2f}%" if isinstance(error_pct, (int, float)) else "—",
             "Error Scale": error_scale or "—",
         })
@@ -329,6 +332,7 @@ def render_r_sweep_tab(current_coeffs: Optional[Dict] = None):
         {"R": "1.149760231...", "c(R)": "1.000000000", "|c-1|": "<5e-16"},
     ]
     st.table(convergence_rows)
+    st.caption("Rounded-value check: at R = 1.14976023153715, |c-1| ≈ 7.4e-13.")
 
     st.divider()
 
@@ -354,14 +358,14 @@ def render_r_sweep_tab(current_coeffs: Optional[Dict] = None):
     st.markdown("#### Mathematical Interpretation")
 
     st.latex(r"""
-    \kappa = 1 - \frac{\log c}{R}
+    \kappa \ge 1 - \frac{\max(\log c, 0)}{R}
     """)
 
     st.markdown("""
     - When **c > 1**: $\\log c > 0$, so $\\kappa_{\\text{main}} < 1$ (non-trivial bound)
     - When **c = 1**: $\\log c = 0$, so $\\kappa_{\\text{main}} = 1$ (saturated)
-    - When **c < 1**: $\\log c < 0$, so $\\kappa_{\\text{main}} > 1$ (vacuous, capped at 1)
-    - The rigorous gap scales roughly like $1/R$, so smaller $R$ increases error even when $\\kappa_{\\text{main}}$ rises
+    - When **c < 1**: $\\kappa_{\\text{main}} \\ge 1$ (vacuous, capped at 1)
+    - The explicit gap scales roughly like $1/R$, so smaller $R$ increases error even when $\\kappa_{\\text{main}}$ rises
 
     **Key insight:** The optimized polynomials create destructive interference that drives $c$
     to the saturation threshold. At $R_{\\mathrm{opt}} \\approx 1.14976$, we have $c(R_{\\mathrm{opt}})=1$.

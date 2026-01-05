@@ -121,9 +121,9 @@ def render_error_breakdown(
 
     with col2:
         if kappa_rigorous is not None:
-            st.metric("kappa (rigorous)", f"{kappa_rigorous:.6f}")
+            st.metric("kappa (explicit)", f"{kappa_rigorous:.6f}")
         else:
-            st.metric("kappa (rigorous)", "N/A")
+            st.metric("kappa (explicit)", "N/A")
 
     with col3:
         if kappa_rigorous is not None:
@@ -142,6 +142,8 @@ def render_error_breakdown(
       more aggressive polynomial shapes that may impact error bounds.
     - **Practical error**: Conservative estimate at L = log(T) = 40
     - **Theoretical bound**: Very conservative upper bound (assumes worst-case correlations)
+    - **Q(0) normalization**: We enforce $q_0 = 1 - \sum_{k \\ge 1} q_k$. Using PRZZ's
+      truncated coefficients reproduces their published digits.
 
     The actual error in validated computations is typically much smaller than these bounds.
     PRZZ reproduction is within 0.0005% (κ) and 0.0004% (κ*).
@@ -151,12 +153,13 @@ def render_error_breakdown(
     **Scaling note:**
     The paper shows the error contribution entering as
     $(C_{\text{per\_L}}/L + C_{\text{per\_L}^2}/L^2)/(R \\cdot c)$, so smaller $R$ increases the
-    rigorous gap even when $\\kappa_{\\text{main}}$ improves.
+    explicit gap even when $\\kappa_{\\text{main}}$ improves.
     """)
 
     st.markdown("""
     **Explicit vs certified:**
     These bounds are explicit numerical evaluations of PRZZ's asymptotic error constants.
+    The paper denotes them $\\kappa_{\\text{explicit}}$; the app stores them as kappa_rigorous.
     We reserve **certified** for bounds verified by interval arithmetic.
     """)
 

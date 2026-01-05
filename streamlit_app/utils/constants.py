@@ -17,12 +17,12 @@ K = 3  # Number of mollifier pieces
 
 # PRZZ baseline R values
 R_PRZZ_KAPPA = 1.3036      # For κ (full zeros)
-R_PRZZ_KAPPA_STAR = 1.1167  # For κ* (simple zeros)
+R_PRZZ_KAPPA_STAR = 1.1167  # For κ* (simple critical-line zeros)
 R_PRZZ = R_PRZZ_KAPPA       # Default
 
 # Optimized R values (saturation points where c=1)
-R_OPTIMIZED_KAPPA = 1.149760231531068  # Saturation point for κ (v13)
-R_OPTIMIZED_KAPPA_STAR = 1.079655751341322  # Saturation point for κ* (v13)
+R_OPTIMIZED_KAPPA = 1.149760231531068  # Saturation point for κ (v16)
+R_OPTIMIZED_KAPPA_STAR = 1.07965575130865  # Saturation point for κ* (v16)
 R_OPTIMIZED = R_OPTIMIZED_KAPPA   # Default
 R_MIN = 0.5
 R_MAX = 2.0
@@ -41,7 +41,7 @@ KAPPA_TARGET = 0.417293962
 C_TARGET = 2.13745440613217263636
 
 # ============================================================
-# PRZZ κ* BASELINE (simple zeros on critical line)
+# PRZZ κ* BASELINE (simple critical-line zeros)
 # ============================================================
 PRZZ_KAPPA_STAR_P1_TILDE = [0.052703, -0.657999, -0.003193, -0.101832]
 PRZZ_KAPPA_STAR_P2_TILDE = [1.049837, -0.097446]
@@ -59,7 +59,7 @@ OPTIMIZED_P1_TILDE = [-2.0, 0.9375, 1.0, -0.6]  # Universal P1!
 OPTIMIZED_P2_TILDE = [0.5241, 1.3199, -0.9401]
 OPTIMIZED_P3_TILDE = [0.1367, -0.6865, -0.0499]
 
-# Optimized results
+# Optimized results (explicit finite-height bounds)
 OPTIMIZED_KAPPA_MAIN = 1.0000
 OPTIMIZED_KAPPA_RIGOROUS = 0.8650
 OPTIMIZED_KAPPA_STAR_MAIN = 1.0000
@@ -110,7 +110,7 @@ ERROR_ORDERS = {
 
 # Formulas for display
 FORMULAS = {
-    "kappa": r"\kappa = 1 - \frac{\log c}{R}",
+    "kappa": r"\kappa \ge 1 - \frac{\max(\log c, 0)}{R}",
     "c_assembly": r"c = S_{12}(+R) + m \cdot S_{12}(-R) + S_{34}(+R)",
     "m_formula": r"m = e^R + (2K - 1)",
 }
@@ -120,7 +120,7 @@ def get_przz_defaults(mode: str = "kappa") -> Dict:
     """Return PRZZ default polynomial coefficients.
 
     Args:
-        mode: "kappa" for full zeros, "kappa_star" for simple zeros
+        mode: "kappa" for full zeros, "kappa_star" for simple critical-line zeros
     """
     if mode == "kappa_star":
         return {
@@ -148,7 +148,7 @@ def get_optimized_defaults(mode: str = "kappa") -> Dict:
     """Return our optimized polynomial coefficients.
 
     Args:
-        mode: "kappa" for full zeros, "kappa_star" for simple zeros
+        mode: "kappa" for full zeros, "kappa_star" for simple critical-line zeros
     """
     if mode == "kappa_star":
         return {
@@ -156,7 +156,7 @@ def get_optimized_defaults(mode: str = "kappa") -> Dict:
             "P2_tilde": PRZZ_KAPPA_STAR_P2_TILDE.copy(),  # Use PRZZ P2/P3 for κ*
             "P3_tilde": PRZZ_KAPPA_STAR_P3_TILDE.copy(),
             "Q_coeffs": PRZZ_KAPPA_STAR_Q_COEFFS.copy(),
-            "R": R_OPTIMIZED_KAPPA_STAR,  # Saturation point for κ* (v13)
+            "R": R_OPTIMIZED_KAPPA_STAR,  # Saturation point for κ* (v16)
             "theta": THETA,
             "K": K,
         }
@@ -166,7 +166,7 @@ def get_optimized_defaults(mode: str = "kappa") -> Dict:
             "P2_tilde": OPTIMIZED_P2_TILDE.copy(),
             "P3_tilde": OPTIMIZED_P3_TILDE.copy(),
             "Q_coeffs": PRZZ_Q_COEFFS.copy(),
-            "R": R_OPTIMIZED_KAPPA,  # Saturation point for κ (v13)
+            "R": R_OPTIMIZED_KAPPA,  # Saturation point for κ (v16)
             "theta": THETA,
             "K": K,
         }

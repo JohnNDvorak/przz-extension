@@ -83,7 +83,7 @@ def create_decomposition_table(result: Dict) -> pd.DataFrame:
         {"Step": "S34(+R)", "Formula": "I3(+R) + I4(+R)", "Value": S34},
         {"Step": "m × S12(-R)", "Formula": f"{m:.4f} × S12(-R)", "Value": m * S12_minus},
         {"Step": "c", "Formula": "S12(+R) + m×S12(-R) + S34(+R)", "Value": c},
-        {"Step": "κ", "Formula": "1 - log(c)/R", "Value": kappa},
+        {"Step": "κ", "Formula": "1 - max(log(c), 0)/R", "Value": kappa},
     ]
 
     return pd.DataFrame(data)
@@ -106,6 +106,7 @@ def create_correction_factors_table(result: Dict) -> pd.DataFrame:
     m = result.get("m", 0.0)
     R = result.get("R", 1.3036)
     K = result.get("K", 3)
+    f_I1 = 157525543 / 651237796
 
     data = [
         {
@@ -121,6 +122,12 @@ def create_correction_factors_table(result: Dict) -> pd.DataFrame:
             "Value": g_I2,
         },
         {
+            "Factor": "f_I1",
+            "Description": "Extraction weight",
+            "Formula": "(G - g_I2)/(g_I1 - g_I2)",
+            "Value": f_I1,
+        },
+        {
             "Factor": "g_total",
             "Description": "Weighted correction",
             "Formula": "f_I1 × g_I1 + (1-f_I1) × g_I2",
@@ -128,7 +135,7 @@ def create_correction_factors_table(result: Dict) -> pd.DataFrame:
         },
         {
             "Factor": "base",
-            "Description": "Mirror base (exact algebraic)",
+            "Description": "Mirror base (observed factorization)",
             "Formula": "exp(R) + (2K-1)",
             "Value": base,
         },
@@ -268,11 +275,17 @@ def render_integrals_table(result: Optional[Dict]):
 
         **Mirror Multiplier Derivation:**
 
-        The formula m = exp(R) + (2K-1) is an exact algebraic identity:
+        The formula m = exp(R) + (2K-1) is an observed factorization (verified numerically):
         ```
         m = exp(2R) × (3/2) × (2/3) × [exp(-R) + (2K-1)×exp(-2R)]
           = exp(R) + (2K-1)
         ```
 
-        The 3/2 and 2/3 factors cancel exactly!
+        The 3/2 and 2/3 factors cancel in the derivation; reported c values are still
+        computed directly from the PRZZ integrals.
+
+        **Kappa* normal form:**
+
+        For the linear-Q $\kappa^*$ configuration, the normal-form mirror factor is
+        $G = 9270233/9137206 \sim 1.014558826845$.
         """)

@@ -15,7 +15,7 @@ PRZZ_INPUTS = {
     "input1": {
         "name": "Theta Permitted",
         "short": "theta = 4/7",
-        "description": r"The mollifier exponent $\theta = 4/7$ is permitted by PRZZ Input 1",
+        "description": r"The mollifier exponent satisfies $\theta \in (0,4/7)$; computations use the boundary value as a limit from below",
         "value": 4/7,
         "source": "PRZZ Input 1",
     },
@@ -76,12 +76,12 @@ DERIVED_CONSTANTS = {
         "source": "Theorem 5.3",
     },
     "M0": {
-        "name": "Mirror Base M0",
+        "name": "Mirror Base M0 (observed)",
         "formula": r"$M_0 = e^R + (2K-1)$",
         "value": None,  # Depends on R
         "value_display": "e^R + 5",
         "depends_on": ["input2"],
-        "source": "Theorem 4.2",
+        "source": "Observation 4.2",
     },
     "G_total": {
         "name": "G (Extracted)",
@@ -109,7 +109,7 @@ FINAL_RESULT = {
     },
     "kappa": {
         "name": "Kappa Bound",
-        "formula": r"$\kappa = 1 - \frac{\log(c)}{R}$",
+        "formula": r"$\kappa \ge 1 - \frac{\max(\log c, 0)}{R}$",
         "depends_on": ["c"],
     },
 }

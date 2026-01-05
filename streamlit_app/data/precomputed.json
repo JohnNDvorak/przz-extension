@@ -62,9 +62,9 @@
         "kappa_rigorous": 1.0
       }
     ],
-    "description": "Error decay showing kappa_rigorous -> 1 as L -> infinity"
+    "description": "Error decay showing kappa_explicit -> 1 as L -> infinity"
   },
-  "description": "Pre-computed results aligned with v13 manuscript",
+  "description": "Pre-computed results aligned with v16 manuscript",
   "generated": "2026-01-01",
   "historical_milestones": [
     {
@@ -164,7 +164,7 @@
       "0": 0.483777,
       "1": 0.516223
     },
-    "R": 1.079655751341322,
+    "R": 1.07965575130865,
     "results": {
       "c": 1.0,
       "kappa_star_main": 1.0,
@@ -409,7 +409,7 @@
       "0": 0.483777,
       "1": 0.516223
     },
-    "R": 1.079655751341322,
+    "R": 1.07965575130865,
     "results": {
       "c": 1.0,
       "interpretation": "c(R*_opt)=1 (saturation threshold), so kappa*_main=1",
@@ -418,5 +418,5 @@
     },
     "theta": 0.5714285714285714
   },
-  "version": 13
+  "version": 16
 }

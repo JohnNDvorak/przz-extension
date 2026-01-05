@@ -95,7 +95,7 @@ def generate_json_report(
             },
         },
         "formulas": {
-            "kappa_from_c": "kappa = 1 - log(c)/R",
+            "kappa_from_c": "kappa >= 1 - max(log(c), 0)/R",
             "c_assembly": "c = S12(+R) + m * S12(-R) + S34(+R)",
             "m_formula": "m = g_total * (exp(R) + (2K-1))",
         },

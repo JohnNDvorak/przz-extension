@@ -327,7 +327,7 @@ def render_per_pair_breakdown(
     **Assembly Formula:**
     ```
     c = S12(+R) + m × S12(-R) + S34(+R)
-    κ = 1 - log(c) / R
+    κ >= 1 - max(log(c), 0) / R
     ```
-    where m = exp(R) + (2K-1) for K pieces.
+    where m = exp(R) + (2K-1) for K pieces (observed factorization).
     """)

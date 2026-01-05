@@ -1,7 +1,7 @@
 """
-Asymptotic Explorer - Visualizing kappa_rigorous -> 1 as L -> infinity.
+Asymptotic Explorer - Visualizing kappa_explicit -> 1 as L -> infinity.
 
-Shows how the error term vanishes and the rigorous bound approaches the main term.
+Shows how the error term vanishes and the explicit bound approaches the main term.
 """
 
 import streamlit as st
@@ -71,11 +71,11 @@ def create_asymptotic_plot(data: List[Dict], current_L: float = 40) -> go.Figure
 
     fig = go.Figure()
 
-    # Kappa rigorous curve
+    # Kappa explicit curve
     fig.add_trace(go.Scatter(
         x=L_vals, y=kappa_vals,
         mode='lines+markers',
-        name='kappa_rigorous(L)',
+        name='kappa_explicit(L)',
         line=dict(color='#1f77b4', width=3),
         marker=dict(size=10),
     ))
@@ -102,9 +102,9 @@ def create_asymptotic_plot(data: List[Dict], current_L: float = 40) -> go.Figure
     ))
 
     fig.update_layout(
-        title="Asymptotic Convergence: kappa_rigorous -> 1 as L -> infinity",
+        title="Asymptotic Convergence: kappa_explicit -> 1 as L -> infinity",
         xaxis_title="L = log(T)",
-        yaxis_title="kappa_rigorous",
+        yaxis_title="kappa_explicit",
         template="plotly_white",
         height=400,
         xaxis=dict(type="log"),
@@ -159,11 +159,16 @@ def render_asymptotic_tab():
     st.markdown("### Asymptotic Behavior")
     st.markdown("""
     As $T \\to \\infty$ (equivalently, $L = \\log T \\to \\infty$), the error term vanishes
-    and $\\kappa_{\\text{rigorous}} \\to 1$.
+    and $\\kappa_{\\text{explicit}} \\to 1$.
 
     This supports **Theorem 1.3**: $\\kappa := \\liminf_{T \\to \\infty} N_0(T)/N(T) = 1$.
     The explicit finite-height bound is valid for $T \\gtrsim 10^{17}$ (i.e., $L \\approx 40$).
+    The app stores this as kappa_rigorous; the paper denotes it $\\kappa_{\\mathrm{explicit}}(T)$.
     """)
+    st.caption(
+        "Rows below the validity threshold $T_0 \\approx 10^{17}$ are illustrative; "
+        "the explicit error model is not proven for those heights."
+    )
 
     # Get data
     data = get_asymptotic_data()
@@ -202,7 +207,7 @@ def render_asymptotic_tab():
     col1.metric("L = log(T)", f"{current_L:.1f}")
     col2.metric("T approximation", metrics["T_approx"])
     col3.metric("Error", f"{metrics['error_percent']:.2f}%")
-    col4.metric("kappa_rigorous", f"{metrics['kappa_rigorous']:.4f}")
+    col4.metric("kappa_explicit", f"{metrics['kappa_rigorous']:.4f}")
 
     st.divider()
 
@@ -231,7 +236,7 @@ def render_asymptotic_tab():
                 "L": L_str,
                 "T (approx)": str(d["T_approx"]),
                 "Error (%)": f"{d['error_percent']:.2f}",
-                "kappa_rigorous": f"{d['kappa_rigorous']:.4f}",
+                "kappa_explicit": f"{d['kappa_rigorous']:.4f}",
                 "kappa_gap from 1": f"{1 - d['kappa_rigorous']:.4f}",
             })
 
@@ -240,7 +245,7 @@ def render_asymptotic_tab():
         "L": "infinity",
         "T (approx)": "infinity",
         "Error (%)": "0.00",
-        "kappa_rigorous": "1.0000",
+        "kappa_explicit": "1.0000",
         "kappa_gap from 1": "0.0000",
     })
 
@@ -257,7 +262,7 @@ def render_asymptotic_tab():
         {"Target κ": "≥ 99.99%", "Required T": "10^23026"},
     ]
     st.table(milestone_rows)
-    st.caption("From the paper's explicit error constants and $\\kappa_{\\text{rigorous}}$ table.")
+    st.caption("From the paper's explicit error constants and $\\kappa_{\\text{explicit}}$ table.")
 
     st.divider()
 
@@ -265,7 +270,7 @@ def render_asymptotic_tab():
     st.markdown("#### Mathematical Framework")
 
     st.latex(r"""
-    \kappa_{\text{rigorous}}(T) = \kappa_{\text{main}} - O\left(\frac{1}{\log T}\right)
+    \kappa_{\text{explicit}}(T) = \kappa_{\text{main}} - O\left(\frac{1}{\log T}\right)
     """)
 
     st.markdown("""
@@ -278,7 +283,7 @@ def render_asymptotic_tab():
     """)
 
     st.latex(r"""
-    \lim_{T \to \infty} \kappa_{\text{rigorous}}(T) = 1 - \lim_{T \to \infty} O\left(\frac{1}{\log T}\right) = 1
+    \lim_{T \to \infty} \kappa_{\text{explicit}}(T) = 1 - \lim_{T \to \infty} O\left(\frac{1}{\log T}\right) = 1
     """)
 
     st.markdown("""
@@ -302,7 +307,7 @@ def render_asymptotic_tab():
     st.markdown("#### What Height Do We Need?")
 
     target_kappa = st.slider(
-        "Target kappa_rigorous",
+        "Target kappa_explicit",
         min_value=0.90,
         max_value=0.9999,
         value=0.99,

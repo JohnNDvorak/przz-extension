@@ -140,11 +140,11 @@ def create_breakthrough_comparison_plot(
 
     # Row 2, Col 2: Bar chart comparison
     if mode == "kappa_star":
-        categories = ['κ*_main', 'κ*_rig']
+        categories = ['κ*_main', 'κ*_explicit']
         przz_vals = [0.4075, 0.34]
         opt_vals = [1.0000, 0.84]
     else:
-        categories = ['κ_main', 'κ_rig']
+        categories = ['κ_main', 'κ_explicit']
         przz_vals = [0.4173, 0.3430]
         opt_vals = [1.0000, 0.8650]
 
@@ -161,16 +161,17 @@ def create_breakthrough_comparison_plot(
     if mode == "kappa_star":
         summary_text = (
             "<b>κ* Results</b><br><br>"
-            "PRZZ: κ*_main=0.41, κ*_rig=0.34 (explicit model)<br>"
-            "Optimized: κ*_main=1.00, κ*_rig=0.84<br><br>"
+            "PRZZ: κ*_main=0.41, κ*_explicit=0.34 (explicit model)<br>"
+            "Optimized: κ*_main=1.00, κ*_explicit=0.84<br><br>"
             "<b>Improvement: +147%</b><br>"
-            "R*_opt = 1.0796557513 (saturation)"
+            "R*_opt = 1.07965575130865 (saturation)<br>"
+            "<sub>Coefficients reconstructed to 200 digits</sub>"
         )
     else:
         summary_text = (
             "<b>κ Results</b><br><br>"
-            "PRZZ: κ_main=0.42, κ_rig=0.34 (explicit model)<br>"
-            "Optimized: κ_main=1.00, κ_rig=0.865<br><br>"
+            "PRZZ: κ_main=0.42, κ_explicit=0.34 (explicit model)<br>"
+            "Optimized: κ_main=1.00, κ_explicit=0.865<br><br>"
             "<b>Improvement: +152.2%</b><br>"
             "R_opt = 1.1497602315 (saturation)"
         )
@@ -191,7 +192,7 @@ def create_breakthrough_comparison_plot(
     fig.update_layout(
         title=dict(
             text=f"PRZZ Mollifier Optimization: {mode_label} Breakthrough<br>"
-                 f"<sub>Universal P₁ achieves ~86.5% rigorous bounds</sub>",
+                 f"<sub>Universal P₁ achieves ~86.5% explicit bounds</sub>",
             x=0.5,
         ),
         height=700,
@@ -366,6 +367,6 @@ def render_polynomial_plot(
         ```
 
         This achieves:
-        - **κ_rigorous = 0.8650** (+152% over PRZZ polynomials, explicit model)
-        - **κ*_rigorous = 0.84** (+147% over PRZZ polynomials, explicit model)
+        - **κ_explicit = 0.8650** (+152% over PRZZ polynomials, explicit model)
+        - **κ*_explicit = 0.84** (+147% over PRZZ polynomials, explicit model; reconstructed coefficients)
         """)

@@ -97,14 +97,16 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
 
         The proportion $\kappa$ of Riemann zeta zeros on the critical line satisfies:
 
-        $$\boxed{\kappa \geq 1 - \frac{\log(c)}{R}}$$
+        $$\boxed{\kappa \geq 1 - \frac{\max(\log c, 0)}{R}}$$
 
         where:
         - $R$ is the shift parameter in $\sigma_0 = \frac{1}{2} - \frac{R}{\log T}$
         - $c$ is the main-term constant from the mollified mean square
 
-        **Inverse relationship:**
+        **Inverse relationship (for $c \ge 1$):**
         $$c = e^{R(1-\kappa)}$$
+
+        **Vacuous regime:** If $c < 1$ then the bound gives $\kappa \ge 1$ (trivial).
         """)
 
         st.markdown("### Computed Values")
@@ -191,7 +193,7 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
             st.latex(rf"c = {current['S12_plus']:.4f} + {m_term:.4f} + {current['S34']:.4f} = {total:.4f}")
 
     # Mirror multiplier derivation
-    with st.expander("**3. Mirror Multiplier: Exact Algebraic Identity**", expanded=False):
+    with st.expander("**3. Mirror Multiplier: Observed Factorization**", expanded=False):
         st.markdown(r"""
         ### The Formula
 
@@ -248,11 +250,15 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
         Combining all factors:
         $$m = e^{2R} \cdot \frac{3}{2} \cdot \frac{2}{3} \cdot \left[e^{-R} + (2K-1) \cdot e^{-2R}\right]$$
 
-        The $\frac{3}{2} \cdot \frac{2}{3} = 1$ **cancels exactly**:
+        The $\frac{3}{2} \cdot \frac{2}{3} = 1$ cancels in the derivation:
 
         $$m = e^{2R} \cdot \left[e^{-R} + (2K-1) \cdot e^{-2R}\right]$$
         $$= e^{2R} \cdot e^{-R} + (2K-1) \cdot e^{2R} \cdot e^{-2R}$$
         $$\boxed{= e^R + (2K - 1)}$$
+
+        **Note:** The factorization is verified numerically across tested $R$ values.
+        Reported $c$ values are computed directly from the PRZZ integrals; this factorization
+        is used for explanatory structure rather than as a computational shortcut.
         """)
 
     # I1 Complete Derivation
@@ -679,8 +685,8 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
         st.markdown(r"""
         ### Overview of Error Sources
 
-        The rigorous bound is:
-        $$\kappa \geq \kappa_{\text{main}} - \epsilon_{\text{total}}$$
+        The explicit bound is:
+        $$\kappa \geq \kappa_{\text{main}} - \frac{\epsilon_{\text{total}}}{R}$$
 
         where $\epsilon_{\text{total}}$ combines four error sources:
 
@@ -762,14 +768,14 @@ def render_derivations(result: Optional[Dict] = None, coeffs: Optional[Dict] = N
 
         ### Impact on κ
 
-        $$\kappa_{\text{rigorous}} = \kappa_{\text{main}} - \frac{\epsilon_{\text{total}}}{R}$$
+        $$\kappa_{\text{explicit}} = \kappa_{\text{main}} - \frac{\epsilon_{\text{total}}}{R}$$
         """)
 
         eb = result.get("error_bounds") if result else None
         if current["kappa"] is not None and eb and isinstance(eb, dict) and "error" not in eb:
             eps = eb.get("total", 0)
             kappa_rig = current["kappa"] - eps / R
-            st.markdown(f"**Current rigorous κ (L=40):** {current['kappa']:.6f} - {eps:.4f}/{R:.4f} = **{kappa_rig:.6f}**")
+            st.markdown(f"**Current explicit κ (L=40):** {current['kappa']:.6f} - {eps:.4f}/{R:.4f} = **{kappa_rig:.6f}**")
 
     # G-factor derivations
     with st.expander("**10. Correction Factors: g_I1 and g_I2 Detailed**", expanded=False):

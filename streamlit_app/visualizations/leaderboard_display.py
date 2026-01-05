@@ -60,7 +60,7 @@ def render_breakthrough_summary() -> go.Figure:
     data = load_leaderboard_data()
     summary = data.get("summary", {})
 
-    categories = ['κ_main', 'κ_rigorous', 'κ*_main', 'κ*_rigorous']
+    categories = ['κ_main', 'κ_explicit', 'κ*_main', 'κ*_explicit']
 
     # PRZZ baselines
     przz_vals = [0.4173, 0.3430, 0.4075, 0.34]
@@ -120,17 +120,17 @@ def render_leaderboard_full():
 
     with col1:
         st.metric(
-            "κ_rigorous",
+            "κ_explicit",
             "0.8650",
             "+152.2% vs PRZZ (explicit model)",
             help="Proportion of zeros on critical line (explicit error model)"
         )
     with col2:
         st.metric(
-            "κ*_rigorous",
+            "κ*_explicit",
             "0.84",
             "+147% vs PRZZ (explicit model)",
-            help="Proportion of SIMPLE zeros on critical line (explicit error model)"
+            help="Simple critical-line zeros as a fraction of all zeros (explicit error model)"
         )
     with col3:
         st.metric(
@@ -141,7 +141,7 @@ def render_leaderboard_full():
     with col4:
         st.metric(
             "R_opt / R*_opt",
-            "1.1497602315 / 1.0796557513",
+            "1.1497602315 / 1.07965575130865",
             "κ / κ*",
             help="Saturation points where c(R_opt)=1 (κ) and c(R*_opt)=1 (κ*)"
         )
@@ -156,7 +156,7 @@ def render_leaderboard_full():
         render_kappa_table(data.get("kappa_entries", []))
 
     with tab_ks:
-        st.markdown("#### κ*: Simple Zeros on Critical Line")
+        st.markdown("#### κ*: Simple Critical-Line Zeros (Fraction of All Zeros)")
         render_kappa_star_table(data.get("kappa_star_entries", []))
 
     with tab_universal:
@@ -174,7 +174,7 @@ def render_kappa_table(entries: List[Dict]):
         df_data.append({
             "Rank": i + 1,
             "κ_main": entry.get("kappa_main", entry.get("kappa", 0)),
-            "κ_rigorous": entry.get("kappa_rigorous", "N/A"),
+            "κ_explicit": entry.get("kappa_rigorous", "N/A"),
             "c": entry.get("c", 0),
             "R": entry.get("R", 0),
             "Error %": entry.get("error_percent", "N/A"),
@@ -218,7 +218,7 @@ def render_kappa_star_table(entries: List[Dict]):
         df_data.append({
             "Rank": i + 1,
             "κ*_main": entry.get("kappa_star_main", 0),
-            "κ*_rigorous": entry.get("kappa_star_rigorous", "N/A"),
+            "κ*_explicit": entry.get("kappa_star_rigorous", "N/A"),
             "c": entry.get("c", 0),
             "R": entry.get("R", 0),
             "Error %": entry.get("error_percent", "N/A"),
@@ -257,7 +257,7 @@ def render_universal_p1(data: Dict):
 
     universal = data.get("universal_P1", {})
 
-    st.success("**Breakthrough**: The same P₁ coefficients achieve near-optimal results for BOTH κ and κ*!")
+    st.success("**Breakthrough**: The same P₁ coefficients achieve near-optimal results for κ and κ* (reconstructed coefficients).")
 
     col1, col2 = st.columns(2)
 
@@ -274,11 +274,11 @@ def render_universal_p1(data: Dict):
 
         st.markdown("**κ (full zeros) at R_opt=1.149760:**")
         st.markdown("- κ_main = **1.0000** (c = 1, saturation threshold)")
-        st.markdown("- κ_rigorous = **0.8650** (+152% vs PRZZ polynomials, explicit model)")
+        st.markdown("- κ_explicit = **0.8650** (+152% vs PRZZ polynomials, explicit model)")
 
-        st.markdown("**κ* (simple zeros) at R*_opt=1.079655:**")
+        st.markdown("**κ* (simple critical-line zeros) at R*_opt=1.07965575130865:**")
         st.markdown("- κ*_main = **1.0000** (c = 1, saturation threshold)")
-        st.markdown("- κ*_rigorous = **0.84** (+147% vs PRZZ polynomials, explicit model)")
+        st.markdown("- κ*_explicit = **0.84** (+147% vs PRZZ polynomials, explicit model)")
 
     st.divider()
 
@@ -286,6 +286,7 @@ def render_universal_p1(data: Dict):
     st.info("""
     - **≥86.5%** of Riemann zeta zeros lie on Re(s) = 1/2
     - **≥84%** of all non-trivial zeros are both on the critical line and simple
+    - **κ*** is measured as a fraction of all zeros (not just critical-line zeros)
     - **Asymptotic density → 1** as T → ∞
 
     Both bounds are **2.5× better** than PRZZ polynomials evaluated in our explicit error model.
